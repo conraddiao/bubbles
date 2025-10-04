@@ -111,5 +111,53 @@ export type Database = {
         Update: Partial<Omit<SMSNotification, 'id' | 'sent_at'>>
       }
     }
+    Functions: {
+      create_contact_group: {
+        Args: { group_name: string; group_description?: string }
+        Returns: string
+      }
+      join_contact_group: {
+        Args: { group_token: string; enable_notifications?: boolean }
+        Returns: string
+      }
+      join_contact_group_anonymous: {
+        Args: {
+          group_token: string
+          member_name: string
+          member_email: string
+          member_phone?: string
+          enable_notifications?: boolean
+        }
+        Returns: string
+      }
+      remove_group_member: {
+        Args: { membership_uuid: string }
+        Returns: boolean
+      }
+      close_contact_group: {
+        Args: { group_uuid: string }
+        Returns: boolean
+      }
+      get_group_members: {
+        Args: { group_uuid: string }
+        Returns: Array<{
+          id: string
+          full_name: string
+          email: string
+          phone?: string
+          notifications_enabled: boolean
+          joined_at: string
+          is_owner: boolean
+        }>
+      }
+      update_profile_across_groups: {
+        Args: { new_full_name?: string; new_phone?: string }
+        Returns: boolean
+      }
+      regenerate_group_token: {
+        Args: { group_uuid: string }
+        Returns: string
+      }
+    }
   }
 }

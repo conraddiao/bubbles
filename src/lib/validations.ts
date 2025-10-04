@@ -9,7 +9,7 @@ export const contactFormSchema = z.object({
     // Basic phone validation - can be enhanced later
     return /^\+?[\d\s\-\(\)]+$/.test(phone)
   }, 'Invalid phone number format'),
-  notifications_enabled: z.boolean().default(false),
+  notifications_enabled: z.boolean(),
 })
 
 // Group creation validation schema
@@ -41,7 +41,7 @@ export const profileUpdateSchema = z.object({
     if (!phone) return true
     return /^\+?[\d\s\-\(\)]+$/.test(phone)
   }, 'Invalid phone number format'),
-  sms_notifications_enabled: z.boolean().default(true),
+  sms_notifications_enabled: z.boolean(),
 })
 
 // Phone verification schema
