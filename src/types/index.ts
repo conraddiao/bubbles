@@ -1,0 +1,115 @@
+// Database types based on the design document
+export interface Profile {
+  id: string
+  email: string
+  full_name?: string
+  phone?: string
+  phone_verified: boolean
+  two_factor_enabled: boolean
+  sms_notifications_enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ContactGroup {
+  id: string
+  name: string
+  description?: string
+  owner_id: string
+  is_closed: boolean
+  share_token: string
+  created_at: string
+  updated_at: string
+  owner?: Profile
+  member_count?: number
+}
+
+export interface GroupMembership {
+  id: string
+  group_id: string
+  user_id?: string
+  full_name: string
+  email: string
+  phone?: string
+  notifications_enabled: boolean
+  joined_at: string
+  group?: ContactGroup
+}
+
+export interface NotificationEvent {
+  id: string
+  group_id: string
+  event_type: 'member_joined' | 'member_left' | 'group_closed'
+  data: Record<string, unknown>
+  created_at: string
+}
+
+export interface SMSNotification {
+  id: string
+  recipient_phone: string
+  message_type: 'group_closed' | 'member_notification' | '2fa_code'
+  twilio_sid?: string
+  status: 'pending' | 'sent' | 'delivered' | 'failed'
+  group_id?: string
+  sent_at: string
+}
+
+// Form types
+export interface ContactFormData {
+  full_name: string
+  email: string
+  phone?: string
+  notifications_enabled: boolean
+}
+
+export interface GroupCreationFormData {
+  name: string
+  description?: string
+}
+
+export interface AuthFormData {
+  email: string
+  password: string
+  full_name?: string
+  phone?: string
+}
+
+// API response types
+export interface ApiResponse<T = unknown> {
+  data?: T
+  error?: string
+  message?: string
+}
+
+// Supabase database types
+export type Database = {
+  public: {
+    Tables: {
+      profiles: {
+        Row: Profile
+        Insert: Omit<Profile, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>
+      }
+      contact_groups: {
+        Row: ContactGroup
+        Insert: Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token'>
+        Update: Partial<Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token'>>
+      }
+      group_memberships: {
+        Row: GroupMembership
+        Insert: Omit<GroupMembership, 'id' | 'joined_at'>
+        Update: Partial<Omit<GroupMembership, 'id' | 'joined_at'>>
+      }
+      notification_events: {
+        Row: NotificationEvent
+        Insert: Omit<NotificationEvent, 'id' | 'created_at'>
+        Update: Partial<Omit<NotificationEvent, 'id' | 'created_at'>>
+      }
+      sms_notifications: {
+        Row: SMSNotification
+        Insert: Omit<SMSNotification, 'id' | 'sent_at'>
+        Update: Partial<Omit<SMSNotification, 'id' | 'sent_at'>>
+      }
+    }
+  }
+}
