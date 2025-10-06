@@ -6,11 +6,12 @@ CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Create a profile for the new user
-  INSERT INTO profiles (id, email, full_name, phone_verified, two_factor_enabled, sms_notifications_enabled)
+  INSERT INTO profiles (id, email, full_name, phone, phone_verified, two_factor_enabled, sms_notifications_enabled)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'phone', NULL),
     FALSE,
     FALSE,
     TRUE
@@ -86,7 +87,7 @@ CHECK (validate_phone_number(phone));
 CREATE OR REPLACE FUNCTION generate_share_token()
 RETURNS TEXT AS $$
 BEGIN
-  RETURN encode(gen_random_bytes(16), 'hex');
+  RETURN replace(gen_random_uuid()::text, '-', '');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -139,7 +140,4 @@ GROUP BY cg.id, cg.name, cg.owner_id, cg.is_closed, cg.created_at;
 -- Grant access to the view
 GRANT SELECT ON group_stats TO authenticated;
 
--- RLS policy for group stats (owners can see their group stats)
-ALTER VIEW group_stats SET (security_barrier = true);
-CREATE POLICY "Owners can view group stats" ON group_stats
-  FOR SELECT USING (owner_id = auth.uid());
+-- Views inherit RLS from underlying tables, so no need for separate policies

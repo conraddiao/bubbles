@@ -3,6 +3,7 @@
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Profiles table (extends Supabase auth.users)
 CREATE TABLE profiles (
@@ -24,7 +25,7 @@ CREATE TABLE contact_groups (
   description TEXT,
   owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   is_closed BOOLEAN DEFAULT FALSE,
-  share_token TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'),
+  share_token TEXT UNIQUE NOT NULL DEFAULT replace(gen_random_uuid()::text, '-', ''),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

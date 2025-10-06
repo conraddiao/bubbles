@@ -103,7 +103,7 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
     try {
       await navigator.clipboard.writeText(shareUrl)
       toast.success('Share link copied to clipboard')
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy link')
     }
   }

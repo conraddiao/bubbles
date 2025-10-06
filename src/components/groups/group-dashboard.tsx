@@ -20,8 +20,6 @@ interface GroupDashboardProps {
 }
 
 export function GroupDashboard({ onCreateGroup, onViewGroup }: GroupDashboardProps) {
-  const queryClient = useQueryClient()
-
   const { data: groups, isLoading } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => {
@@ -141,7 +139,7 @@ function GroupCard({ group, onViewGroup }: GroupCardProps) {
     try {
       await navigator.clipboard.writeText(shareUrl)
       toast.success('Share link copied to clipboard')
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy link')
     }
   }

@@ -1,26 +1,39 @@
-'use client'
+"use client";
 
-import { useRouter } from 'next/navigation'
-import { ProfileForm } from '@/components/auth/profile-form'
-import { useAuth } from '@/hooks/use-auth'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { ProfileForm } from "@/components/auth/profile-form";
+import { useAuth } from "@/hooks/use-auth";
 
 // Force dynamic rendering
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 export default function ProfileSetupPage() {
-  const router = useRouter()
-  const { user, profile } = useAuth()
+  const router = useRouter();
+  const { user, profile, loading } = useAuth();
 
-  // If user already has a complete profile, redirect to dashboard
-  if (profile?.full_name) {
-    router.push('/dashboard')
-    return null
+  useEffect(() => {
+    // If user already has a complete profile, redirect to dashboard
+    if (!loading && profile?.full_name) {
+      router.push("/dashboard");
+    }
+
+    // If no user, redirect to auth
+    if (!loading && !user) {
+      router.push("/auth");
+    }
+  }, [user, profile, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
-  if (!user) {
-    router.push('/auth')
-    return null
+  if (!user || profile?.full_name) {
+    return null; // Will redirect
   }
 
   return (
@@ -31,12 +44,13 @@ export default function ProfileSetupPage() {
             Complete Your Profile
           </h1>
           <p className="text-gray-600 dark:text-gray-300">
-            Please provide your information to get started with Shared Contact Groups
+            Please provide your information to get started with Shared Contact
+            Groups
           </p>
         </div>
-        
-        <ProfileForm onSuccess={() => router.push('/dashboard')} />
+
+        <ProfileForm onSuccess={() => router.push("/dashboard")} />
       </div>
     </div>
-  )
+  );
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AuthForm } from '@/components/auth/auth-form'
 import { useAuth } from '@/hooks/use-auth'
@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/use-auth'
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading } = useAuth()
@@ -44,5 +44,17 @@ export default function AuthPage() {
         />
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   )
 }

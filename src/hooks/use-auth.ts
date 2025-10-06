@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { Profile } from '@/types'
 import { toast } from 'sonner'
 
+
 interface AuthState {
   user: User | null
   profile: Profile | null
@@ -30,28 +31,44 @@ export function useAuth(): AuthState & AuthActions {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id)
-        setState({
-          user: session.user,
-          profile,
-          session,
-          loading: false,
-        })
-      } else {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (session?.user) {
+          const profile = await fetchProfile(session.user.id)
+          setState({
+            user: session.user,
+            profile,
+            session,
+            loading: false,
+          })
+        } else {
+          setState(prev => ({ ...prev, loading: false }))
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error)
         setState(prev => ({ ...prev, loading: false }))
       }
     }
 
     getInitialSession()
 
+    // Add a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.log('Auth loading timeout - forcing loading to false')
+      setState(prev => ({ ...prev, loading: false }))
+    }, 3000)
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
+        clearTimeout(timeout) // Clear timeout if auth state changes
+        
         if (session?.user) {
-          const profile = await fetchProfile(session.user.id)
+          // Only fetch profile if we don't already have one for this user
+          const needsProfile = !state.profile || state.profile.id !== session.user.id
+          const profile = needsProfile ? await fetchProfile(session.user.id) : state.profile
+          
           setState({
             user: session.user,
             profile,
@@ -69,11 +86,17 @@ export function useAuth(): AuthState & AuthActions {
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [])
 
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
+      console.log('Fetching profile for user:', userId)
+      
+      // Simple query without abort controller to avoid issues
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -81,13 +104,49 @@ export function useAuth(): AuthState & AuthActions {
         .single()
 
       if (error) {
-        console.error('Error fetching profile:', error)
+        console.error('Profile fetch error:', error.code, error.message)
+        
+        // If profile doesn't exist, create it synchronously
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found - creating profile...')
+          
+          const { data: user } = await supabase.auth.getUser()
+          if (user.user) {
+            try {
+              const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: userId,
+                  email: user.user.email || '',
+                  full_name: user.user.user_metadata?.full_name || '',
+                  phone: user.user.user_metadata?.phone || null,
+                  phone_verified: false,
+                  two_factor_enabled: false,
+                  sms_notifications_enabled: true
+                })
+                .select()
+                .single()
+
+              if (createError) {
+                console.error('Profile creation error:', createError)
+                return null
+              }
+              
+              console.log('Profile created successfully:', newProfile)
+              return newProfile
+            } catch (createError) {
+              console.error('Failed to create profile:', createError)
+            }
+          }
+        }
+        
         return null
       }
 
+      console.log('Successfully fetched profile:', data)
       return data
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error('Profile fetch failed:', error)
       return null
     }
   }
@@ -99,6 +158,10 @@ export function useAuth(): AuthState & AuthActions {
     phone?: string
   ) => {
     try {
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -110,6 +173,8 @@ export function useAuth(): AuthState & AuthActions {
         }
       })
 
+      clearTimeout(timeoutId)
+
       if (error) {
         toast.error(error.message)
         return { error }
@@ -117,10 +182,20 @@ export function useAuth(): AuthState & AuthActions {
 
       if (data.user && !data.session) {
         toast.success('Please check your email to verify your account')
+      } else if (data.session) {
+        toast.success('Account created successfully!')
       }
 
+      console.log('Signup result:', { user: data.user, session: data.session })
+
       return { error: undefined }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        const message = 'Sign up request timed out. Please try again.'
+        toast.error(message)
+        return { error: { message } as AuthError }
+      }
+      
       const message = 'An unexpected error occurred during sign up'
       toast.error(message)
       return { error: { message } as AuthError }
@@ -169,7 +244,7 @@ export function useAuth(): AuthState & AuthActions {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update(updates as any)
+        .update(updates as unknown)
         .eq('id', state.user.id)
 
       if (error) {

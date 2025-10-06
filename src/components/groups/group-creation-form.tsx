@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -20,6 +20,7 @@ interface GroupCreationFormProps {
 export function GroupCreationForm({ onSuccess, onCancel }: GroupCreationFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const queryClient = useQueryClient()
+  const toastShownRef = useRef(false)
 
   const {
     register,
@@ -40,7 +41,11 @@ export function GroupCreationForm({ onSuccess, onCancel }: GroupCreationFormProp
       return result.data
     },
     onSuccess: (data) => {
-      toast.success('Group created successfully!')
+      // Only show toast once per form submission
+      if (!toastShownRef.current) {
+        toast.success('Group created successfully!')
+        toastShownRef.current = true
+      }
       queryClient.invalidateQueries({ queryKey: ['user-groups'] })
       reset()
       onSuccess?.(data?.group_id, data?.share_token)
@@ -55,6 +60,7 @@ export function GroupCreationForm({ onSuccess, onCancel }: GroupCreationFormProp
 
   const onSubmit = async (data: GroupCreationFormData) => {
     setIsSubmitting(true)
+    toastShownRef.current = false // Reset toast flag for new submission
     createGroupMutation.mutate(data)
   }
 
