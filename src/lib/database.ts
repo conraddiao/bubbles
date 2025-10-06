@@ -308,7 +308,7 @@ export async function getUserGroups() {
 
     // Get member counts for user's groups
     const groupsWithCounts = await Promise.all(
-      userGroups.map(async (group: unknown) => {
+      userGroups.map(async (group: any) => {
         const { count } = await supabase
           .from('group_memberships')
           .select('*', { count: 'exact', head: true })
