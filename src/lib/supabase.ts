@@ -5,6 +5,13 @@ import { Database } from '@/types'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
+// Check if we're in a production environment without proper config
+const isProductionWithoutConfig = process.env.NODE_ENV === 'production' && supabaseUrl === 'https://placeholder.supabase.co'
+
+if (isProductionWithoutConfig) {
+  console.error('CRITICAL: Supabase environment variables not configured in production!')
+}
+
 // Create a mock client for development when credentials are not available
 const createMockClient = () => ({
   auth: {
@@ -42,7 +49,15 @@ const createMockClient = () => ({
   })
 })
 
-export const supabase = supabaseUrl === 'https://placeholder.supabase.co' 
+// Debug logging
+console.log('Supabase config:', {
+  url: supabaseUrl,
+  hasAnonKey: !!supabaseAnonKey && supabaseAnonKey !== 'placeholder-anon-key',
+  isProduction: process.env.NODE_ENV === 'production',
+  isProductionWithoutConfig
+})
+
+export const supabase = (supabaseUrl === 'https://placeholder.supabase.co' || isProductionWithoutConfig)
   ? createMockClient() as any
   : createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {

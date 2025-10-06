@@ -96,12 +96,33 @@ export function useAuth(): AuthState & AuthActions {
     try {
       console.log('Fetching profile for user:', userId)
       
-      // Simple query without abort controller to avoid issues
-      const { data, error } = await supabase
+
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        console.log('Profile fetch timeout - aborting request')
+        controller.abort()
+      }, 10000) // 10 second timeout
+      
+      // Create a promise that will race with the timeout
+      const queryPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Profile fetch timeout'))
+        }, 10000)
+      })
+      
+      console.log('Starting profile query...')
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any
+      
+      clearTimeout(timeoutId)
+      console.log('Profile query completed:', { data: !!data, error: error?.code })
 
       if (error) {
         console.error('Profile fetch error:', error.code, error.message)
@@ -145,8 +166,13 @@ export function useAuth(): AuthState & AuthActions {
 
       console.log('Successfully fetched profile:', data)
       return data
-    } catch (error) {
-      console.error('Profile fetch failed:', error)
+    } catch (error: any) {
+      if (error.message === 'Profile fetch timeout') {
+        console.error('Profile fetch timed out after 10 seconds')
+        toast.error('Connection timeout. Please check your internet connection.')
+      } else {
+        console.error('Profile fetch failed:', error)
+      }
       return null
     }
   }

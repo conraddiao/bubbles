@@ -34,6 +34,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { getUserGroups } from '@/lib/database'
 import { toast } from 'sonner'
+import { SupabaseTest } from '@/components/debug/supabase-test'
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -87,6 +88,9 @@ function DashboardContent() {
           </div>
         </div>
 
+        {/* Debug component - remove after testing */}
+        <SupabaseTest />
+        
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
