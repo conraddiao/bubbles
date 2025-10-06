@@ -9,7 +9,8 @@ const rpc = (client: typeof supabase) => ({
     client.rpc('join_contact_group' as any, args as any),
   joinContactGroupAnonymous: (args: {
     group_token: string
-    member_name: string
+    member_first_name: string
+    member_last_name: string
     member_email: string
     member_phone?: string
     enable_notifications?: boolean
@@ -124,13 +125,14 @@ export async function joinContactGroup(shareToken: string, enableNotifications =
 
 export async function joinContactGroupAnonymous(
   shareToken: string,
-  fullName: string,
+  firstName: string,
+  lastName: string,
   email: string,
   phone?: string,
   enableNotifications = false
 ) {
   try {
-    console.log('Anonymous user joining group:', { shareToken, fullName, email })
+    console.log('Anonymous user joining group:', { shareToken, firstName, lastName, email })
 
     // First, find the group by share token
     const { data: group, error: groupError } = await supabase
@@ -166,7 +168,8 @@ export async function joinContactGroupAnonymous(
       .insert({
         group_id: group.id,
         user_id: null, // Anonymous user
-        full_name: fullName.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         email: email.toLowerCase().trim(),
         phone: phone?.trim() || null,
         notifications_enabled: enableNotifications

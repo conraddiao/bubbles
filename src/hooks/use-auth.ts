@@ -13,7 +13,7 @@ interface AuthState {
 }
 
 interface AuthActions {
-  signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<{ error?: AuthError }>
+  signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<{ error?: AuthError }>
   signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>) => Promise<{ error?: string }>
@@ -139,7 +139,8 @@ export function useAuth(): AuthState & AuthActions {
                 .insert({
                   id: userId,
                   email: user.user.email || '',
-                  full_name: user.user.user_metadata?.full_name || '',
+                  first_name: user.user.user_metadata?.first_name || '',
+                  last_name: user.user.user_metadata?.last_name || '',
                   phone: user.user.user_metadata?.phone || null,
                   phone_verified: false,
                   two_factor_enabled: false,
@@ -180,7 +181,8 @@ export function useAuth(): AuthState & AuthActions {
   const signUp = async (
     email: string, 
     password: string, 
-    fullName: string, 
+    firstName: string, 
+    lastName: string,
     phone?: string
   ) => {
     try {
@@ -193,7 +195,8 @@ export function useAuth(): AuthState & AuthActions {
         password,
         options: {
           data: {
-            full_name: fullName,
+            first_name: firstName,
+            last_name: lastName,
             phone: phone || null,
           }
         }

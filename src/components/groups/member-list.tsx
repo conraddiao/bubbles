@@ -25,7 +25,8 @@ import { formatDistanceToNow } from 'date-fns'
 
 interface GroupMember {
   id: string
-  full_name: string
+  first_name: string
+  last_name: string
   email: string
   phone?: string
   notifications_enabled: boolean
@@ -89,7 +90,7 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts }: Me
       return
     }
 
-    if (confirm(`Are you sure you want to remove ${member.full_name} from the group?`)) {
+    if (confirm(`Are you sure you want to remove ${member.first_name} ${member.last_name} from the group?`)) {
       removeMemberMutation.mutate(member.id)
     }
   }
@@ -199,12 +200,12 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts }: Me
                     <div className="flex items-center space-x-3">
                       <Avatar>
                         <AvatarFallback>
-                          {getInitials(member.full_name)}
+                          {getInitials(`${member.first_name} ${member.last_name}`)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{member.full_name}</span>
+                          <span className="font-medium">{member.first_name} {member.last_name}</span>
                           {member.is_owner && (
                             <Badge variant="secondary" className="text-xs">
                               Owner

@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Copy, Users, ExternalLink, Settings, Download, UserPlus } from 'lucide-react'
+import { Copy, Users, ExternalLink, Settings, Download, UserPlus, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { MemberList } from './member-list'
+import { ContactExport } from './contact-export'
+import { GroupSettings } from './group-settings'
 
 interface SingleGroupDashboardProps {
   groupId: string
@@ -15,7 +18,8 @@ interface SingleGroupDashboardProps {
 
 interface GroupMember {
   id: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone?: string;
   is_owner: boolean;
@@ -23,6 +27,8 @@ interface GroupMember {
 
 export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
   const [showShareLink, setShowShareLink] = useState(false)
+  const [currentView, setCurrentView] = useState<'dashboard' | 'members' | 'export' | 'settings'>('dashboard')
+  const [isOwner, setIsOwner] = useState(false)
 
   // Fetch group details with better error handling
   const { data: group, isLoading: groupLoading, error: groupError } = useQuery({
@@ -61,6 +67,10 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
       }
       
       console.log('Group fetched successfully:', data)
+      
+      // Check if current user is the owner
+      setIsOwner(data.owner_id === user.id)
+      
       return data
     },
     retry: 1,
@@ -159,6 +169,84 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
     )
   }
 
+  // Render different views based on currentView state
+  if (currentView === 'members') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentView('dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{group.name} - Members</h1>
+            <p className="text-muted-foreground">Manage group members and their information</p>
+          </div>
+        </div>
+        <MemberList 
+          groupId={groupId} 
+          groupName={group.name}
+          isOwner={isOwner}
+          onExportContacts={() => setCurrentView('export')}
+        />
+      </div>
+    )
+  }
+
+  if (currentView === 'export') {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentView('dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{group.name} - Export Contacts</h1>
+            <p className="text-muted-foreground">Download member contact information</p>
+          </div>
+        </div>
+        <ContactExport 
+          groupId={groupId} 
+          groupName={group.name}
+        />
+      </div>
+    )
+  }
+
+  if (currentView === 'settings' && isOwner) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentView('dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{group.name} - Settings</h1>
+            <p className="text-muted-foreground">Manage group settings and preferences</p>
+          </div>
+        </div>
+        <GroupSettings 
+          groupId={groupId}
+          onBack={() => setCurrentView('dashboard')}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Group Header */}
@@ -244,7 +332,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
               <div className="space-y-2">
                 {members.slice(0, 3).map((member: GroupMember) => (
                   <div key={member.id} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{member.full_name}</span>
+                    <span className="text-sm font-medium">{member.first_name} {member.last_name}</span>
                     <span className="text-xs text-muted-foreground">{member.email}</span>
                   </div>
                 ))}
@@ -257,7 +345,12 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
             ) : (
               <p className="text-sm text-muted-foreground">No members yet</p>
             )}
-            <Button variant="outline" size="sm" className="w-full mt-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full mt-3"
+              onClick={() => setCurrentView('members')}
+            >
               <Users className="h-4 w-4 mr-2" />
               View All Members
             </Button>
@@ -276,14 +369,26 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={() => setCurrentView('export')}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export Contacts
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start">
-              <Settings className="h-4 w-4 mr-2" />
-              Group Settings
-            </Button>
+            {isOwner && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full justify-start"
+                onClick={() => setCurrentView('settings')}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Group Settings
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

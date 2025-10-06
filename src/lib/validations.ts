@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 // Contact form validation schema
 export const contactFormSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required').max(100, 'Name too long'),
+  first_name: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+  last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional().refine((phone) => {
     if (!phone) return true
@@ -22,7 +23,8 @@ export const groupCreationSchema = z.object({
 export const signUpSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  full_name: z.string().min(1, 'Full name is required').max(100, 'Name too long'),
+  first_name: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+  last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
   phone: z.string().optional().refine((phone) => {
     if (!phone) return true
     return /^\+?[\d\s\-\(\)]+$/.test(phone)
@@ -36,7 +38,8 @@ export const signInSchema = z.object({
 
 // Profile update validation schema
 export const profileUpdateSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required').max(100, 'Name too long'),
+  first_name: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+  last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
   phone: z.string().optional().refine((phone) => {
     if (!phone) return true
     return /^\+?[\d\s\-\(\)]+$/.test(phone)

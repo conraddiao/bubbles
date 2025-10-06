@@ -12,7 +12,8 @@ import { toast } from 'sonner'
 
 interface GroupMember {
   id: string
-  full_name: string
+  first_name: string
+  last_name: string
   email: string
   phone?: string
   notifications_enabled: boolean
@@ -42,10 +43,12 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
 
   // Generate vCard content for a single member
   const generateVCard = (member: GroupMember): string => {
+    const fullName = `${member.first_name} ${member.last_name}`
     const vcard = [
       'BEGIN:VCARD',
       'VERSION:3.0',
-      `FN:${member.full_name}`,
+      `FN:${fullName}`,
+      `N:${member.last_name};${member.first_name};;;`,
       `EMAIL:${member.email}`,
     ]
 
@@ -84,9 +87,9 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
     try {
       setIsExporting(true)
       const vCardContent = generateVCard(member)
-      const filename = `${member.full_name.replace(/[^a-zA-Z0-9]/g, '_')}.vcf`
+      const filename = `${member.first_name}_${member.last_name}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
       downloadFile(vCardContent, filename)
-      toast.success(`Contact exported: ${member.full_name}`)
+      toast.success(`Contact exported: ${member.first_name} ${member.last_name}`)
     } catch (error) {
       console.error('Failed to export contact:', error)
       toast.error('Failed to export contact')
@@ -112,9 +115,9 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
         // Single contact export
         const member = selectedMemberData[0]
         const vCardContent = generateVCard(member)
-        const filename = `${member.full_name.replace(/[^a-zA-Z0-9]/g, '_')}.vcf`
+        const filename = `${member.first_name}_${member.last_name}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
         downloadFile(vCardContent, filename)
-        toast.success(`Contact exported: ${member.full_name}`)
+        toast.success(`Contact exported: ${member.first_name} ${member.last_name}`)
       } else {
         // Bulk export
         const vCardContent = generateBulkVCard(selectedMemberData)
@@ -279,7 +282,7 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{member.full_name}</span>
+                      <span className="font-medium">{member.first_name} {member.last_name}</span>
                       {member.is_owner && (
                         <Badge variant="secondary" className="text-xs">
                           Owner

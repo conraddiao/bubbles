@@ -28,7 +28,8 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
   } = useForm<ProfileUpdateFormData>({
     resolver: zodResolver(profileUpdateSchema),
     defaultValues: {
-      full_name: profile?.full_name || '',
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
       phone: profile?.phone || '',
       sms_notifications_enabled: profile?.sms_notifications_enabled ?? true,
     },
@@ -73,20 +74,38 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="full_name" className="text-sm font-medium">
-                Full Name
-              </label>
-              <Input
-                id="full_name"
-                type="text"
-                placeholder="Enter your full name"
-                {...register('full_name')}
-                className={errors.full_name ? 'border-red-500' : ''}
-              />
-              {errors.full_name && (
-                <p className="text-sm text-red-500">{errors.full_name.message}</p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="first_name" className="text-sm font-medium">
+                  First Name
+                </label>
+                <Input
+                  id="first_name"
+                  type="text"
+                  placeholder="Enter your first name"
+                  {...register('first_name')}
+                  className={errors.first_name ? 'border-red-500' : ''}
+                />
+                {errors.first_name && (
+                  <p className="text-sm text-red-500">{errors.first_name.message}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="last_name" className="text-sm font-medium">
+                  Last Name
+                </label>
+                <Input
+                  id="last_name"
+                  type="text"
+                  placeholder="Enter your last name"
+                  {...register('last_name')}
+                  className={errors.last_name ? 'border-red-500' : ''}
+                />
+                {errors.last_name && (
+                  <p className="text-sm text-red-500">{errors.last_name.message}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -69,7 +69,7 @@ function DashboardContent() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Welcome back, {profile?.full_name || user?.email}!
+              Welcome back, {profile?.first_name ? `${profile.first_name} ${profile.last_name}` : user?.email}!
             </h1>
             <p className="text-gray-600 dark:text-gray-300 mt-2">
               Manage your contact groups and profile settings
@@ -105,7 +105,7 @@ function DashboardContent() {
             <CardContent>
               <div className="space-y-2 text-sm">
                 <p>
-                  <strong>Name:</strong> {profile?.full_name || "Not set"}
+                  <strong>Name:</strong> {profile?.first_name ? `${profile.first_name} ${profile.last_name}` : "Not set"}
                 </p>
                 <p>
                   <strong>Email:</strong> {profile?.email}

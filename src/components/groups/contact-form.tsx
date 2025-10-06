@@ -69,7 +69,8 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
   // Pre-fill form with user data if authenticated
   useEffect(() => {
     if (profile && user) {
-      setValue('full_name', (profile as any)?.full_name || '')
+      setValue('first_name', (profile as any)?.first_name || '')
+      setValue('last_name', (profile as any)?.last_name || '')
       setValue('email', (profile as any)?.email || user.email || '')
       setValue('phone', (profile as any)?.phone || '')
       setValue('notifications_enabled', (profile as any)?.sms_notifications_enabled || false)
@@ -87,7 +88,8 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
         // Anonymous user
         const result = await joinContactGroupAnonymous(
           shareToken,
-          data.full_name,
+          data.first_name,
+          data.last_name,
           data.email,
           data.phone,
           data.notifications_enabled
@@ -204,27 +206,45 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
           </CardDescription>
           {(group as any)?.owner && (
             <p className="text-sm text-muted-foreground">
-              Hosted by {(group as any).owner.full_name}
+              Hosted by {(group as any).owner.first_name} {(group as any).owner.last_name}
             </p>
           )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="full_name" className="text-sm font-medium flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Full Name *
-              </label>
-              <Input
-                id="full_name"
-                placeholder="Enter your full name"
-                {...register('full_name')}
-                aria-invalid={!!errors.full_name}
-                disabled={!!user && !!(profile as any)?.full_name}
-              />
-              {errors.full_name && (
-                <p className="text-sm text-destructive">{errors.full_name.message}</p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="first_name" className="text-sm font-medium flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  First Name *
+                </label>
+                <Input
+                  id="first_name"
+                  placeholder="Enter your first name"
+                  {...register('first_name')}
+                  aria-invalid={!!errors.first_name}
+                  disabled={!!user && !!(profile as any)?.first_name}
+                />
+                {errors.first_name && (
+                  <p className="text-sm text-destructive">{errors.first_name.message}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="last_name" className="text-sm font-medium">
+                  Last Name *
+                </label>
+                <Input
+                  id="last_name"
+                  placeholder="Enter your last name"
+                  {...register('last_name')}
+                  aria-invalid={!!errors.last_name}
+                  disabled={!!user && !!(profile as any)?.last_name}
+                />
+                {errors.last_name && (
+                  <p className="text-sm text-destructive">{errors.last_name.message}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
