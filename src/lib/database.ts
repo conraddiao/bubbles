@@ -304,19 +304,13 @@ export async function getUserGroups() {
 
     console.log('Fetching groups for user:', user.id)
 
-    // First, let's see if any groups exist at all
-    const { data: testGroups, error: testError } = await supabase
+    // With RLS enabled, this query will automatically filter to user's accessible groups
+    const { data: groups, error: groupsError } = await supabase
       .from('contact_groups')
-      .select('id, name, owner_id')
-      .limit(5)
-
-    console.log('Test query - groups exist:', testGroups)
-    if (testError) console.error('Test query error:', testError)
-
-    // Since RLS is disabled, let's get all groups and filter manually
-    const { data: allGroups, error: groupsError } = await supabase
-      .from('contact_groups')
-      .select('*')
+      .select(`
+        *,
+        owner:profiles!owner_id(first_name, last_name)
+      `)
       .order('created_at', { ascending: false })
 
     if (groupsError) {
@@ -324,33 +318,11 @@ export async function getUserGroups() {
       throw groupsError
     }
 
-    console.log('All groups found:', allGroups?.length || 0)
-    console.log('Groups owned by user:', allGroups?.filter((g: any) => g.owner_id === user.id).length || 0)
+    console.log('User accessible groups found:', groups?.length || 0)
 
-    // Get user's memberships
-    const { data: memberships, error: memberError } = await supabase
-      .from('group_memberships')
-      .select('group_id')
-      .eq('user_id', user.id)
-
-    if (memberError) {
-      console.error('Error fetching memberships:', memberError)
-      throw memberError
-    }
-
-    console.log('User memberships:', memberships?.length || 0)
-
-    // Filter groups where user is owner or member
-    const memberGroupIds = new Set(memberships?.map((m: any) => m.group_id) || [])
-    const userGroups = allGroups?.filter((group: any) => 
-      group.owner_id === user.id || memberGroupIds.has(group.id)
-    ) || []
-
-    console.log('Filtered user groups:', userGroups.length)
-
-    // Get member counts for user's groups
+    // Get member counts for each group
     const groupsWithCounts = await Promise.all(
-      userGroups.map(async (group: any) => {
+      (groups || []).map(async (group: any) => {
         const { count } = await supabase
           .from('group_memberships')
           .select('*', { count: 'exact', head: true })
@@ -376,37 +348,20 @@ export async function getGroupByToken(shareToken: string) {
   try {
     console.log('Fetching group by token:', shareToken)
     
-    // Add timeout to prevent hanging
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => {
-      console.log('Group fetch timeout, aborting...')
-      controller.abort()
-    }, 5000)
-    
-    // Test basic connection first
-    console.log('Testing basic database connection...')
-    const { data: testData, error: testError } = await supabase
-      .from('contact_groups')
-      .select('count')
-      .limit(1)
-    
-    console.log('Basic connection test result:', { testData, testError })
-    
-    if (testError) {
-      console.error('Basic connection failed:', testError)
-      throw new Error('Database connection failed: ' + testError.message)
-    }
-    
-    // Since RLS is disabled, use regular client
-    console.log('Attempting actual group query...')
+    // With RLS enabled, this query will work for public access via share_token
     const { data, error } = await supabase
       .from('contact_groups')
-      .select('id, name, description, is_closed, owner_id, share_token')
+      .select(`
+        id,
+        name,
+        description,
+        is_closed,
+        owner_id,
+        share_token,
+        owner:profiles!owner_id(first_name, last_name)
+      `)
       .eq('share_token', shareToken)
-      .abortSignal(controller.signal)
       .single()
-
-    clearTimeout(timeoutId)
 
     if (error) {
       console.error('Group fetch error:', error)
@@ -414,42 +369,9 @@ export async function getGroupByToken(shareToken: string) {
     }
 
     console.log('Group data fetched:', data)
-
-    // Get owner info separately with timeout
-    let ownerInfo = null
-    if (data.owner_id) {
-      try {
-        const ownerController = new AbortController()
-        const ownerTimeoutId = setTimeout(() => ownerController.abort(), 3000)
-        
-        const { data: owner } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', data.owner_id)
-          .abortSignal(ownerController.signal)
-          .single()
-        
-        clearTimeout(ownerTimeoutId)
-        ownerInfo = owner
-        console.log('Owner info fetched:', ownerInfo)
-      } catch (ownerError) {
-        console.warn('Could not fetch owner info:', ownerError)
-        // Continue without owner info
-      }
-    }
-
-    const result = {
-      ...data,
-      owner: ownerInfo
-    }
-
-    console.log('Final group result:', result)
-    return { data: result, error: null }
+    return { data, error: null }
   } catch (error: unknown) {
     console.error('getGroupByToken error:', error)
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { data: null, error: 'Request timed out. Please try again.' }
-    }
     return { data: null, error: handleDatabaseError(error) }
   }
 }
