@@ -188,7 +188,7 @@ export function useAuth(): AuthState & AuthActions {
       console.log('Signup result:', { user: data.user, session: data.session })
 
       return { error: undefined }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error.name === 'AbortError') {
         const message = 'Sign up request timed out. Please try again.'
         toast.error(message)
