@@ -251,7 +251,7 @@ export async function getGroupMembers(groupId: string) {
     if (groupError) throw groupError
 
     // Transform the data using first_name and last_name
-    const transformedData = memberships?.map(member => ({
+    const transformedData = memberships?.map((member: any) => ({
       id: member.id,
       first_name: member.first_name || '',
       last_name: member.last_name || '',
