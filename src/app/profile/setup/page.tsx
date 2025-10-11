@@ -14,7 +14,7 @@ export default function ProfileSetupPage() {
 
   useEffect(() => {
     // If user already has a complete profile, redirect to dashboard
-    if (!loading && profile?.full_name) {
+    if (!loading && profile?.first_name && profile?.last_name) {
       router.push("/dashboard");
     }
 
@@ -32,7 +32,7 @@ export default function ProfileSetupPage() {
     );
   }
 
-  if (!user || profile?.full_name) {
+  if (!user || (profile?.first_name && profile?.last_name)) {
     return null; // Will redirect
   }
 

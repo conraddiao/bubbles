@@ -48,7 +48,8 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
         result = await signUp(
           signUpData.email,
           signUpData.password,
-          signUpData.full_name,
+          signUpData.first_name,
+          signUpData.last_name,
           signUpData.phone
         )
       } else {
@@ -131,20 +132,38 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
       <CardContent>
         <form onSubmit={currentForm.handleSubmit(onSubmit)} className="space-y-4">
           {isSignUp && (
-            <div className="space-y-2">
-              <label htmlFor="full_name" className="text-sm font-medium">
-                Full Name
-              </label>
-              <Input
-                id="full_name"
-                type="text"
-                placeholder="Enter your full name"
-                {...signUpForm.register('full_name')}
-                className={signUpForm.formState.errors.full_name ? 'border-red-500' : ''}
-              />
-              {signUpForm.formState.errors.full_name && (
-                <p className="text-sm text-red-500">{signUpForm.formState.errors.full_name.message}</p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="first_name" className="text-sm font-medium">
+                  First Name
+                </label>
+                <Input
+                  id="first_name"
+                  type="text"
+                  placeholder="Enter your first name"
+                  {...signUpForm.register('first_name')}
+                  className={signUpForm.formState.errors.first_name ? 'border-red-500' : ''}
+                />
+                {signUpForm.formState.errors.first_name && (
+                  <p className="text-sm text-red-500">{signUpForm.formState.errors.first_name.message}</p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="last_name" className="text-sm font-medium">
+                  Last Name
+                </label>
+                <Input
+                  id="last_name"
+                  type="text"
+                  placeholder="Enter your last name"
+                  {...signUpForm.register('last_name')}
+                  className={signUpForm.formState.errors.last_name ? 'border-red-500' : ''}
+                />
+                {signUpForm.formState.errors.last_name && (
+                  <p className="text-sm text-red-500">{signUpForm.formState.errors.last_name.message}</p>
+                )}
+              </div>
             </div>
           )}
 

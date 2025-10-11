@@ -26,7 +26,8 @@ export default function JoinPage({ params }: JoinPageProps) {
   const token = resolvedParams.token
 
   const [formData, setFormData] = useState({
-    full_name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
     notifications_enabled: false
@@ -50,7 +51,8 @@ export default function JoinPage({ params }: JoinPageProps) {
           
           if (profile) {
             setFormData({
-              full_name: profile.full_name || '',
+              first_name: profile.first_name || '',
+              last_name: profile.last_name || '',
               email: profile.email || user.email || '',
               phone: profile.phone || '',
               notifications_enabled: profile.sms_notifications_enabled || false
@@ -88,7 +90,8 @@ export default function JoinPage({ params }: JoinPageProps) {
         // Anonymous user
         const result = await joinContactGroupAnonymous(
           token,
-          formData.full_name,
+          formData.first_name,
+          formData.last_name,
           formData.email,
           formData.phone,
           formData.notifications_enabled
@@ -110,8 +113,8 @@ export default function JoinPage({ params }: JoinPageProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.full_name.trim() || !formData.email.trim()) {
-      toast.error('Name and email are required')
+    if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim()) {
+      toast.error('First name, last name, and email are required')
       return
     }
 
@@ -219,25 +222,41 @@ export default function JoinPage({ params }: JoinPageProps) {
           </CardDescription>
           {group.owner && (
             <p className="text-sm text-gray-500">
-              Organized by {group.owner.full_name}
+              Organized by {group.owner.first_name} {group.owner.last_name}
             </p>
           )}
         </CardHeader>
         
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="full_name" className="text-sm font-medium">
-                Full Name *
-              </label>
-              <Input
-                id="full_name"
-                type="text"
-                placeholder="Enter your full name"
-                value={formData.full_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="first_name" className="text-sm font-medium">
+                  First Name *
+                </label>
+                <Input
+                  id="first_name"
+                  type="text"
+                  placeholder="Enter your first name"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="last_name" className="text-sm font-medium">
+                  Last Name *
+                </label>
+                <Input
+                  id="last_name"
+                  type="text"
+                  placeholder="Enter your last name"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

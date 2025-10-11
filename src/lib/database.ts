@@ -9,7 +9,8 @@ const rpc = (client: typeof supabase) => ({
     client.rpc('join_contact_group' as any, args as any),
   joinContactGroupAnonymous: (args: {
     group_token: string
-    member_name: string
+    member_first_name: string
+    member_last_name: string
     member_email: string
     member_phone?: string
     enable_notifications?: boolean
@@ -20,7 +21,7 @@ const rpc = (client: typeof supabase) => ({
     client.rpc('close_contact_group' as any, args as any),
   getGroupMembers: (args: { group_uuid: string }) =>
     client.rpc('get_group_members' as any, args as any),
-  updateProfileAcrossGroups: (args: { new_full_name?: string; new_phone?: string }) =>
+  updateProfileAcrossGroups: (args: { new_first_name?: string; new_last_name?: string; new_phone?: string }) =>
     client.rpc('update_profile_across_groups' as any, args as any),
   regenerateGroupToken: (args: { group_uuid: string }) =>
     client.rpc('regenerate_group_token' as any, args as unknown),
@@ -100,7 +101,8 @@ export async function joinContactGroup(shareToken: string, enableNotifications =
       .insert({
         group_id: group.id,
         user_id: user.id,
-        full_name: profile.full_name || 'Member',
+        first_name: profile.first_name || 'Member',
+        last_name: profile.last_name || '',
         email: profile.email,
         phone: profile.phone,
         notifications_enabled: enableNotifications
@@ -124,13 +126,14 @@ export async function joinContactGroup(shareToken: string, enableNotifications =
 
 export async function joinContactGroupAnonymous(
   shareToken: string,
-  fullName: string,
+  firstName: string,
+  lastName: string,
   email: string,
   phone?: string,
   enableNotifications = false
 ) {
   try {
-    console.log('Anonymous user joining group:', { shareToken, fullName, email })
+    console.log('Anonymous user joining group:', { shareToken, firstName, lastName, email })
 
     // First, find the group by share token
     const { data: group, error: groupError } = await supabase
@@ -166,7 +169,8 @@ export async function joinContactGroupAnonymous(
       .insert({
         group_id: group.id,
         user_id: null, // Anonymous user
-        full_name: fullName.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         email: email.toLowerCase().trim(),
         phone: phone?.trim() || null,
         notifications_enabled: enableNotifications
@@ -216,21 +220,59 @@ export async function closeContactGroup(groupId: string) {
 
 export async function getGroupMembers(groupId: string) {
   try {
-    const { data, error } = await rpc(supabase).getGroupMembers({
-      group_uuid: groupId
-    })
+    // First, try to get the current user to determine ownership
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    // Query group memberships using first_name and last_name only
+    const { data: memberships, error: memberError } = await supabase
+      .from('group_memberships')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        notifications_enabled,
+        joined_at,
+        user_id
+      `)
+      .eq('group_id', groupId)
+      .order('joined_at', { ascending: true })
 
-    if (error) throw error
-    return { data, error: null }
+    if (memberError) throw memberError
+
+    // Get group info to determine owner
+    const { data: group, error: groupError } = await supabase
+      .from('contact_groups')
+      .select('owner_id')
+      .eq('id', groupId)
+      .single()
+
+    if (groupError) throw groupError
+
+    // Transform the data using first_name and last_name
+    const transformedData = memberships?.map((member: any) => ({
+      id: member.id,
+      first_name: member.first_name || '',
+      last_name: member.last_name || '',
+      email: member.email,
+      phone: member.phone,
+      notifications_enabled: member.notifications_enabled,
+      joined_at: member.joined_at,
+      is_owner: member.user_id === group.owner_id
+    })) || []
+
+    return { data: transformedData, error: null }
   } catch (error) {
     return { data: null, error: handleDatabaseError(error) }
   }
 }
 
-export async function updateProfileAcrossGroups(fullName?: string, phone?: string) {
+export async function updateProfileAcrossGroups(firstName?: string, lastName?: string, phone?: string) {
   try {
     const { data, error } = await rpc(supabase).updateProfileAcrossGroups({
-      new_full_name: fullName,
+      new_first_name: firstName,
+      new_last_name: lastName,
       new_phone: phone
     })
 
@@ -382,7 +424,7 @@ export async function getGroupByToken(shareToken: string) {
         
         const { data: owner } = await supabase
           .from('profiles')
-          .select('full_name')
+          .select('first_name, last_name')
           .eq('id', data.owner_id)
           .abortSignal(ownerController.signal)
           .single()

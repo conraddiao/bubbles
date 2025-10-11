@@ -2,7 +2,8 @@
 export interface Profile {
   id: string
   email: string
-  full_name?: string
+  first_name?: string
+  last_name?: string
   phone?: string
   phone_verified: boolean
   two_factor_enabled: boolean
@@ -28,7 +29,8 @@ export interface GroupMembership {
   id: string
   group_id: string
   user_id?: string
-  full_name: string
+  first_name: string
+  last_name: string
   email: string
   phone?: string
   notifications_enabled: boolean
@@ -56,7 +58,8 @@ export interface SMSNotification {
 
 // Form types
 export interface ContactFormData {
-  full_name: string
+  first_name: string
+  last_name: string
   email: string
   phone?: string
   notifications_enabled: boolean
@@ -70,7 +73,8 @@ export interface GroupCreationFormData {
 export interface AuthFormData {
   email: string
   password: string
-  full_name?: string
+  first_name?: string
+  last_name?: string
   phone?: string
 }
 
@@ -123,7 +127,8 @@ export type Database = {
       join_contact_group_anonymous: {
         Args: {
           group_token: string
-          member_name: string
+          member_first_name: string
+          member_last_name: string
           member_email: string
           member_phone?: string
           enable_notifications?: boolean
@@ -142,7 +147,8 @@ export type Database = {
         Args: { group_uuid: string }
         Returns: Array<{
           id: string
-          full_name: string
+          first_name: string
+          last_name: string
           email: string
           phone?: string
           notifications_enabled: boolean
@@ -151,7 +157,7 @@ export type Database = {
         }>
       }
       update_profile_across_groups: {
-        Args: { new_full_name?: string; new_phone?: string }
+        Args: { new_first_name?: string; new_last_name?: string; new_phone?: string }
         Returns: boolean
       }
       regenerate_group_token: {

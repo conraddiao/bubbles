@@ -9,7 +9,11 @@
     "lint": "eslint",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "migrate": "node database/migrate.js",
+    "migrate:simple": "node database/migrate-simple.js",
+    "migrate:cleanup": "node database/migrate.js --cleanup",
+    "migrate:drop-full-name": "node database/cleanup-full-name.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

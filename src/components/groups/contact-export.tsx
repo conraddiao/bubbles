@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { getGroupMembers } from '@/lib/database'
 import { toast } from 'sonner'
+import { getDisplayName, extractNames } from '@/lib/name-utils'
 
 interface GroupMember {
   id: string
-  full_name: string
+  first_name: string
+  last_name: string
   email: string
   phone?: string
   notifications_enabled: boolean
@@ -42,10 +44,14 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
 
   // Generate vCard content for a single member
   const generateVCard = (member: GroupMember): string => {
+    const { firstName, lastName } = extractNames(member)
+    const fullName = getDisplayName(member)
+    
     const vcard = [
       'BEGIN:VCARD',
       'VERSION:3.0',
-      `FN:${member.full_name}`,
+      `FN:${fullName}`,
+      `N:${lastName};${firstName};;;`,
       `EMAIL:${member.email}`,
     ]
 
@@ -54,8 +60,8 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
     }
 
     // Add organization/note to indicate the group
-    vcard.push(`ORG:${groupName}`)
-    vcard.push(`NOTE:Member of ${groupName} contact group`)
+    vcard.push(`ORG:${groupName} | bubbles.fyi`)
+    vcard.push(`NOTE:Member of ${groupName} group from bubbles.fyi`)
 
     vcard.push('END:VCARD')
     return vcard.join('\r\n')
@@ -84,9 +90,10 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
     try {
       setIsExporting(true)
       const vCardContent = generateVCard(member)
-      const filename = `${member.full_name.replace(/[^a-zA-Z0-9]/g, '_')}.vcf`
+      const { firstName, lastName } = extractNames(member)
+      const filename = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
       downloadFile(vCardContent, filename)
-      toast.success(`Contact exported: ${member.full_name}`)
+      toast.success(`Contact exported: ${getDisplayName(member)}`)
     } catch (error) {
       console.error('Failed to export contact:', error)
       toast.error('Failed to export contact')
@@ -112,9 +119,10 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
         // Single contact export
         const member = selectedMemberData[0]
         const vCardContent = generateVCard(member)
-        const filename = `${member.full_name.replace(/[^a-zA-Z0-9]/g, '_')}.vcf`
+        const { firstName, lastName } = extractNames(member)
+        const filename = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
         downloadFile(vCardContent, filename)
-        toast.success(`Contact exported: ${member.full_name}`)
+        toast.success(`Contact exported: ${getDisplayName(member)}`)
       } else {
         // Bulk export
         const vCardContent = generateBulkVCard(selectedMemberData)
@@ -279,7 +287,7 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{member.full_name}</span>
+                      <span className="font-medium">{getDisplayName(member)}</span>
                       {member.is_owner && (
                         <Badge variant="secondary" className="text-xs">
                           Owner

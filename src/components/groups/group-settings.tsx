@@ -194,7 +194,8 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
 interface MembersTabProps {
   members: Array<{
     id: string
-    full_name: string
+    first_name: string
+    last_name: string
     email: string
     phone?: string
     notifications_enabled: boolean
@@ -245,7 +246,7 @@ function MembersTab({ members, isLoading, onRemoveMember, isGroupClosed }: Membe
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h4 className="font-medium">{member.full_name}</h4>
+                  <h4 className="font-medium">{member.first_name} {member.last_name}</h4>
                   {member.is_owner && (
                     <Badge variant="secondary" className="text-xs">Owner</Badge>
                   )}
@@ -263,7 +264,7 @@ function MembersTab({ members, isLoading, onRemoveMember, isGroupClosed }: Membe
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => onRemoveMember(member.id, member.full_name)}
+                  onClick={() => onRemoveMember(member.id, `${member.first_name} ${member.last_name}`)}
                   className="text-destructive hover:text-destructive"
                 >
                   <UserMinus className="h-4 w-4" />

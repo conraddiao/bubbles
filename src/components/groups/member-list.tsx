@@ -22,10 +22,12 @@ import {
 } from '@/lib/database'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
+import { getDisplayName, getInitials } from '@/lib/name-utils'
 
 interface GroupMember {
   id: string
-  full_name: string
+  first_name: string
+  last_name: string
   email: string
   phone?: string
   notifications_enabled: boolean
@@ -89,19 +91,12 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts }: Me
       return
     }
 
-    if (confirm(`Are you sure you want to remove ${member.full_name} from the group?`)) {
+    if (confirm(`Are you sure you want to remove ${getDisplayName(member)} from the group?`)) {
       removeMemberMutation.mutate(member.id)
     }
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
+
 
   if (isLoading) {
     return (
@@ -199,12 +194,12 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts }: Me
                     <div className="flex items-center space-x-3">
                       <Avatar>
                         <AvatarFallback>
-                          {getInitials(member.full_name)}
+                          {getInitials(member)}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{member.full_name}</span>
+                          <span className="font-medium">{getDisplayName(member)}</span>
                           {member.is_owner && (
                             <Badge variant="secondary" className="text-xs">
                               Owner

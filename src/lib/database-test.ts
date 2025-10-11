@@ -25,7 +25,7 @@ export async function testDatabaseConnection() {
     // Test if profiles table exists and has correct structure
     const { data: tableTest, error: tableError } = await supabase
       .from('profiles')
-      .select('id, email, full_name, phone, phone_verified, two_factor_enabled, sms_notifications_enabled, created_at, updated_at')
+      .select('id, email, first_name, last_name, phone, phone_verified, two_factor_enabled, sms_notifications_enabled, created_at, updated_at')
       .limit(1)
     
     if (tableError) {
