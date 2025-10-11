@@ -260,7 +260,7 @@ export function useAuth(): AuthState & AuthActions {
         return { error: 'Update failed' }
       }
     } catch (error: unknown) {
-      const message = error.message || 'An unexpected error occurred while updating profile'
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred while updating profile'
       toast.error(message)
       return { error: message }
     }
