@@ -4,7 +4,8 @@ import { Profile } from '@/types'
 export const mockProfile: Profile = {
   id: 'test-user-id',
   email: 'test@example.com',
-  full_name: 'Test User',
+  first_name: 'Test',
+  last_name: 'User',
   phone: '+1234567890',
   phone_verified: true,
   two_factor_enabled: false,
