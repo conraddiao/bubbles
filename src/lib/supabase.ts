@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types'
 
 // Use placeholder values for development if environment variables are not set
@@ -13,7 +13,7 @@ if (isProductionWithoutConfig) {
 }
 
 // Create a mock client for development when credentials are not available
-const createMockClient = () => ({
+const createMockClient = (): SupabaseClient<Database> => ({
   auth: {
     signUp: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
     signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
@@ -22,32 +22,60 @@ const createMockClient = () => ({
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     getUser: () => Promise.resolve({ data: { user: null }, error: null }),
   },
-  from: () => ({
-    select: () => ({ 
-      eq: () => ({ 
-        single: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
-        order: () => Promise.resolve({ data: [], error: null })
-      })
-    }),
-    update: () => ({ 
-      eq: () => ({ 
-        select: () => ({ 
-          single: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } })
-        })
-      })
-    }),
-    insert: () => ({ 
-      select: () => ({ 
-        single: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } })
-      })
-    }),
-  }),
+  from: () => {
+    const devError = { message: 'Development mode: Configure Supabase credentials' }
+
+    const createSelectBuilder = () => {
+      const builder: any = {
+        eq: () => builder,
+        single: () => Promise.resolve({ data: null, error: devError }),
+        order: () => Promise.resolve({ data: [], error: null }),
+        limit: () => Promise.resolve({ data: [], error: null }),
+        abortSignal: () => builder,
+      }
+      return builder
+    }
+
+    const createMutationBuilder = () => {
+      const selectBuilder = {
+        single: () => Promise.resolve({ data: null, error: devError }),
+        abortSignal: () => selectBuilder,
+      }
+
+      const builder: any = {
+        eq: () => builder,
+        select: () => selectBuilder,
+        abortSignal: () => builder,
+      }
+      return builder
+    }
+
+    const createInsertBuilder = () => {
+      const selectBuilder: any = {
+        single: () => Promise.resolve({ data: null, error: devError }),
+        abortSignal: () => selectBuilder,
+      }
+
+      const builder: any = {
+        select: () => selectBuilder,
+        abortSignal: () => builder,
+      }
+
+      return builder
+    }
+
+    return {
+      select: () => createSelectBuilder(),
+      update: () => createMutationBuilder(),
+      insert: () => createInsertBuilder(),
+    }
+  },
   rpc: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
   channel: () => ({
     on: () => ({ subscribe: () => {} }),
     subscribe: () => {}
   })
-})
+}) as unknown as SupabaseClient<Database>
 
 // Debug logging
 console.log('Supabase config:', {
@@ -57,38 +85,51 @@ console.log('Supabase config:', {
   isProductionWithoutConfig
 })
 
-export const supabase = (supabaseUrl === 'https://placeholder.supabase.co' || isProductionWithoutConfig)
-  ? createMockClient() as any
-  : createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    })
+// Create singleton instances to avoid multiple GoTrueClient instances
+let _supabase: SupabaseClient<Database> | null = null
 
-// For server-side operations that require elevated permissions
-export const supabaseAdmin = supabaseUrl === 'https://placeholder.supabase.co'
-  ? createMockClient() as any
-  : createClient<Database>(
-      supabaseUrl,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key',
-      {
+function getSupabaseClient() {
+  if (_supabase) return _supabase
+  
+  _supabase = (supabaseUrl === 'https://placeholder.supabase.co' || isProductionWithoutConfig)
+    ? createMockClient()
+    : createClient<Database>(supabaseUrl, supabaseAnonKey, {
         auth: {
-          autoRefreshToken: false,
-          persistSession: false
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true
         }
-      }
-    )
+      })
+  
+  return _supabase
+}
+
+export const supabase: SupabaseClient<Database> = getSupabaseClient()
+
+// Admin client should only be used server-side, not in frontend
+export const supabaseAdmin: SupabaseClient<Database> | null = typeof window === 'undefined' 
+  ? (supabaseUrl === 'https://placeholder.supabase.co'
+      ? createMockClient()
+      : createClient<Database>(
+          supabaseUrl,
+          process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key',
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        ))
+  : null
 
 // Helper function to handle database errors
-export function handleDatabaseError(error: any): string {
+export function handleDatabaseError(error: unknown): string {
   // In development mode with placeholder credentials, provide helpful message
   if (supabaseUrl === 'https://placeholder.supabase.co') {
     return 'Development mode: Please configure Supabase credentials in .env.local'
   }
 
-  if (error?.message) {
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
     // Handle custom function errors
     if (error.message.includes('User profile not found')) {
       return 'Please complete your profile before creating or joining groups.'

@@ -9,7 +9,6 @@ interface DashboardGroup {
   member_count: number;
   share_token: string;
 }
-import { ProtectedRoute } from "@/components/auth/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -270,9 +269,30 @@ function DashboardContent() {
 }
 
 export default function DashboardPage() {
-  return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
-  );
+  const { user, loading } = useAuth()
+  
+  // Simple auth check without ProtectedRoute to test for redirect loops
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin mx-auto mb-4 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Please log in to access the dashboard</h2>
+          <a href="/auth" className="text-blue-600 hover:underline">Go to login</a>
+        </div>
+      </div>
+    )
+  }
+  
+  return <DashboardContent />
 }

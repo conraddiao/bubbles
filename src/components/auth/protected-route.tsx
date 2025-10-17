@@ -22,19 +22,12 @@ export function ProtectedRoute({
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push(redirectTo)
-        return
-      }
-
-      if (requireProfile && !profile) {
-        // User exists but profile is missing - redirect to profile setup
-        router.push('/profile/setup')
-        return
-      }
+    if (!loading && !user) {
+      router.push(redirectTo)
     }
-  }, [user, profile, loading, router, redirectTo, requireProfile])
+    // Don't redirect for missing profile immediately - let the profile fetch complete
+    // The profile setup redirect should be handled elsewhere if truly needed
+  }, [user, loading, router, redirectTo])
 
   if (loading) {
     return fallback || (
@@ -51,9 +44,8 @@ export function ProtectedRoute({
     return null // Will redirect
   }
 
-  if (requireProfile && !profile) {
-    return null // Will redirect to profile setup
-  }
+  // Allow access even if profile is missing - let individual pages handle profile requirements
+  // This prevents infinite redirects during profile loading
 
   return <>{children}</>
 }

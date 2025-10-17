@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { Profile } from '@/types'
@@ -7,18 +7,28 @@ import { fetchUserProfile, updateUserProfile, retryOperation } from '@/lib/auth-
 
 
 interface AuthState {
-  user: User | null
-  profile: Profile | null
-  session: Session | null
-  loading: boolean
+  user: User | null;
+  profile: Profile | null;
+  session: Session | null;
+  loading: boolean;
 }
 
 interface AuthActions {
-  signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<{ error?: AuthError }>
-  signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
-  signOut: () => Promise<void>
-  updateProfile: (updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>) => Promise<{ error?: string }>
-  refreshProfile: () => Promise<void>
+  signUp: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone?: string
+  ) => Promise<{ error?: AuthError }>;
+  signIn: (email: string, password: string) => Promise<{ error?: AuthError }>;
+  signOut: () => Promise<void>;
+  updateProfile: (
+    updates: Partial<
+      Omit<Profile, "id" | "email" | "created_at" | "updated_at">
+    >
+  ) => Promise<{ error?: string }>;
+  refreshProfile: () => Promise<void>;
 }
 
 export function useAuth(): AuthState & AuthActions {
@@ -27,13 +37,44 @@ export function useAuth(): AuthState & AuthActions {
     profile: null,
     session: null,
     loading: true,
-  })
+  });
+
+  const initializationRef = useRef(false);
 
   useEffect(() => {
     let mounted = true
     
+    const fetchAndSetProfile = async (userId: string) => {
+      try {
+        const profile = await retryOperation(
+          () => fetchUserProfile(userId),
+          2,
+          1000
+        )
+
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            profile,
+          }))
+        }
+      } catch (profileError) {
+        console.error('Failed to fetch profile after retries:', profileError)
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            profile: null,
+          }))
+          toast.error('Failed to load profile. Please refresh the page.')
+        }
+      }
+    }
+
     // Get initial session with improved error handling
     const getInitialSession = async () => {
+      if (initializationRef.current) return;
+      initializationRef.current = true;
+
       try {
         console.log('Getting initial session...')
         const { data: { session }, error } = await supabase.auth.getSession()
@@ -47,34 +88,15 @@ export function useAuth(): AuthState & AuthActions {
         }
         
         if (session?.user && mounted) {
-          console.log('Session found, fetching profile...')
-          try {
-            const profile = await retryOperation(
-              () => fetchUserProfile(session.user.id),
-              2, // Only 2 retries for initial load
-              1000
-            )
-            
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile,
-                session,
-                loading: false,
-              })
-            }
-          } catch (profileError) {
-            console.error('Failed to fetch profile after retries:', profileError)
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile: null,
-                session,
-                loading: false,
-              })
-              toast.error('Failed to load profile. Please refresh the page.')
-            }
-          }
+          console.log('Session found via getSession, setting state and loading profile...')
+          setState(prev => ({
+            ...prev,
+            user: session.user,
+            session,
+            loading: false,
+          }))
+
+          void fetchAndSetProfile(session.user.id)
         } else if (mounted) {
           setState(prev => ({ ...prev, loading: false }))
         }
@@ -84,74 +106,52 @@ export function useAuth(): AuthState & AuthActions {
           setState(prev => ({ ...prev, loading: false }))
         }
       }
-    }
+    };
 
-    getInitialSession()
-
-    // Shorter timeout for better UX
-    const timeout = setTimeout(() => {
-      if (mounted) {
-        console.log('Auth loading timeout - forcing loading to false')
-        setState(prev => ({ ...prev, loading: false }))
-      }
-    }, 5000) // Reduced from 3000 to 5000 for profile creation
+    void getInitialSession()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
         if (!mounted) return
         
-        clearTimeout(timeout)
         console.log('Auth state change:', event, !!session)
         
         if (session?.user) {
-          // Always fetch fresh profile on auth state change
-          try {
-            const profile = await fetchUserProfile(session.user.id)
-            
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile,
-                session,
-                loading: false,
-              })
-            }
-          } catch (error) {
-            console.error('Profile fetch failed on auth change:', error)
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile: null,
-                session,
-                loading: false,
-              })
-            }
+          console.log('Auth change received, setting user from event...')
+          if (mounted) {
+            setState(prev => ({
+              ...prev,
+              user: session.user,
+              session,
+              loading: false,
+            }))
           }
+
+          void fetchAndSetProfile(session.user.id)
         } else if (mounted) {
           setState({
             user: null,
             profile: null,
             session: null,
             loading: false,
-          })
+          });
         }
       }
-    )
+    );
 
     return () => {
       mounted = false
       subscription.unsubscribe()
-      clearTimeout(timeout)
     }
   }, [])
 
   // Remove the old fetchProfile function - now using the service
 
   const signUp = async (
-    email: string, 
-    password: string, 
-    firstName: string, 
+    email: string,
+    password: string,
+    firstName: string,
     lastName: string,
     phone?: string
   ) => {
@@ -168,59 +168,59 @@ export function useAuth(): AuthState & AuthActions {
             first_name: firstName,
             last_name: lastName,
             phone: phone || null,
-          }
-        }
-      })
+          },
+        },
+      });
 
-      clearTimeout(timeoutId)
+      clearTimeout(timeoutId);
 
       if (error) {
-        toast.error(error.message)
-        return { error }
+        toast.error(error.message);
+        return { error };
       }
 
       if (data.user && !data.session) {
-        toast.success('Please check your email to verify your account')
+        toast.success("Please check your email to verify your account");
       } else if (data.session) {
-        toast.success('Account created successfully!')
+        toast.success("Account created successfully!");
       }
 
-      console.log('Signup result:', { user: data.user, session: data.session })
+      console.log("Signup result:", { user: data.user, session: data.session });
 
-      return { error: undefined }
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        const message = 'Sign up request timed out. Please try again.'
-        toast.error(message)
-        return { error: { message } as AuthError }
+      return { error: undefined };
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") {
+        const message = "Sign up request timed out. Please try again.";
+        toast.error(message);
+        return { error: { message } as AuthError };
       }
-      
-      const message = 'An unexpected error occurred during sign up'
-      toast.error(message)
-      return { error: { message } as AuthError }
+
+      const message = "An unexpected error occurred during sign up";
+      toast.error(message);
+      return { error: { message } as AuthError };
     }
-  }
+  };
 
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
+      });
 
       if (error) {
-        toast.error(error.message)
-        return { error }
+        toast.error(error.message);
+        return { error };
       }
 
-      toast.success('Successfully signed in')
-      return { error: undefined }
+      toast.success("Successfully signed in");
+      return { error: undefined };
     } catch (error) {
-      const message = 'An unexpected error occurred during sign in'
-      toast.error(message)
-      return { error: { message } as AuthError }
+      const message = "An unexpected error occurred during sign in";
+      toast.error(message);
+      return { error: { message } as AuthError };
     }
-  }
+  };
 
   const signOut = async () => {
     try {
@@ -234,18 +234,22 @@ export function useAuth(): AuthState & AuthActions {
       
       const { error } = await supabase.auth.signOut()
       if (error) {
-        toast.error(error.message)
+        toast.error(error.message);
       } else {
-        toast.success('Successfully signed out')
+        toast.success("Successfully signed out");
       }
     } catch (error) {
-      toast.error('An unexpected error occurred during sign out')
+      toast.error("An unexpected error occurred during sign out");
     }
-  }
+  };
 
-  const updateProfile = async (updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>) => {
+  const updateProfile = async (
+    updates: Partial<
+      Omit<Profile, "id" | "email" | "created_at" | "updated_at">
+    >
+  ) => {
     if (!state.user) {
-      return { error: 'No user logged in' }
+      return { error: "No user logged in" };
     }
 
     try {
@@ -264,10 +268,10 @@ export function useAuth(): AuthState & AuthActions {
       toast.error(message)
       return { error: message }
     }
-  }
+  };
 
   const refreshProfile = async () => {
-    if (!state.user) return
+    if (!state.user) return;
 
     try {
       const profile = await fetchUserProfile(state.user.id)
@@ -284,5 +288,5 @@ export function useAuth(): AuthState & AuthActions {
     signOut,
     updateProfile,
     refreshProfile,
-  }
+  };
 }
