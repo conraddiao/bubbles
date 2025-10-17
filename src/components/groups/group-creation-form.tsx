@@ -48,7 +48,9 @@ export function GroupCreationForm({ onSuccess, onCancel }: GroupCreationFormProp
       }
       queryClient.invalidateQueries({ queryKey: ['user-groups'] })
       reset()
-      onSuccess?.(data?.group_id, data?.share_token)
+      if (data) {
+        onSuccess?.(data.group_id, data.share_token)
+      }
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to create group')

@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { getGroupByToken, joinContactGroup, joinContactGroupAnonymous } from '@/lib/database'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, Users, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import type { ContactGroup, Profile } from '@/types'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -25,6 +27,10 @@ export default function JoinPage({ params }: JoinPageProps) {
   const resolvedParams = use(params)
   const token = resolvedParams.token
 
+  type GroupWithOwner = Omit<ContactGroup, 'owner'> & {
+    owner?: Pick<Profile, 'first_name' | 'last_name'>
+  }
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -33,27 +39,28 @@ export default function JoinPage({ params }: JoinPageProps) {
     notifications_enabled: false
   })
   const [hasJoined, setHasJoined] = useState(false)
-  const [user, setUser] = useState<unknown>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   // Check if user is logged in (optional, don't block on this)
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          setUser(user)
+        const { data } = await supabase.auth.getUser()
+        const authUser = data.user
+        if (authUser) {
+          setUser(authUser)
           // Try to get profile, but don't block if it fails
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', user.id)
-            .single()
+            .eq('id', authUser.id)
+            .single<Profile>()
           
           if (profile) {
             setFormData({
               first_name: profile.first_name || '',
               last_name: profile.last_name || '',
-              email: profile.email || user.email || '',
+              email: profile.email || authUser.email || '',
               phone: profile.phone || '',
               notifications_enabled: profile.sms_notifications_enabled || false
             })
@@ -69,7 +76,7 @@ export default function JoinPage({ params }: JoinPageProps) {
   }, [])
 
   // Fetch group details
-  const { data: group, isLoading: groupLoading, error: groupError } = useQuery({
+  const { data: group, isLoading: groupLoading, error: groupError } = useQuery<GroupWithOwner | null>({
     queryKey: ['group-by-token', token],
     queryFn: async () => {
       const result = await getGroupByToken(token)
