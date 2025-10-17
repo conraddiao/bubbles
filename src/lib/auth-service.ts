@@ -1,28 +1,13 @@
 import { supabase } from './supabase'
-import type { Database, Profile } from '@/types'
+import type { Profile } from '@/types'
 
 // Optimized profile fetching with better error handling
 export async function fetchUserProfile(userId: string): Promise<Profile | null> {
   try {
     console.log('Fetching profile for user:', userId)
     
-    // First, verify we have an authenticated session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    
-    if (sessionError || !session) {
-      console.log('No authenticated session for profile fetch:', sessionError?.message)
-      throw new Error('No authenticated session')
-    }
-    
-    if (session.user.id !== userId) {
-      console.log('Session user ID mismatch:', { sessionUserId: session.user.id, requestedUserId: userId })
-      throw new Error('User ID mismatch')
-    }
-    
-    console.log('Authenticated session confirmed, fetching profile...')
-    
-    // Use a reasonable timeout
-    const timeoutMs = 10000
+    // Use a shorter timeout for better UX
+    const timeoutMs = 5000
     const controller = new AbortController()
     
     const timeoutId = setTimeout(() => {
@@ -30,26 +15,12 @@ export async function fetchUserProfile(userId: string): Promise<Profile | null> 
       controller.abort()
     }, timeoutMs)
     
-    console.log('Starting profile query...')
-    
-    const query = supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-
-    const maybeAbortable = query as typeof query & {
-      abortSignal?: (signal: AbortSignal) => typeof query
-    }
-
-    if (typeof maybeAbortable.abortSignal === 'function') {
-      maybeAbortable.abortSignal(controller.signal)
-    } else {
-      console.warn('Abort controller not supported; continuing without abortSignal')
-    }
-
-    const { data, error } = await query.single()
-    
-    console.log('Profile query completed:', { data: !!data, error: error?.message })
+      .abortSignal(controller.signal)
+      .single()
     
     clearTimeout(timeoutId)
     
@@ -67,8 +38,8 @@ export async function fetchUserProfile(userId: string): Promise<Profile | null> 
     
     console.log('Profile fetched successfully')
     return data
-  } catch (error: unknown) {
-    if (error instanceof Error && error.name === 'AbortError') {
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
       console.error('Profile fetch timed out')
       throw new Error('Connection timeout. Please check your internet connection.')
     }
@@ -89,20 +60,19 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
       throw new Error('Unable to get user data for profile creation')
     }
     
-    const profileData: Database['public']['Tables']['profiles']['Insert'] = {
+    const profileData = {
       id: userId,
       email: user.email || '',
       first_name: user.user_metadata?.first_name || '',
       last_name: user.user_metadata?.last_name || '',
-      phone: user.user_metadata?.phone ?? undefined,
+      phone: user.user_metadata?.phone || null,
       phone_verified: false,
       two_factor_enabled: false,
       sms_notifications_enabled: true
     }
     
-    const profileTable = supabase.from('profiles') as any
-
-    const { data, error } = await profileTable
+    const { data, error } = await supabase
+      .from('profiles')
       .insert(profileData)
       .select()
       .single()
@@ -113,7 +83,7 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
     }
     
     console.log('Profile created successfully')
-    return data as Profile | null
+    return data
   } catch (error) {
     console.error('Failed to create profile:', error)
     return null
@@ -121,18 +91,15 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
 }
 
 // Update user profile with optimistic updates
-type ProfileUpdate = Database['public']['Tables']['profiles']['Update']
-
 export async function updateUserProfile(
   userId: string, 
-  updates: ProfileUpdate
+  updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>
 ): Promise<Profile | null> {
   try {
     console.log('Updating profile for user:', userId, updates)
     
-    const profileTable = supabase.from('profiles') as any
-
-    const { data, error } = await profileTable
+    const { data, error } = await supabase
+      .from('profiles')
       .update(updates)
       .eq('id', userId)
       .select()
@@ -144,7 +111,7 @@ export async function updateUserProfile(
     }
     
     console.log('Profile updated successfully')
-    return data as Profile | null
+    return data
   } catch (error) {
     console.error('Failed to update profile:', error)
     throw error

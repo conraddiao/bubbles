@@ -1,13 +1,10 @@
-import { useEffect, useState, useRef } from "react";
-import { User, Session, AuthError } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
-import { Profile } from "@/types";
-import { toast } from "sonner";
-import {
-  fetchUserProfile,
-  updateUserProfile,
-  retryOperation,
-} from "@/lib/auth-service";
+import { useEffect, useState } from 'react'
+import { User, Session, AuthError } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import { Profile } from '@/types'
+import { toast } from 'sonner'
+import { fetchUserProfile, updateUserProfile, retryOperation } from '@/lib/auth-service'
+
 
 interface AuthState {
   user: User | null;
@@ -45,105 +42,103 @@ export function useAuth(): AuthState & AuthActions {
   const initializationRef = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
-
-    // Get initial session in background without blocking UI
+    let mounted = true
+    
+    // Get initial session with improved error handling
     const getInitialSession = async () => {
       if (initializationRef.current) return;
       initializationRef.current = true;
 
       try {
-        console.log("Getting initial session...");
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
+        console.log('Getting initial session...')
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
         if (error) {
-          console.error("Session error:", error);
+          console.error('Session error:', error)
           if (mounted) {
-            setState((prev) => ({ ...prev, loading: false }));
+            setState(prev => ({ ...prev, loading: false }))
           }
-          return;
+          return
         }
-
+        
         if (session?.user && mounted) {
-          console.log("Session found, fetching profile...");
+          console.log('Session found, fetching profile...')
           try {
             const profile = await retryOperation(
               () => fetchUserProfile(session.user.id),
               2, // Only 2 retries for initial load
               1000
-            );
-
+            )
+            
             if (mounted) {
               setState({
                 user: session.user,
                 profile,
                 session,
                 loading: false,
-              });
+              })
             }
           } catch (profileError) {
-            console.error(
-              "Failed to fetch profile after retries:",
-              profileError
-            );
+            console.error('Failed to fetch profile after retries:', profileError)
             if (mounted) {
               setState({
                 user: session.user,
                 profile: null,
                 session,
                 loading: false,
-              });
-              toast.error("Failed to load profile. Please refresh the page.");
+              })
+              toast.error('Failed to load profile. Please refresh the page.')
             }
           }
         } else if (mounted) {
-          console.log("No session found");
-          setState((prev) => ({ ...prev, loading: false }));
+          setState(prev => ({ ...prev, loading: false }))
         }
       } catch (error) {
-        console.error("Error getting initial session:", error);
+        console.error('Error getting initial session:', error)
         if (mounted) {
-          setState((prev) => ({ ...prev, loading: false }));
+          setState(prev => ({ ...prev, loading: false }))
         }
       }
     };
 
-    // Run session check in background without blocking
-    getInitialSession();
+    // Shorter timeout for better UX
+    const timeout = setTimeout(() => {
+      if (mounted) {
+        console.log('Auth loading timeout - forcing loading to false')
+        setState(prev => ({ ...prev, loading: false }))
+      }
+    }, 5000) // Reduced from 3000 to 5000 for profile creation
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      async (event: any, session: Session | null) => {
-        if (!mounted) return;
-
-        console.log("Auth state change:", event, !!session);
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: any, session: any) => {
+        if (!mounted) return
+        
+        clearTimeout(timeout)
+        console.log('Auth state change:', event, !!session)
+        
         if (session?.user) {
+          // Always fetch fresh profile on auth state change
           try {
-            const profile = await fetchUserProfile(session.user.id);
-
+            const profile = await fetchUserProfile(session.user.id)
+            
             if (mounted) {
               setState({
                 user: session.user,
                 profile,
                 session,
                 loading: false,
-              });
+              })
             }
           } catch (error) {
-            console.error("Profile fetch failed on auth change:", error);
+            console.error('Profile fetch failed on auth change:', error)
             if (mounted) {
               setState({
                 user: session.user,
                 profile: null,
                 session,
                 loading: false,
-              });
+              })
             }
           }
         } else if (mounted) {
@@ -158,10 +153,11 @@ export function useAuth(): AuthState & AuthActions {
     );
 
     return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+      mounted = false
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
+  }, [])
 
   // Remove the old fetchProfile function - now using the service
 
@@ -174,9 +170,9 @@ export function useAuth(): AuthState & AuthActions {
   ) => {
     try {
       // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -247,9 +243,9 @@ export function useAuth(): AuthState & AuthActions {
         profile: null,
         session: null,
         loading: false,
-      });
-
-      const { error } = await supabase.auth.signOut();
+      })
+      
+      const { error } = await supabase.auth.signOut()
       if (error) {
         toast.error(error.message);
       } else {
@@ -270,23 +266,20 @@ export function useAuth(): AuthState & AuthActions {
     }
 
     try {
-      const updatedProfile = await updateUserProfile(state.user.id, updates);
-
+      const updatedProfile = await updateUserProfile(state.user.id, updates)
+      
       if (updatedProfile) {
-        setState((prev) => ({ ...prev, profile: updatedProfile }));
-        toast.success("Profile updated successfully");
-        return { error: undefined };
+        setState(prev => ({ ...prev, profile: updatedProfile }))
+        toast.success('Profile updated successfully')
+        return { error: undefined }
       } else {
-        toast.error("Failed to update profile");
-        return { error: "Update failed" };
+        toast.error('Failed to update profile')
+        return { error: 'Update failed' }
       }
     } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred while updating profile";
-      toast.error(message);
-      return { error: message };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred while updating profile'
+      toast.error(message)
+      return { error: message }
     }
   };
 
@@ -294,12 +287,12 @@ export function useAuth(): AuthState & AuthActions {
     if (!state.user) return;
 
     try {
-      const profile = await fetchUserProfile(state.user.id);
-      setState((prev) => ({ ...prev, profile }));
+      const profile = await fetchUserProfile(state.user.id)
+      setState(prev => ({ ...prev, profile }))
     } catch (error) {
-      console.error("Failed to refresh profile:", error);
+      console.error('Failed to refresh profile:', error)
     }
-  };
+  }
 
   return {
     ...state,

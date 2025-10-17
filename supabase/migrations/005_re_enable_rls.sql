@@ -13,19 +13,6 @@ DROP POLICY IF EXISTS "Users can view group memberships" ON group_memberships;
 DROP POLICY IF EXISTS "Users can join groups" ON group_memberships;
 DROP POLICY IF EXISTS "Users can update memberships" ON group_memberships;
 DROP POLICY IF EXISTS "Users can leave groups" ON group_memberships;
-DROP POLICY IF EXISTS "Service role can manage profiles" ON profiles;
-DROP POLICY IF EXISTS "Service role can manage groups" ON contact_groups;
-DROP POLICY IF EXISTS "Service role can manage memberships" ON group_memberships;
-DROP POLICY IF EXISTS "Users can view accessible groups" ON contact_groups;
-DROP POLICY IF EXISTS "Public can view groups by share token" ON contact_groups;
-DROP POLICY IF EXISTS "Authenticated users can create groups" ON contact_groups;
-DROP POLICY IF EXISTS "Owners can update their groups" ON contact_groups;
-DROP POLICY IF EXISTS "Owners can delete their groups" ON contact_groups;
-DROP POLICY IF EXISTS "Users can view accessible memberships" ON group_memberships;
-DROP POLICY IF EXISTS "Public can view memberships for accessible groups" ON group_memberships;
-DROP POLICY IF EXISTS "Users can join groups or owners can add members" ON group_memberships;
-DROP POLICY IF EXISTS "Users can update accessible memberships" ON group_memberships;
-DROP POLICY IF EXISTS "Users can leave or owners can remove members" ON group_memberships;
 
 -- Re-enable RLS on the tables that were disabled
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
