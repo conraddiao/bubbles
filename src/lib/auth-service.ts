@@ -5,24 +5,12 @@ import type { Database, Profile } from '@/types'
 export async function fetchUserProfile(userId: string): Promise<Profile | null> {
   try {
     console.log('Fetching profile for user:', userId)
-    
-    // Use a shorter timeout for better UX
-    const timeoutMs = 5000
-    const controller = new AbortController()
-    
-    const timeoutId = setTimeout(() => {
-      console.log('Profile fetch timeout - aborting request')
-      controller.abort()
-    }, timeoutMs)
-    
+        
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .abortSignal(controller.signal)
       .single()
-    
-    clearTimeout(timeoutId)
     
     if (error) {
       console.error('Profile fetch error:', error)
@@ -38,12 +26,7 @@ export async function fetchUserProfile(userId: string): Promise<Profile | null> 
     
     console.log('Profile fetched successfully')
     return data
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
-      console.error('Profile fetch timed out')
-      throw new Error('Connection timeout. Please check your internet connection.')
-    }
-    
+  } catch (error: any) {    
     console.error('Profile fetch failed:', error)
     throw error
   }

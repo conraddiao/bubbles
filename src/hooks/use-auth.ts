@@ -44,6 +44,32 @@ export function useAuth(): AuthState & AuthActions {
   useEffect(() => {
     let mounted = true
     
+    const fetchAndSetProfile = async (userId: string) => {
+      try {
+        const profile = await retryOperation(
+          () => fetchUserProfile(userId),
+          2,
+          1000
+        )
+
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            profile,
+          }))
+        }
+      } catch (profileError) {
+        console.error('Failed to fetch profile after retries:', profileError)
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            profile: null,
+          }))
+          toast.error('Failed to load profile. Please refresh the page.')
+        }
+      }
+    }
+
     // Get initial session with improved error handling
     const getInitialSession = async () => {
       if (initializationRef.current) return;
@@ -62,34 +88,15 @@ export function useAuth(): AuthState & AuthActions {
         }
         
         if (session?.user && mounted) {
-          console.log('Session found, fetching profile...')
-          try {
-            const profile = await retryOperation(
-              () => fetchUserProfile(session.user.id),
-              2, // Only 2 retries for initial load
-              1000
-            )
-            
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile,
-                session,
-                loading: false,
-              })
-            }
-          } catch (profileError) {
-            console.error('Failed to fetch profile after retries:', profileError)
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile: null,
-                session,
-                loading: false,
-              })
-              toast.error('Failed to load profile. Please refresh the page.')
-            }
-          }
+          console.log('Session found via getSession, setting state and loading profile...')
+          setState(prev => ({
+            ...prev,
+            user: session.user,
+            session,
+            loading: false,
+          }))
+
+          void fetchAndSetProfile(session.user.id)
         } else if (mounted) {
           setState(prev => ({ ...prev, loading: false }))
         }
@@ -101,46 +108,27 @@ export function useAuth(): AuthState & AuthActions {
       }
     };
 
-    // Shorter timeout for better UX
-    const timeout = setTimeout(() => {
-      if (mounted) {
-        console.log('Auth loading timeout - forcing loading to false')
-        setState(prev => ({ ...prev, loading: false }))
-      }
-    }, 5000) // Reduced from 3000 to 5000 for profile creation
+    void getInitialSession()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
         if (!mounted) return
         
-        clearTimeout(timeout)
         console.log('Auth state change:', event, !!session)
         
         if (session?.user) {
-          // Always fetch fresh profile on auth state change
-          try {
-            const profile = await fetchUserProfile(session.user.id)
-            
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile,
-                session,
-                loading: false,
-              })
-            }
-          } catch (error) {
-            console.error('Profile fetch failed on auth change:', error)
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile: null,
-                session,
-                loading: false,
-              })
-            }
+          console.log('Auth change received, setting user from event...')
+          if (mounted) {
+            setState(prev => ({
+              ...prev,
+              user: session.user,
+              session,
+              loading: false,
+            }))
           }
+
+          void fetchAndSetProfile(session.user.id)
         } else if (mounted) {
           setState({
             user: null,
@@ -155,7 +143,6 @@ export function useAuth(): AuthState & AuthActions {
     return () => {
       mounted = false
       subscription.unsubscribe()
-      clearTimeout(timeout)
     }
   }, [])
 
