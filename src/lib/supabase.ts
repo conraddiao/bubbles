@@ -84,13 +84,20 @@ const getSupabaseClient = () => {
 export const supabase = getSupabaseClient()
 
 // For server-side operations that require elevated permissions
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key'
+const isProductionWithoutServiceRole = process.env.NODE_ENV === 'production' && serviceRoleKey === 'placeholder-service-role-key' && supabaseUrl !== 'https://placeholder.supabase.co'
+
+if (isProductionWithoutServiceRole && typeof window === 'undefined') {
+  console.error('CRITICAL: Supabase service role key not configured in production!')
+}
+
 const getSupabaseAdminClient = () => {
   if (!globalForSupabase._supabaseAdminClient) {
     globalForSupabase._supabaseAdminClient = shouldUseMockClient
       ? createMockClient()
       : createClient<Database>(
           supabaseUrl,
-          process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key',
+          serviceRoleKey,
           {
             auth: {
               autoRefreshToken: false,
