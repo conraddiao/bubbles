@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types'
 
 // Use placeholder values for development if environment variables are not set
@@ -49,6 +49,13 @@ const createMockClient = () => ({
   })
 })
 
+const globalForSupabase = globalThis as typeof globalThis & {
+  _supabaseClient?: SupabaseClient<Database> | ReturnType<typeof createMockClient>
+  _supabaseAdminClient?: SupabaseClient<Database> | ReturnType<typeof createMockClient>
+}
+
+const shouldUseMockClient = supabaseUrl === 'https://placeholder.supabase.co' || isProductionWithoutConfig
+
 // Debug logging
 console.log('Supabase config:', {
   url: supabaseUrl,
@@ -57,29 +64,49 @@ console.log('Supabase config:', {
   isProductionWithoutConfig
 })
 
-export const supabase = (supabaseUrl === 'https://placeholder.supabase.co' || isProductionWithoutConfig)
-  ? createMockClient() as any
-  : createClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    })
+const getSupabaseClient = () => {
+  if (!globalForSupabase._supabaseClient) {
+    globalForSupabase._supabaseClient = shouldUseMockClient
+      ? createMockClient()
+      : createClient<Database>(supabaseUrl, supabaseAnonKey, {
+          auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true,
+            storageKey: 'shared-contact-groups-auth'
+          }
+        })
+  }
+
+  return globalForSupabase._supabaseClient
+}
+
+export const supabase = getSupabaseClient()
 
 // For server-side operations that require elevated permissions
-export const supabaseAdmin = supabaseUrl === 'https://placeholder.supabase.co'
-  ? createMockClient() as any
-  : createClient<Database>(
-      supabaseUrl,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+const getSupabaseAdminClient = () => {
+  if (!globalForSupabase._supabaseAdminClient) {
+    globalForSupabase._supabaseAdminClient = shouldUseMockClient
+      ? createMockClient()
+      : createClient<Database>(
+          supabaseUrl,
+          process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key',
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        )
+  }
+
+  return globalForSupabase._supabaseAdminClient
+}
+
+export const supabaseAdmin =
+  typeof window === 'undefined'
+    ? getSupabaseAdminClient()
+    : (globalForSupabase._supabaseAdminClient ??= createMockClient())
 
 // Helper function to handle database errors
 export function handleDatabaseError(error: any): string {
