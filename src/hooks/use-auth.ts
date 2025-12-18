@@ -31,6 +31,8 @@ export function useAuth(): AuthState & AuthActions {
 
   useEffect(() => {
     let mounted = true
+    const loadingTimeoutMs = process.env.NODE_ENV === 'production' ? null : 7000
+    let loadingTimeout: ReturnType<typeof setTimeout> | null = null
     
     // Get initial session with improved error handling
     const getInitialSession = async () => {
@@ -49,11 +51,13 @@ export function useAuth(): AuthState & AuthActions {
         if (session?.user && mounted) {
           console.log('Session found, fetching profile...')
           try {
+            const start = performance.now()
             const profile = await retryOperation(
               () => fetchUserProfile(session.user.id),
               2, // Only 2 retries for initial load
               1000
             )
+            console.log(`Profile fetch duration (initial): ${Math.round(performance.now() - start)}ms`)
             
             if (mounted) {
               setState({
@@ -78,36 +82,42 @@ export function useAuth(): AuthState & AuthActions {
         } else if (mounted) {
           setState(prev => ({ ...prev, loading: false }))
         }
+        if (loadingTimeout) clearTimeout(loadingTimeout)
       } catch (error) {
         console.error('Error getting initial session:', error)
         if (mounted) {
           setState(prev => ({ ...prev, loading: false }))
         }
+        if (loadingTimeout) clearTimeout(loadingTimeout)
       }
     }
 
     getInitialSession()
 
-    // Shorter timeout for better UX
-    const timeout = setTimeout(() => {
-      if (mounted) {
-        console.log('Auth loading timeout - forcing loading to false')
-        setState(prev => ({ ...prev, loading: false }))
-      }
-    }, 5000) // Reduced from 3000 to 5000 for profile creation
+    // Failsafe timeout in dev only to avoid stale spinners
+    if (loadingTimeoutMs) {
+      loadingTimeout = setTimeout(() => {
+        if (mounted) {
+          console.log('Auth loading timeout - forcing loading to false')
+          setState(prev => ({ ...prev, loading: false }))
+        }
+      }, loadingTimeoutMs)
+    }
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
         if (!mounted) return
         
-        clearTimeout(timeout)
+        if (loadingTimeout) clearTimeout(loadingTimeout)
         console.log('Auth state change:', event, !!session)
         
         if (session?.user) {
           // Always fetch fresh profile on auth state change
           try {
+            const start = performance.now()
             const profile = await fetchUserProfile(session.user.id)
+            console.log(`Profile fetch duration (auth change): ${Math.round(performance.now() - start)}ms`)
             
             if (mounted) {
               setState({
@@ -142,7 +152,7 @@ export function useAuth(): AuthState & AuthActions {
     return () => {
       mounted = false
       subscription.unsubscribe()
-      clearTimeout(timeout)
+      if (loadingTimeout) clearTimeout(loadingTimeout)
     }
   }, [])
 

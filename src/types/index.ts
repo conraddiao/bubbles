@@ -91,8 +91,8 @@ export type Database = {
     Tables: {
       profiles: {
         Row: Profile
-        Insert: Omit<Profile, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>
+        Insert: Omit<Profile, 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Profile, 'created_at' | 'updated_at'>>
       }
       contact_groups: {
         Row: ContactGroup

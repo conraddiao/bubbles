@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "ci:build": "next build",
+    "ci:check": "npm run lint && npm run ci:build",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

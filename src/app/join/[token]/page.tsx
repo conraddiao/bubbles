@@ -2,7 +2,9 @@
 
 import { use, useEffect, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import type { ContactGroup, Database } from '@/types'
 import { getGroupByToken, joinContactGroup, joinContactGroupAnonymous } from '@/lib/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +26,7 @@ interface JoinPageProps {
 export default function JoinPage({ params }: JoinPageProps) {
   const resolvedParams = use(params)
   const token = resolvedParams.token
+  type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -33,7 +36,7 @@ export default function JoinPage({ params }: JoinPageProps) {
     notifications_enabled: false
   })
   const [hasJoined, setHasJoined] = useState(false)
-  const [user, setUser] = useState<unknown>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   // Check if user is logged in (optional, don't block on this)
   useEffect(() => {
@@ -45,9 +48,9 @@ export default function JoinPage({ params }: JoinPageProps) {
           // Try to get profile, but don't block if it fails
           const { data: profile } = await supabase
             .from('profiles')
-            .select('*')
+            .select('first_name,last_name,email,phone,sms_notifications_enabled')
             .eq('id', user.id)
-            .single()
+            .single<ProfileRow>()
           
           if (profile) {
             setFormData({
@@ -69,7 +72,7 @@ export default function JoinPage({ params }: JoinPageProps) {
   }, [])
 
   // Fetch group details
-  const { data: group, isLoading: groupLoading, error: groupError } = useQuery({
+  const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroup | null>({
     queryKey: ['group-by-token', token],
     queryFn: async () => {
       const result = await getGroupByToken(token)

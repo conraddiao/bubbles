@@ -12,6 +12,18 @@ if (isProductionWithoutConfig) {
   console.error('CRITICAL: Supabase environment variables not configured in production!')
 }
 
+type TypedSupabaseClient = SupabaseClient<Database>
+
+declare global {
+  var __supabaseClient: TypedSupabaseClient | undefined
+  var __supabaseAdminClient: TypedSupabaseClient | undefined
+}
+
+const globalForSupabase = globalThis as typeof globalThis & {
+  __supabaseClient?: TypedSupabaseClient
+  __supabaseAdminClient?: TypedSupabaseClient
+}
+
 type MockResponse<T = null> = Promise<{ data: T; error: { message: string } | null; count?: number }>
 
 type MockFilterBuilder = {
@@ -112,14 +124,8 @@ const createMockClient = (): MockSupabaseClient => {
   })
 }
 
-type SupabaseClientLike = SupabaseClient<Database> | MockSupabaseClient
-
-const createMockSupabaseClient = (): MockSupabaseClient => createMockClient()
-
-const globalForSupabase = globalThis as typeof globalThis & {
-  _supabaseClient?: SupabaseClientLike
-  _supabaseAdminClient?: SupabaseClientLike
-}
+const createMockSupabaseClient = (): TypedSupabaseClient =>
+  createMockClient() as unknown as TypedSupabaseClient
 
 const shouldUseMockClient = supabaseUrl === 'https://placeholder.supabase.co' || isProductionWithoutConfig
 
@@ -131,9 +137,9 @@ console.log('Supabase config:', {
   isProductionWithoutConfig
 })
 
-const getSupabaseClient = (): SupabaseClientLike => {
-  if (!globalForSupabase._supabaseClient) {
-    globalForSupabase._supabaseClient = shouldUseMockClient
+const getSupabaseClient = (): TypedSupabaseClient => {
+  if (!globalForSupabase.__supabaseClient) {
+    globalForSupabase.__supabaseClient = shouldUseMockClient
       ? createMockSupabaseClient()
       : createClient<Database>(supabaseUrl, supabaseAnonKey, {
           auth: {
@@ -145,35 +151,46 @@ const getSupabaseClient = (): SupabaseClientLike => {
         })
   }
 
-  return globalForSupabase._supabaseClient
+  return globalForSupabase.__supabaseClient
 }
 
 export const supabase = getSupabaseClient()
 
 // For server-side operations that require elevated permissions
-const getSupabaseAdminClient = (): SupabaseClientLike => {
-  if (!globalForSupabase._supabaseAdminClient) {
-    globalForSupabase._supabaseAdminClient = shouldUseMockClient
+const getSupabaseAdminClient = (): TypedSupabaseClient => {
+  if (!globalForSupabase.__supabaseAdminClient) {
+    globalForSupabase.__supabaseAdminClient = shouldUseMockClient
       ? createMockSupabaseClient()
-      : createClient<Database>(
-          supabaseUrl,
-          process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-role-key',
-          {
+      : (() => {
+          const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+          if (!serviceRoleKey) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin client on server.')
+          }
+          return createClient<Database>(supabaseUrl, serviceRoleKey, {
             auth: {
               autoRefreshToken: false,
               persistSession: false
             }
-          }
-        )
+          })
+        })()
   }
 
-  return globalForSupabase._supabaseAdminClient
+  return globalForSupabase.__supabaseAdminClient
 }
 
 export const supabaseAdmin =
   typeof window === 'undefined'
     ? getSupabaseAdminClient()
-    : (globalForSupabase._supabaseAdminClient ??= createMockSupabaseClient())
+    : createMockSupabaseClient()
+
+const hasMessage = (error: unknown): error is { message: string } => {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as { message?: unknown }).message === 'string'
+  )
+}
 
 // Helper function to handle database errors
 export function handleDatabaseError(error: unknown): string {
@@ -182,8 +199,8 @@ export function handleDatabaseError(error: unknown): string {
     return 'Development mode: Please configure Supabase credentials in .env.local'
   }
 
-  if (error && typeof error === 'object' && 'message' in error) {
-    const message = (error as { message: string }).message
+  if (hasMessage(error)) {
+    const message = error.message
 
     // Handle custom function errors
     if (message.includes('User profile not found')) {

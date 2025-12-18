@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { PostgrestSingleResponse } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types'
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
 export function SupabaseTest() {
   const [status, setStatus] = useState('Testing...')
@@ -51,16 +55,16 @@ export function SupabaseTest() {
           
           const profilePromise = supabase
             .from('profiles')
-            .select('*')
+            .select('first_name,last_name,email,phone,sms_notifications_enabled')
             .eq('id', session.user.id)
-            .single()
+            .single<ProfileRow>()
           
           const profileTimeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
           })
           
           try {
-            const profileResult = await Promise.race([profilePromise, profileTimeoutPromise])
+            const profileResult = (await Promise.race([profilePromise, profileTimeoutPromise])) as PostgrestSingleResponse<ProfileRow>
             const profileDuration = Date.now() - profileStart
             addLog(`Profile fetch completed in ${profileDuration}ms: ${profileResult.error ? 'Error' : 'Success'}`)
             
