@@ -12,46 +12,109 @@ if (isProductionWithoutConfig) {
   console.error('CRITICAL: Supabase environment variables not configured in production!')
 }
 
-// Create a mock client for development when credentials are not available
-const createMockClient = () => ({
+type MockResponse<T = null> = Promise<{ data: T; error: { message: string } | null; count?: number }>
+
+type MockFilterBuilder = {
+  eq: (...args: unknown[]) => MockFilterBuilder
+  single: () => MockResponse
+  order: (...args: unknown[]) => Promise<{ data: unknown[]; error: null }>
+  count?: number
+}
+
+type MockSupabaseClient = {
+  _isMock: true
   auth: {
-    signUp: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
-    signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
-    signOut: () => Promise.resolve({ error: null }),
-    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-  },
-  from: () => ({
-    select: () => ({ 
-      eq: () => ({ 
-        single: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
-        order: () => Promise.resolve({ data: [], error: null })
-      })
-    }),
-    update: () => ({ 
-      eq: () => ({ 
-        select: () => ({ 
-          single: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } })
+    signUp: () => MockResponse
+    signInWithPassword: () => MockResponse
+    signOut: () => Promise<{ error: null }>
+    getSession: () => Promise<{ data: { session: null }; error: null }>
+    onAuthStateChange: () => { data: { subscription: { unsubscribe: () => void } } }
+    getUser: () => Promise<{ data: { user: null }; error: null }>
+  }
+  from: (...args: unknown[]) => {
+    select: (...args: unknown[]) => MockFilterBuilder
+    update: (...args: unknown[]) => {
+      eq: (...args: unknown[]) => {
+        select: (...args: unknown[]) => {
+          single: () => MockResponse
+        }
+      }
+    }
+    insert: (...args: unknown[]) => {
+      select: (...args: unknown[]) => {
+        single: () => MockResponse
+      }
+    }
+  }
+  rpc: (...args: unknown[]) => MockResponse
+  channel: (name: string) => {
+    on: (...args: unknown[]) => { subscribe: () => void }
+    subscribe: () => void
+  }
+}
+
+// Create a mock client for development when credentials are not available
+const createMockClient = (): MockSupabaseClient => {
+  const mockResponse = (): MockResponse =>
+    Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' }, count: 0 })
+  const mockSubscription = { unsubscribe: () => {} }
+
+  const createFilterBuilder = (): MockFilterBuilder => {
+    const builder: MockFilterBuilder = {
+      eq: () => builder,
+      single: mockResponse,
+      order: () => Promise.resolve({ data: [], error: null }),
+      count: 0
+    }
+    return builder
+  }
+
+  const baseClient: MockSupabaseClient = {
+    _isMock: true,
+    auth: {
+      signUp: mockResponse,
+      signInWithPassword: mockResponse,
+      signOut: () => Promise.resolve({ error: null }),
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: mockSubscription } }),
+      getUser: () => Promise.resolve({ data: { user: null }, error: null })
+    },
+    from: () => ({
+      select: () => createFilterBuilder(),
+      update: () => ({
+        eq: () => ({
+          select: () => ({
+            single: mockResponse
+          })
+        })
+      }),
+      insert: () => ({
+        select: () => ({
+          single: mockResponse
         })
       })
     }),
-    insert: () => ({ 
-      select: () => ({ 
-        single: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } })
-      })
-    }),
-  }),
-  rpc: () => Promise.resolve({ data: null, error: { message: 'Development mode: Configure Supabase credentials' } }),
-  channel: () => ({
-    on: () => ({ subscribe: () => {} }),
-    subscribe: () => {}
+    rpc: mockResponse,
+    channel: () => ({
+      on: () => ({ subscribe: () => {} }),
+      subscribe: () => {}
+    })
+  }
+
+  return new Proxy<MockSupabaseClient>(baseClient, {
+    get(target, prop) {
+      if (prop in target) {
+        return target[prop as keyof typeof target]
+      }
+      console.warn(`Supabase mock: Method '${String(prop)}' not implemented`)
+      return () => mockResponse()
+    }
   })
-})
+}
 
-const createMockSupabaseClient = () => createMockClient() as unknown as SupabaseClientLike
+type SupabaseClientLike = SupabaseClient<Database> | MockSupabaseClient
 
-type SupabaseClientLike = SupabaseClient<Database>
+const createMockSupabaseClient = (): MockSupabaseClient => createMockClient()
 
 const globalForSupabase = globalThis as typeof globalThis & {
   _supabaseClient?: SupabaseClientLike
@@ -119,28 +182,30 @@ export function handleDatabaseError(error: unknown): string {
     return 'Development mode: Please configure Supabase credentials in .env.local'
   }
 
-  if (error?.message) {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = (error as { message: string }).message
+
     // Handle custom function errors
-    if (error.message.includes('User profile not found')) {
+    if (message.includes('User profile not found')) {
       return 'Please complete your profile before creating or joining groups.'
     }
-    if (error.message.includes('already a member')) {
+    if (message.includes('already a member')) {
       return 'You are already a member of this group.'
     }
-    if (error.message.includes('Group is closed')) {
+    if (message.includes('Group is closed')) {
       return 'This group is no longer accepting new members.'
     }
-    if (error.message.includes('Invalid group link')) {
+    if (message.includes('Invalid group link')) {
       return 'The group link is invalid or the group no longer exists.'
     }
-    if (error.message.includes('email address is already registered')) {
+    if (message.includes('email address is already registered')) {
       return 'This email address is already registered in this group.'
     }
-    if (error.message.includes('do not have permission')) {
+    if (message.includes('do not have permission')) {
       return 'You do not have permission to perform this action.'
     }
     
-    return error.message
+    return message
   }
   
   return 'An unexpected error occurred. Please try again.'
