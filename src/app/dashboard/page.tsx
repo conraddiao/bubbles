@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 interface DashboardGroup {
   id: string;
@@ -41,6 +42,7 @@ export const dynamic = "force-dynamic";
 
 function DashboardContent() {
   const { user, profile, signOut } = useAuth()
+  const [showAllGroups, setShowAllGroups] = useState(false)
 
   // Fetch user's groups
   const { data: groups, isLoading: groupsLoading, error: groupsError } = useQuery({
@@ -193,7 +195,7 @@ function DashboardContent() {
                 </>
               ) : (
                 <div className="space-y-3">
-                  {groups.slice(0, 3).map((group: DashboardGroup) => (
+                  {(showAllGroups ? groups : groups.slice(0, 3)).map((group: DashboardGroup) => (
                     <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -234,9 +236,16 @@ function DashboardContent() {
                     </div>
                   ))}
                   {groups.length > 3 && (
-                    <p className="text-sm text-gray-500 text-center">
-                      +{groups.length - 3} more groups
-                    </p>
+                    <div className="text-center">
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-gray-600"
+                        onClick={() => setShowAllGroups(!showAllGroups)}
+                      >
+                        {showAllGroups ? "Show fewer groups" : `+${groups.length - 3} more groups`}
+                      </Button>
+                    </div>
                   )}
                   <Link href="/groups/create">
                     <Button className="w-full" variant="outline">Create New Group</Button>
