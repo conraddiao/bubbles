@@ -11,19 +11,14 @@ import { toast } from 'sonner'
 import { MemberList } from './member-list'
 import { ContactExport } from './contact-export'
 import { GroupSettings } from './group-settings'
+import type { Database } from '@/types'
 
 interface SingleGroupDashboardProps {
   groupId: string
 }
 
-interface GroupMember {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  is_owner: boolean;
-}
+type ContactGroupRow = Database['public']['Tables']['contact_groups']['Row']
+type GroupMembershipRow = Database['public']['Tables']['group_memberships']['Row']
 
 export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
   const [showShareLink, setShowShareLink] = useState(false)
@@ -31,7 +26,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
   const [isOwner, setIsOwner] = useState(false)
 
   // Fetch group details with better error handling
-  const { data: group, isLoading: groupLoading, error: groupError } = useQuery({
+  const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroupRow | null>({
     queryKey: ['group', groupId],
     queryFn: async () => {
       console.log('Fetching group with ID:', groupId)
@@ -53,7 +48,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
         .from('contact_groups')
         .select('*')
         .eq('id', groupId)
-        .single()
+        .single<ContactGroupRow>()
       
       if (error) {
         console.error('Supabase error details:', {
@@ -77,7 +72,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
   })
 
   // Fetch group members with better error handling
-  const { data: members, isLoading: membersLoading } = useQuery({
+  const { data: members, isLoading: membersLoading } = useQuery<GroupMembershipRow[]>({
     queryKey: ['group-members', groupId],
     queryFn: async () => {
       console.log('Fetching members for group:', groupId)
@@ -167,6 +162,10 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
         )}
       </div>
     )
+  }
+
+  if (!group) {
+    return null
   }
 
   // Render different views based on currentView state
@@ -330,7 +329,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
               </div>
             ) : members && members.length > 0 ? (
               <div className="space-y-2">
-                {members.slice(0, 3).map((member: GroupMember) => (
+                {members.slice(0, 3).map((member: GroupMembershipRow) => (
                   <div key={member.id} className="flex items-center justify-between">
                     <span className="text-sm font-medium">{member.first_name} {member.last_name}</span>
                     <span className="text-xs text-muted-foreground">{member.email}</span>

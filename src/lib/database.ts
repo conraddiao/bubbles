@@ -1,5 +1,8 @@
 import { supabase, handleDatabaseError } from './supabase'
-import type { Profile } from '@/types'
+import type { Database, Profile } from '@/types'
+
+type ContactGroupRow = Database['public']['Tables']['contact_groups']['Row']
+const supabaseClient = supabase as any
 
 // Type assertion for RPC calls until database functions are deployed
 const rpc = (client: typeof supabase) => ({
@@ -24,7 +27,7 @@ const rpc = (client: typeof supabase) => ({
   updateProfileAcrossGroups: (args: { new_first_name?: string; new_last_name?: string; new_phone?: string }) =>
     client.rpc('update_profile_across_groups' as any, args as any),
   regenerateGroupToken: (args: { group_uuid: string }) =>
-    client.rpc('regenerate_group_token' as any, args as unknown),
+    client.rpc('regenerate_group_token' as any, args as any),
 })
 
 // Group management functions
@@ -36,12 +39,13 @@ export async function createContactGroup(name: string, description?: string) {
     })
 
     if (error) throw error
+    const result = data as { group_id: string; share_token: string }
     
     // The function now returns JSON with both group_id and share_token
     return { 
       data: {
-        group_id: data.group_id,
-        share_token: data.share_token
+        group_id: result.group_id,
+        share_token: result.share_token
       }, 
       error: null 
     }
@@ -59,23 +63,31 @@ export async function joinContactGroup(shareToken: string, enableNotifications =
     if (!user) throw new Error('Not authenticated')
 
     // Get user profile
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single()
 
+    const profile = profileData as Profile | null
+
     if (!profile) throw new Error('User profile not found. Please complete your profile first.')
 
     // Find the group by share token
-    const { data: group, error: groupError } = await supabase
+    const { data: groupData, error: groupError } = await supabase
       .from('contact_groups')
       .select('id, name, is_closed')
       .eq('share_token', shareToken)
       .single()
 
+    const group = groupData as ContactGroupRow | null
+
     if (groupError) {
       console.error('Group lookup error:', groupError)
+      throw new Error('Invalid group link or group not found.')
+    }
+
+    if (!group) {
       throw new Error('Invalid group link or group not found.')
     }
 
@@ -96,7 +108,7 @@ export async function joinContactGroup(shareToken: string, enableNotifications =
     }
 
     // Add user to group
-    const { data: membership, error: memberError } = await supabase
+    const { data: membership, error: memberError } = await supabaseClient
       .from('group_memberships')
       .insert({
         group_id: group.id,
@@ -136,14 +148,20 @@ export async function joinContactGroupAnonymous(
     console.log('Anonymous user joining group:', { shareToken, firstName, lastName, email })
 
     // First, find the group by share token
-    const { data: group, error: groupError } = await supabase
+    const { data: groupData, error: groupError } = await supabase
       .from('contact_groups')
       .select('id, name, is_closed')
       .eq('share_token', shareToken)
       .single()
 
+    const group = groupData as ContactGroupRow | null
+
     if (groupError) {
       console.error('Group lookup error:', groupError)
+      throw new Error('Invalid group link or group not found.')
+    }
+
+    if (!group) {
       throw new Error('Invalid group link or group not found.')
     }
 
@@ -164,7 +182,7 @@ export async function joinContactGroupAnonymous(
     }
 
     // Add member to group
-    const { data: membership, error: memberError } = await supabase
+    const { data: membership, error: memberError } = await supabaseClient
       .from('group_memberships')
       .insert({
         group_id: group.id,
@@ -242,13 +260,16 @@ export async function getGroupMembers(groupId: string) {
     if (memberError) throw memberError
 
     // Get group info to determine owner
-    const { data: group, error: groupError } = await supabase
+    const { data: groupData, error: groupError } = await supabase
       .from('contact_groups')
       .select('owner_id')
       .eq('id', groupId)
       .single()
 
+    const group = groupData as ContactGroupRow | null
+
     if (groupError) throw groupError
+    if (!group) throw new Error('Invalid group')
 
     // Transform the data using first_name and last_name
     const transformedData = memberships?.map((member: any) => ({
@@ -395,9 +416,9 @@ export async function updateUserProfile(updates: Partial<Omit<Profile, 'id' | 'c
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('profiles')
-      .update(updates as unknown)
+      .update(updates as any)
       .eq('id', user.id)
       .select()
       .single()
