@@ -1,16 +1,12 @@
-import { dirname } from "path";
+import nextConfig from "eslint-config-next";
+import tseslint from "typescript-eslint";
 import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import path from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const tsconfigRootDir = path.dirname(fileURLToPath(import.meta.url));
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default [
+  ...nextConfig,
   {
     ignores: [
       "node_modules/**",
@@ -21,12 +17,23 @@ const eslintConfig = [
     ],
   },
   {
+    files: ["**/*.{ts,tsx}"],
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+    },
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: "./tsconfig.json",
+        tsconfigRootDir,
+      },
+    },
     rules: {
+      "react-hooks/refs": "warn",
+      "react-hooks/set-state-in-effect": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-require-imports": "warn",
     },
   },
 ];
-
-export default eslintConfig;

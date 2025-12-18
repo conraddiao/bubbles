@@ -158,30 +158,47 @@ export const supabase = getSupabaseClient()
 
 // For server-side operations that require elevated permissions
 const getSupabaseAdminClient = (): TypedSupabaseClient => {
+  if (typeof window !== 'undefined') {
+    return createMockSupabaseClient()
+  }
+
   if (!globalForSupabase.__supabaseAdminClient) {
-    globalForSupabase.__supabaseAdminClient = shouldUseMockClient
-      ? createMockSupabaseClient()
-      : (() => {
-          const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-          if (!serviceRoleKey) {
-            throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin client on server.')
-          }
-          return createClient<Database>(supabaseUrl, serviceRoleKey, {
-            auth: {
-              autoRefreshToken: false,
-              persistSession: false
-            }
-          })
-        })()
+    if (shouldUseMockClient) {
+      globalForSupabase.__supabaseAdminClient = createMockSupabaseClient()
+    } else {
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!serviceRoleKey) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin client on server.')
+      }
+      globalForSupabase.__supabaseAdminClient = createClient<Database>(supabaseUrl, serviceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
+    }
   }
 
   return globalForSupabase.__supabaseAdminClient
 }
 
-export const supabaseAdmin =
-  typeof window === 'undefined'
-    ? getSupabaseAdminClient()
-    : createMockSupabaseClient()
+const supabaseAdminProxyHandler: ProxyHandler<TypedSupabaseClient> = {
+  get(_target, prop, receiver) {
+    const client = getSupabaseAdminClient()
+    const value = client[prop as keyof TypedSupabaseClient]
+
+    if (typeof value === 'function') {
+      return (value as (...args: unknown[]) => unknown).bind(client)
+    }
+
+    return Reflect.get(client as unknown as object, prop, receiver)
+  }
+}
+
+export const supabaseAdmin: TypedSupabaseClient = new Proxy(
+  {} as TypedSupabaseClient,
+  supabaseAdminProxyHandler
+)
 
 const hasMessage = (error: unknown): error is { message: string } => {
   return (

@@ -19,22 +19,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  User,
-  Settings,
-  LogOut,
-  Phone,
-  Shield,
-  ShieldCheck,
-  Users,
-  ExternalLink,
+  ArrowRight,
   Copy,
+  ExternalLink,
+  KeyRound,
+  QrCode,
+  Share2,
 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query'
 import { getUserGroups } from '@/lib/database'
 import { toast } from 'sonner'
-import { SupabaseTest } from '@/components/debug/supabase-test'
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -63,207 +58,168 @@ function DashboardContent() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Welcome back, {profile?.first_name ? `${profile.first_name} ${profile.last_name}` : user?.email}!
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
-              Manage your contact groups and profile settings
-            </p>
-          </div>
+  const displayName = [
+    profile?.first_name ?? user?.user_metadata?.first_name,
+    profile?.last_name ?? user?.user_metadata?.last_name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-            <Button variant="outline" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4 mr-2" />
+  const greetingName = displayName || user?.email || "there";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-indigo-100 to-indigo-200">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-12 sm:py-16">
+        <header className="space-y-3 text-center sm:text-left">
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+            Shared Contact Groups
+          </p>
+          <h1 className="text-3xl font-black leading-tight text-slate-900 sm:text-4xl">
+            Welcome back, {greetingName}!
+          </h1>
+          <p className="text-base text-slate-700 sm:text-lg">
+            Jump into your groups or start a new one to keep everyone connected.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
+            <Link href="/groups/create">
+              <Button>
+                Create Group
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </Button>
+            </Link>
+            <Link href="/join">
+              <Button variant="outline">Join Group</Button>
+            </Link>
+            <Button variant="ghost" onClick={signOut}>
               Sign Out
             </Button>
           </div>
-        </div>
+        </header>
 
-        {/* Debug component - remove after testing */}
-        <SupabaseTest />
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card>
+        <main className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Card className="h-full rounded-2xl shadow-md">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile
+              <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+                <ArrowRight className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+                Create Group
               </CardTitle>
-              <CardDescription>
-                Manage your personal information and preferences
+              <CardDescription className="text-slate-600">
+                Spin up a group to gather and share contact information.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm">
-                <p>
-                  <strong>Name:</strong> {profile?.first_name ? `${profile.first_name} ${profile.last_name}` : "Not set"}
-                </p>
-                <p>
-                  <strong>Email:</strong> {profile?.email}
-                </p>
-                <div className="flex items-center gap-2">
-                  <span>
-                    <strong>Phone:</strong> {profile?.phone || "Not set"}
-                  </span>
-                  {profile?.phone_verified ? (
-                    <Badge variant="secondary" className="text-xs">
-                      Verified
-                    </Badge>
-                  ) : profile?.phone ? (
-                    <Badge variant="outline" className="text-xs">
-                      Unverified
-                    </Badge>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>
-                    <strong>2FA:</strong>
-                  </span>
-                  {profile?.two_factor_enabled ? (
-                    <Badge variant="default" className="text-xs bg-green-600">
-                      <ShieldCheck className="h-3 w-3 mr-1" />
-                      Enabled
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">
-                      <Shield className="h-3 w-3 mr-1" />
-                      Disabled
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="mt-4 space-y-2">
-                <Link href="/profile/setup">
-                  <Button className="w-full" variant="outline">
-                    Edit Profile
-                  </Button>
-                </Link>
-                {!profile?.phone_verified && (
-                  <Link href="/profile/phone-verification">
-                    <Button className="w-full" variant="outline" size="sm">
-                      <Phone className="h-4 w-4 mr-2" />
-                      Verify Phone
-                    </Button>
-                  </Link>
-                )}
-                <Link href="/profile/2fa-setup">
-                  <Button className="w-full" variant="outline" size="sm">
-                    <Shield className="h-4 w-4 mr-2" />
-                    {profile?.two_factor_enabled ? "Manage 2FA" : "Setup 2FA"}
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/groups/create">
+                <Button className="w-full">Create Group</Button>
+              </Link>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="h-full rounded-2xl shadow-md">
             <CardHeader>
-              <CardTitle>My Groups</CardTitle>
-              <CardDescription>
-                Contact groups you own or are a member of
+              <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+                <QrCode className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+                Join Group
+              </CardTitle>
+              <CardDescription className="text-slate-600">
+                Join an existing group using a QR code or invite code.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <Link href="/join" className="block">
+                <Button variant="outline" className="w-full justify-center gap-2">
+                  <QrCode className="h-4 w-4" aria-hidden="true" />
+                  Scan QR
+                </Button>
+              </Link>
+              <Link href="/join" className="block">
+                <Button className="w-full justify-center gap-2 bg-slate-900 text-white hover:bg-slate-800">
+                  <KeyRound className="h-4 w-4" aria-hidden="true" />
+                  Enter Code
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="h-full rounded-2xl shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+                <Share2 className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+                My Groups
+              </CardTitle>
+              <CardDescription className="text-slate-600">
+                Review and manage the groups you’ve created or joined.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
               {groupsLoading ? (
                 <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                  <div className="h-4 rounded bg-slate-200 animate-pulse" />
+                  <div className="h-4 w-3/4 rounded bg-slate-200 animate-pulse" />
                 </div>
               ) : groupsError ? (
-                <div className="text-red-600 text-sm mb-4">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                   Error loading groups: {groupsError.message}
                 </div>
               ) : !groups || groups.length === 0 ? (
-                <>
-                  <p className="text-sm text-gray-500 mb-4">
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-600">
                     No groups yet. Create your first group to get started.
                   </p>
                   <Link href="/groups/create">
                     <Button className="w-full">Create Group</Button>
                   </Link>
-                </>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {groups.slice(0, 3).map((group: DashboardGroup) => (
-                    <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium truncate">{group.name}</h4>
-                          <Badge variant={group.is_owner ? "default" : "secondary"} className="text-xs">
-                            {group.is_owner ? "Owner" : "Member"}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {group.member_count} member{group.member_count !== 1 ? 's' : ''}
+                    <div
+                      key={group.id}
+                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white/70 px-3 py-2 shadow-sm"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {group.name}
+                        </p>
+                        <p className="text-xs text-slate-600">
+                          {group.member_count} member{group.member_count !== 1 ? "s" : ""}
                         </p>
                       </div>
                       <div className="flex gap-1">
                         <Link href={`/groups/${group.id}`}>
-                          <Button variant="outline" size="sm">
-                            <Users className="h-4 w-4" />
+                          <Button variant="ghost" size="icon">
+                            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                            <span className="sr-only">Open group</span>
                           </Button>
                         </Link>
                         {group.is_owner && (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleCopyShareLink(group.share_token)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => window.open(`/join/${group.share_token}`, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleCopyShareLink(group.share_token)}
+                          >
+                            <Copy className="h-4 w-4" aria-hidden="true" />
+                            <span className="sr-only">Copy share link</span>
+                          </Button>
                         )}
                       </div>
                     </div>
                   ))}
                   {groups.length > 3 && (
-                    <p className="text-sm text-gray-500 text-center">
+                    <p className="text-xs text-slate-600">
                       +{groups.length - 3} more groups
                     </p>
                   )}
-                  <Link href="/groups/create">
-                    <Button className="w-full" variant="outline">Create New Group</Button>
+                  <Link href="/dashboard">
+                    <Button variant="secondary" className="w-full">
+                      View Dashboard
+                    </Button>
                   </Link>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                Join a Group
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Export Contacts
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Notification Settings
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        </main>
       </div>
     </div>
   );
