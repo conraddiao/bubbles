@@ -21,15 +21,12 @@ import {
 } from "@/components/ui/card";
 import {
   ArrowRight,
-  Copy,
-  ExternalLink,
   KeyRound,
   QrCode,
   Share2,
 } from "lucide-react";
 import { useQuery } from '@tanstack/react-query'
 import { getUserGroups } from '@/lib/database'
-import { toast } from 'sonner'
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -47,16 +44,6 @@ function DashboardContent() {
     },
     enabled: !!user, // Only fetch when user is available
   })
-
-  const handleCopyShareLink = async (shareToken: string) => {
-    const shareUrl = `${window.location.origin}/join/${shareToken}`
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      toast.success('Share link copied to clipboard')
-    } catch {
-      toast.error('Failed to copy link')
-    }
-  };
 
   const displayName = [
     profile?.first_name ?? user?.user_metadata?.first_name,
@@ -173,37 +160,25 @@ function DashboardContent() {
               ) : (
                 <div className="space-y-3">
                   {groups.slice(0, 3).map((group: DashboardGroup) => (
-                    <div
+                    <Link
                       key={group.id}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white/70 px-3 py-2 shadow-sm"
+                      href={`/groups/${group.id}`}
+                      className="block rounded-xl border border-slate-200 bg-white/70 px-3 py-2 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
                     >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {group.name}
-                        </p>
-                        <p className="text-xs text-slate-600">
-                          {group.member_count} member{group.member_count !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Link href={`/groups/${group.id}`}>
-                          <Button variant="ghost" size="icon">
-                            <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                            <span className="sr-only">Open group</span>
-                          </Button>
-                        </Link>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {group.name}
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            {group.member_count} member{group.member_count !== 1 ? "s" : ""}
+                          </p>
+                        </div>
                         {group.is_owner && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleCopyShareLink(group.share_token)}
-                          >
-                            <Copy className="h-4 w-4" aria-hidden="true" />
-                            <span className="sr-only">Copy share link</span>
-                          </Button>
+                          <span className="text-xs font-medium text-indigo-700">Owner</span>
                         )}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                   {groups.length > 3 && (
                     <p className="text-xs text-slate-600">
