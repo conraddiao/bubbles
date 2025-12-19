@@ -1,10 +1,12 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, KeyRound, QrCode, Share2 } from 'lucide-react'
+import { ArrowRight, KeyRound, MoreVertical, QrCode, Share2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { User } from '@supabase/supabase-js'
 
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getUserGroups } from '@/lib/database'
@@ -25,6 +27,8 @@ interface DashboardContentProps {
 }
 
 export function DashboardContent({ user, profile, onSignOut }: DashboardContentProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const { data: groups, isLoading: groupsLoading, error: groupsError } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => {
@@ -44,33 +48,84 @@ export function DashboardContent({ user, profile, onSignOut }: DashboardContentP
     .trim()
 
   const greetingName = displayName || user?.email || 'there'
+  const avatarInitial = displayName?.charAt(0) ?? user?.email?.charAt(0) ?? '?'
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const handleSignOut = async () => {
+    await onSignOut()
+    setMenuOpen(false)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-indigo-100 to-indigo-200">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-12 sm:py-16">
-        <header className="space-y-3 text-center sm:text-left">
-          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
-            Shared Contact Groups
-          </p>
-          <h1 className="text-3xl font-black leading-tight text-slate-900 sm:text-4xl">
-            Welcome back, {greetingName}!
-          </h1>
-          <p className="text-base text-slate-700 sm:text-lg">
-            Jump into your groups or start a new one to keep everyone connected.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3 sm:justify-start">
-            <Link href="/groups/create">
-              <Button>
-                Create Group
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+        <header className="space-y-3 text-left">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold uppercase tracking-wide text-indigo-700">
+                Shared Contact Groups
+              </p>
+              <h1 className="text-3xl font-black leading-tight text-slate-900 sm:text-4xl">
+                Welcome back, {greetingName}!
+              </h1>
+              <p className="text-base text-slate-700 sm:text-lg">
+                Jump into your groups or start a new one to keep everyone connected.
+              </p>
+            </div>
+            <div className="relative" ref={menuRef}>
+              <Button
+                variant="outline"
+                size="icon"
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((prev) => !prev)}
+              >
+                <Avatar className="size-9">
+                  <AvatarFallback className="bg-indigo-100 text-sm font-semibold text-indigo-700">
+                    {avatarInitial.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="sr-only">Open user menu</span>
               </Button>
-            </Link>
-            <Link href="/join">
-              <Button variant="outline">Join Group</Button>
-            </Link>
-            <Button variant="ghost" onClick={onSignOut}>
-              Sign Out
-            </Button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white shadow-lg">
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <p className="text-sm font-semibold text-slate-900">
+                      {displayName || 'Account'}
+                    </p>
+                    {user?.email && <p className="text-xs text-slate-500">{user.email}</p>}
+                  </div>
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-3 text-left text-sm font-medium text-slate-800 transition hover:bg-indigo-50"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-slate-800 transition hover:bg-indigo-50"
+                    onClick={handleSignOut}
+                  >
+                    Sign Out
+                    <MoreVertical className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
