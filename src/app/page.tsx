@@ -1,19 +1,28 @@
 'use client'
 
-import Link from 'next/link'
-import { ArrowRight, KeyRound, MoreVertical, QrCode, Share2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { ArrowRight, KeyRound, Loader2, MoreVertical, QrCode, Share2 } from 'lucide-react'
+import { User } from '@supabase/supabase-js'
 
+import { DashboardContent } from '@/components/dashboard/dashboard-content'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/use-auth'
+import { Profile } from '@/types'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
-export default function Home() {
-  const { user, profile, signOut } = useAuth()
+interface LandingPageProps {
+  user: User | null
+  profile: Profile | null
+  onSignOut: () => Promise<void>
+}
+
+function LandingPage({ user, profile, onSignOut }: LandingPageProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -26,7 +35,7 @@ export default function Home() {
     .trim()
 
   const greetingName = displayName || user?.email || 'there'
-  const createGroupLink = user ? '/dashboard' : '/auth?mode=signup'
+  const createGroupLink = user ? '/groups/create' : '/auth?mode=signup'
   const joinGroupLink = user ? '/join' : '/auth?mode=signin'
   const avatarInitial = displayName?.charAt(0) ?? user?.email?.charAt(0) ?? '?'
 
@@ -45,7 +54,7 @@ export default function Home() {
   }, [])
 
   const handleSignOut = async () => {
-    await signOut()
+    await onSignOut()
     setMenuOpen(false)
   }
 
@@ -84,9 +93,7 @@ export default function Home() {
                       <p className="text-sm font-semibold text-slate-900">
                         {displayName || 'Account'}
                       </p>
-                      {user?.email && (
-                        <p className="text-xs text-slate-500">{user.email}</p>
-                      )}
+                      {user?.email && <p className="text-xs text-slate-500">{user.email}</p>}
                     </div>
                     <button
                       type="button"
@@ -172,4 +179,43 @@ export default function Home() {
       </div>
     </div>
   )
+}
+
+export default function Home() {
+  const { user, profile, signOut, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && user && !profile) {
+      router.push('/profile/setup')
+    }
+  }, [loading, user, profile, router])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (user && !profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin" />
+          <p className="text-gray-600">Redirecting to complete your profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (user && profile) {
+    return <DashboardContent user={user} profile={profile} onSignOut={signOut} />
+  }
+
+  return <LandingPage user={user} profile={profile} onSignOut={signOut} />
 }

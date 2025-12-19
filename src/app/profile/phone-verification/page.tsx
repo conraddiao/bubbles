@@ -16,7 +16,7 @@ export default function PhoneVerificationPage() {
         <div className="w-full max-w-md">
           <PhoneVerification 
             onSuccess={() => router.push('/profile/2fa-setup')}
-            onCancel={() => router.push('/dashboard')}
+            onCancel={() => router.push('/')}
           />
         </div>
       </div>
