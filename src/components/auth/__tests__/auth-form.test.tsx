@@ -101,7 +101,8 @@ describe('AuthForm', () => {
       render(<AuthForm mode="signup" />)
       
       expect(screen.getByText('Sign up to create and manage contact groups')).toBeInTheDocument()
-      expect(screen.getByLabelText('Full Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('First Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('Last Name')).toBeInTheDocument()
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(screen.getByLabelText(/Phone Number/)).toBeInTheDocument()
@@ -114,7 +115,8 @@ describe('AuthForm', () => {
       
       render(<AuthForm mode="signup" />)
       
-      await user.type(screen.getByLabelText('Full Name'), 'John Doe')
+      await user.type(screen.getByLabelText('First Name'), 'John')
+      await user.type(screen.getByLabelText('Last Name'), 'Doe')
       await user.type(screen.getByLabelText('Email'), 'john@example.com')
       await user.type(screen.getByLabelText('Password'), 'password123')
       await user.type(screen.getByLabelText(/Phone Number/), '+1234567890')
@@ -140,7 +142,7 @@ describe('AuthForm', () => {
       await user.click(screen.getByRole('button', { name: 'Create Account' }))
       
       await waitFor(() => {
-        expect(screen.getByText('Full name is required')).toBeInTheDocument()
+        expect(screen.getByText('First name is required')).toBeInTheDocument()
       })
     })
 
@@ -149,7 +151,8 @@ describe('AuthForm', () => {
       
       render(<AuthForm mode="signup" />)
       
-      await user.type(screen.getByLabelText('Full Name'), 'John Doe')
+      await user.type(screen.getByLabelText('First Name'), 'John')
+      await user.type(screen.getByLabelText('Last Name'), 'Doe')
       await user.type(screen.getByLabelText('Email'), 'test@example.com')
       await user.type(screen.getByLabelText('Password'), '123')
       await user.click(screen.getByRole('button', { name: 'Create Account' }))
@@ -157,6 +160,31 @@ describe('AuthForm', () => {
       await waitFor(() => {
         expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument()
       })
+    })
+
+    it('advances focus with Enter key until the last field', async () => {
+      const user = userEvent.setup()
+
+      render(<AuthForm mode=\"signup\" />)
+
+      const firstName = screen.getByLabelText('First Name')
+      const lastName = screen.getByLabelText('Last Name')
+      const email = screen.getByLabelText('Email')
+      const password = screen.getByLabelText('Password')
+      const phone = screen.getByLabelText(/Phone Number/)
+
+      firstName.focus()
+      await user.keyboard('{Enter}')
+      expect(lastName).toHaveFocus()
+
+      await user.keyboard('{Enter}')
+      expect(email).toHaveFocus()
+
+      await user.keyboard('{Enter}')
+      expect(password).toHaveFocus()
+
+      await user.keyboard('{Enter}')
+      expect(phone).toHaveFocus()
     })
   })
 

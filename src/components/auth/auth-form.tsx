@@ -26,6 +26,9 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
   const { signIn, signUp } = useAuth()
 
   const isSignUp = authMode === 'signup'
+
+  const signInFieldOrder: Array<keyof SignInFormData> = ['email', 'password']
+  const signUpFieldOrder: Array<keyof SignUpFormData> = ['first_name', 'last_name', 'email', 'password', 'phone']
   
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
@@ -104,6 +107,23 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
     setIsLoading(false)
   }
 
+  const focusNextField = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+    field: keyof SignInFormData | keyof SignUpFormData
+  ) => {
+    if (event.key !== 'Enter') return
+
+    const form = isSignUp ? signUpForm : signInForm
+    const fieldOrder = isSignUp ? signUpFieldOrder : signInFieldOrder
+    const currentIndex = fieldOrder.indexOf(field as never)
+    const nextField = fieldOrder[currentIndex + 1]
+
+    if (nextField) {
+      event.preventDefault()
+      form.setFocus(nextField as never)
+    }
+  }
+
   // Show 2FA verification if needed
   if (show2FA) {
     return (
@@ -141,7 +161,10 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
                   id="first_name"
                   type="text"
                   placeholder="Enter your first name"
-                  {...signUpForm.register('first_name')}
+                  enterKeyHint="next"
+                  {...signUpForm.register('first_name', {
+                    onKeyDown: (event) => focusNextField(event, 'first_name')
+                  })}
                   className={signUpForm.formState.errors.first_name ? 'border-red-500' : ''}
                 />
                 {signUpForm.formState.errors.first_name && (
@@ -157,7 +180,10 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
                   id="last_name"
                   type="text"
                   placeholder="Enter your last name"
-                  {...signUpForm.register('last_name')}
+                  enterKeyHint="next"
+                  {...signUpForm.register('last_name', {
+                    onKeyDown: (event) => focusNextField(event, 'last_name')
+                  })}
                   className={signUpForm.formState.errors.last_name ? 'border-red-500' : ''}
                 />
                 {signUpForm.formState.errors.last_name && (
@@ -175,7 +201,15 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
               id="email"
               type="email"
               placeholder="Enter your email"
-              {...(isSignUp ? signUpForm.register('email') : signInForm.register('email'))}
+              enterKeyHint="next"
+              {...(isSignUp
+                ? signUpForm.register('email', {
+                    onKeyDown: (event) => focusNextField(event, 'email')
+                  })
+                : signInForm.register('email', {
+                    onKeyDown: (event) => focusNextField(event, 'email')
+                  })
+              )}
               className={currentForm.formState.errors.email ? 'border-red-500' : ''}
             />
             {currentForm.formState.errors.email && (
@@ -192,7 +226,15 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder={isSignUp ? 'Create a password (min 8 characters)' : 'Enter your password'}
-                {...(isSignUp ? signUpForm.register('password') : signInForm.register('password'))}
+                enterKeyHint={isSignUp ? 'next' : 'go'}
+                {...(isSignUp
+                  ? signUpForm.register('password', {
+                      onKeyDown: (event) => focusNextField(event, 'password')
+                    })
+                  : signInForm.register('password', {
+                      onKeyDown: (event) => focusNextField(event, 'password')
+                    })
+                )}
                 className={currentForm.formState.errors.password ? 'border-red-500 pr-10' : 'pr-10'}
               />
               <button
@@ -217,7 +259,10 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
                 id="phone"
                 type="tel"
                 placeholder="Enter your phone number"
-                {...signUpForm.register('phone')}
+                enterKeyHint="go"
+                {...signUpForm.register('phone', {
+                  onKeyDown: (event) => focusNextField(event, 'phone')
+                })}
                 className={signUpForm.formState.errors.phone ? 'border-red-500' : ''}
               />
               {signUpForm.formState.errors.phone && (
