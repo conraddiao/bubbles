@@ -68,10 +68,10 @@ function LandingPage({ user, profile, onSignOut }: LandingPageProps) {
                 Shared Contact Groups
               </p>
               <h1 className="text-3xl font-black leading-tight text-slate-900 sm:text-4xl">
-                Welcome back, {greetingName}!
+                {user ? `Welcome back, ${greetingName}!` : 'Welcome to Bubbles!'}
               </h1>
             </div>
-            {user && (
+            {user ? (
               <div className="relative" ref={menuRef}>
                 <Button
                   variant="outline"
@@ -106,6 +106,10 @@ function LandingPage({ user, profile, onSignOut }: LandingPageProps) {
                   </div>
                 )}
               </div>
+            ) : (
+              <Link href="/auth?mode=signin">
+                <Button variant="outline">Log In</Button>
+              </Link>
             )}
           </div>
           <p className="text-base text-slate-700 sm:text-lg">
