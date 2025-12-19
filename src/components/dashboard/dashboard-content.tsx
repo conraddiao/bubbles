@@ -38,6 +38,7 @@ export function DashboardContent({ user, profile, onSignOut }: DashboardContentP
     },
     enabled: Boolean(user),
   })
+  const [showAllGroups, setShowAllGroups] = useState(false)
 
   const displayName = [
     profile?.first_name ?? user?.user_metadata?.first_name,
@@ -204,7 +205,7 @@ export function DashboardContent({ user, profile, onSignOut }: DashboardContentP
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {groups.slice(0, 3).map((group: DashboardGroup) => (
+                  {(showAllGroups ? groups : groups.slice(0, 3)).map((group: DashboardGroup) => (
                     <Link
                       key={group.id}
                       href={`/groups/${group.id}`}
@@ -225,8 +226,20 @@ export function DashboardContent({ user, profile, onSignOut }: DashboardContentP
                       </div>
                     </Link>
                   ))}
-                  {groups.length > 3 && (
+                  {groups.length > 3 && !showAllGroups && (
                     <p className="text-xs text-slate-600">+{groups.length - 3} more groups</p>
+                  )}
+                  {groups.length > 3 && (
+                    <div className="pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-indigo-700 hover:bg-indigo-50"
+                        onClick={() => setShowAllGroups((prev) => !prev)}
+                      >
+                        {showAllGroups ? 'Show less' : 'See all'}
+                      </Button>
+                    </div>
                   )}
                 </div>
               )}
