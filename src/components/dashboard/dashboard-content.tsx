@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, KeyRound, MoreVertical, QrCode, Share2 } from 'lucide-react'
+import { ArrowRight, MoreVertical, Share2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { User } from '@supabase/supabase-js'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { JoinGroupCard } from '@/components/join-group-card'
 import { getUserGroups } from '@/lib/database'
 import { Profile } from '@/types'
 
@@ -148,31 +149,7 @@ export function DashboardContent({ user, profile, onSignOut }: DashboardContentP
             </CardContent>
           </Card>
 
-          <Card className="h-full rounded-2xl shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
-                <QrCode className="h-5 w-5 text-indigo-600" aria-hidden="true" />
-                Join Group
-              </CardTitle>
-              <CardDescription className="text-slate-600">
-                Join an existing group using a QR code or invite code.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <Link href="/join" className="block">
-                <Button variant="outline" className="w-full justify-center gap-2">
-                  <QrCode className="h-4 w-4" aria-hidden="true" />
-                  Scan QR
-                </Button>
-              </Link>
-              <Link href="/join" className="block">
-                <Button className="w-full justify-center gap-2 bg-slate-900 text-white hover:bg-slate-800">
-                  <KeyRound className="h-4 w-4" aria-hidden="true" />
-                  Enter Code
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <JoinGroupCard />
 
           <Card className="h-full rounded-2xl shadow-md">
             <CardHeader>
