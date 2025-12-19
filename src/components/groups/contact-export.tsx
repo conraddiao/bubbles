@@ -17,6 +17,7 @@ interface GroupMember {
   last_name: string
   email: string
   phone?: string
+  avatar_url?: string | null
   notifications_enabled: boolean
   joined_at: string
   is_owner: boolean
@@ -57,6 +58,10 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
 
     if (member.phone) {
       vcard.push(`TEL:${member.phone}`)
+    }
+
+    if (member.avatar_url) {
+      vcard.push(`PHOTO;VALUE=URI:${member.avatar_url}`)
     }
 
     // Add organization/note to indicate the group

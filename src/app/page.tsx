@@ -95,6 +95,13 @@ function LandingPage({ user, profile, onSignOut }: LandingPageProps) {
                       </p>
                       {user?.email && <p className="text-xs text-slate-500">{user.email}</p>}
                     </div>
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-3 text-left text-sm font-medium text-slate-800 transition hover:bg-indigo-50"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      Settings
+                    </Link>
                     <button
                       type="button"
                       className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-slate-800 transition hover:bg-indigo-50"
