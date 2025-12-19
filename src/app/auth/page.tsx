@@ -14,7 +14,7 @@ function AuthContent() {
   const { user, loading } = useAuth()
   
   const mode = searchParams.get('mode') as 'signin' | 'signup' || 'signin'
-  const redirectTo = searchParams.get('redirect') || '/dashboard'
+  const redirectTo = searchParams.get('redirect') || '/'
 
   useEffect(() => {
     if (!loading && user) {

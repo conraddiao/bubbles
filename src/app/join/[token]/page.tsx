@@ -193,7 +193,7 @@ export default function JoinPage({ params }: JoinPageProps) {
               You&apos;ve been added to <strong>{group.name}</strong>. Other members can now see your contact information.
             </p>
             {user ? (
-              <Link href="/dashboard">
+              <Link href="/">
                 <Button>Go to Dashboard</Button>
               </Link>
             ) : (

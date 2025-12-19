@@ -19,14 +19,14 @@ function CreateGroupContent() {
   }
 
   const handleCancel = () => {
-    router.push('/dashboard')
+    router.push('/')
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <Link href="/dashboard">
+          <Link href="/">
             <Button variant="outline" size="sm" className="mb-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard

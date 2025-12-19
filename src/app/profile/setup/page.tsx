@@ -15,7 +15,7 @@ export default function ProfileSetupPage() {
   useEffect(() => {
     // If user already has a complete profile, redirect to dashboard
     if (!loading && profile?.first_name && profile?.last_name) {
-      router.push("/dashboard");
+      router.push("/");
     }
 
     // If no user, redirect to auth
@@ -49,7 +49,7 @@ export default function ProfileSetupPage() {
           </p>
         </div>
 
-        <ProfileForm onSuccess={() => router.push("/dashboard")} />
+        <ProfileForm onSuccess={() => router.push("/")} />
       </div>
     </div>
   );

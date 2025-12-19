@@ -23,7 +23,7 @@ export default function TwoFactorSetupPage() {
             </p>
           </div>
           
-          <TwoFactorSetup onSuccess={() => router.push('/dashboard')} />
+          <TwoFactorSetup onSuccess={() => router.push('/')} />
         </div>
       </div>
     </ProtectedRoute>
