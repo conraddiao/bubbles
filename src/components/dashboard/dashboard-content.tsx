@@ -228,11 +228,6 @@ export function DashboardContent({ user, profile, onSignOut }: DashboardContentP
                   {groups.length > 3 && (
                     <p className="text-xs text-slate-600">+{groups.length - 3} more groups</p>
                   )}
-                  <Link href="/">
-                    <Button variant="secondary" className="w-full">
-                      View Dashboard
-                    </Button>
-                  </Link>
                 </div>
               )}
             </CardContent>
