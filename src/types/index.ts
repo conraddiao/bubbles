@@ -19,6 +19,8 @@ export interface ContactGroup {
   owner_id: string
   is_closed: boolean
   share_token: string
+  access_type: 'open' | 'password'
+  join_password_hash?: string | null
   created_at: string
   updated_at: string
   owner?: Profile
@@ -34,6 +36,7 @@ export interface GroupMembership {
   email: string
   phone?: string
   notifications_enabled: boolean
+  departed_at?: string | null
   joined_at: string
   group?: ContactGroup
 }
@@ -96,7 +99,10 @@ export type Database = {
       }
       contact_groups: {
         Row: ContactGroup
-        Insert: Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token'>
+        Insert: Partial<Pick<ContactGroup, 'access_type'>> &
+          Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token' | 'access_type'> & {
+            join_password_hash?: string | null
+          }
         Update: Partial<Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token'>>
       }
       group_memberships: {

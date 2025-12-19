@@ -40,9 +40,10 @@ interface MemberListProps {
   groupName: string
   isOwner: boolean
   onExportContacts?: () => void
+  layout?: 'card' | 'embedded'
 }
 
-export function MemberList({ groupId, groupName, isOwner, onExportContacts }: MemberListProps) {
+export function MemberList({ groupId, groupName, isOwner, onExportContacts, layout = 'card' }: MemberListProps) {
   const queryClient = useQueryClient()
 
   const { data: members, isLoading, error } = useQuery<GroupMember[]>({
@@ -69,7 +70,8 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts }: Me
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to remove member')
+      const message = err instanceof Error ? err.message : 'Failed to remove member'
+      toast.error(message)
     },
   })
 
@@ -98,172 +100,199 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts }: Me
 
 
 
+  const HeaderTitle = () => (
+    <div className="flex items-center justify-between">
+      <div>
+        <h3 className="text-lg font-semibold leading-tight">Group Members</h3>
+        <p className="text-sm text-muted-foreground">
+          {members?.length || 0} member{(members?.length || 0) !== 1 ? 's' : ''} in {groupName}
+        </p>
+      </div>
+      {onExportContacts && (members?.length || 0) > 0 && (
+        <Button onClick={onExportContacts} variant="outline" size="sm">
+          <Download className="h-4 w-4" />
+          Export Contacts
+        </Button>
+      )}
+    </div>
+  )
+
   if (isLoading) {
-    return (
+    const skeleton = (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center space-x-4 animate-pulse">
+            <div className="w-10 h-10 bg-muted rounded-full"></div>
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-muted rounded w-1/3"></div>
+              <div className="h-3 bg-muted rounded w-1/2"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+    return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <CardTitle>Group Members</CardTitle>
-          <CardDescription>Loading members...</CardDescription>
+          <HeaderTitle />
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 animate-pulse">
-                <div className="w-10 h-10 bg-muted rounded-full"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-muted rounded w-1/3"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
+        <CardContent>{skeleton}</CardContent>
       </Card>
+    ) : (
+      <div className="space-y-4">
+        <HeaderTitle />
+        {skeleton}
+      </div>
     )
   }
 
   if (error) {
-    return (
+    const content = (
+      <p className="text-sm text-muted-foreground">
+        {error.message || 'An error occurred while loading group members.'}
+      </p>
+    )
+    return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <CardTitle>Group Members</CardTitle>
-          <CardDescription>Failed to load members</CardDescription>
+          <HeaderTitle />
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {error.message || 'An error occurred while loading group members.'}
-          </p>
-        </CardContent>
+        <CardContent>{content}</CardContent>
       </Card>
+    ) : (
+      <div className="space-y-2">
+        <HeaderTitle />
+        {content}
+      </div>
     )
   }
 
   if (!members || members.length === 0) {
-    return (
+    const emptyState = (
+      <div className="text-center py-6 rounded-lg border border-dashed">
+        <Users className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+        <p className="text-sm text-muted-foreground">
+          Share your group link to start collecting contact information.
+        </p>
+      </div>
+    )
+
+    return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <CardTitle>Group Members</CardTitle>
-          <CardDescription>No members have joined yet</CardDescription>
+          <HeaderTitle />
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">
-              Share your group link to start collecting contact information.
-            </p>
-          </div>
-        </CardContent>
+        <CardContent>{emptyState}</CardContent>
       </Card>
+    ) : (
+      <div className="space-y-4">
+        <HeaderTitle />
+        {emptyState}
+      </div>
     )
   }
 
-  return (
+  const table = (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Member</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Notifications</TableHead>
+            <TableHead>Joined</TableHead>
+            {isOwner && <TableHead className="w-[100px]">Actions</TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {members.map((member) => (
+            <TableRow key={member.id}>
+              <TableCell>
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarFallback>
+                      {getInitials(member)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{getDisplayName(member)}</span>
+                      {member.is_owner && (
+                        <Badge variant="secondary" className="text-xs">
+                          Owner
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <span className="truncate">{member.email}</span>
+                  </div>
+                  {member.phone && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      <span>{member.phone}</span>
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  {member.notifications_enabled ? (
+                    <>
+                      <Bell className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-green-600">Enabled</span>
+                    </>
+                  ) : (
+                    <>
+                      <BellOff className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Disabled</span>
+                    </>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className="text-sm text-muted-foreground">
+                  {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}
+                </span>
+              </TableCell>
+              {isOwner && (
+                <TableCell>
+                  {!member.is_owner && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveMember(member)}
+                      disabled={removeMemberMutation.isPending}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+
+  return layout === 'card' ? (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Group Members</CardTitle>
-            <CardDescription>
-              {members.length} member{members.length !== 1 ? 's' : ''} in {groupName}
-            </CardDescription>
-          </div>
-          {onExportContacts && members.length > 0 && (
-            <Button onClick={onExportContacts} variant="outline" size="sm">
-              <Download className="h-4 w-4" />
-              Export Contacts
-            </Button>
-          )}
-        </div>
+        <HeaderTitle />
       </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Notifications</TableHead>
-                <TableHead>Joined</TableHead>
-                {isOwner && <TableHead className="w-[100px]">Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          {getInitials(member)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{getDisplayName(member)}</span>
-                          {member.is_owner && (
-                            <Badge variant="secondary" className="text-xs">
-                              Owner
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-3 w-3 text-muted-foreground" />
-                        <span className="truncate">{member.email}</span>
-                      </div>
-                      {member.phone && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          <span>{member.phone}</span>
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {member.notifications_enabled ? (
-                        <>
-                          <Bell className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-600">Enabled</span>
-                        </>
-                      ) : (
-                        <>
-                          <BellOff className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Disabled</span>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}
-                    </span>
-                  </TableCell>
-                  {isOwner && (
-                    <TableCell>
-                      {!member.is_owner && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member)}
-                          disabled={removeMemberMutation.isPending}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+      <CardContent>{table}</CardContent>
     </Card>
+  ) : (
+    <div className="space-y-4">
+      <HeaderTitle />
+      {table}
+    </div>
   )
 }

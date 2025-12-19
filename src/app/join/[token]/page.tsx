@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ArrowLeft, Users, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Users, CheckCircle, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -33,7 +33,8 @@ export default function JoinPage({ params }: JoinPageProps) {
     last_name: '',
     email: '',
     phone: '',
-    notifications_enabled: false
+    notifications_enabled: false,
+    group_password: ''
   })
   const [hasJoined, setHasJoined] = useState(false)
   const [user, setUser] = useState<User | null>(null)
@@ -82,11 +83,14 @@ export default function JoinPage({ params }: JoinPageProps) {
   })
 
   // Join group mutation
+  const requiresPassword = group?.access_type === 'password'
+
   const joinMutation = useMutation({
     mutationFn: async () => {
+      const password = requiresPassword ? formData.group_password : undefined
       if (user) {
         // Authenticated user
-        const result = await joinContactGroup(token, formData.notifications_enabled)
+        const result = await joinContactGroup(token, formData.notifications_enabled, password)
         if (result.error) throw new Error(result.error)
         return result.data
       } else {
@@ -97,7 +101,8 @@ export default function JoinPage({ params }: JoinPageProps) {
           formData.last_name,
           formData.email,
           formData.phone,
-          formData.notifications_enabled
+          formData.notifications_enabled,
+          password
         )
         if (result.error) throw new Error(result.error)
         return result.data
@@ -118,6 +123,11 @@ export default function JoinPage({ params }: JoinPageProps) {
     
     if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim()) {
       toast.error('First name, last name, and email are required')
+      return
+    }
+
+    if (requiresPassword && !formData.group_password.trim()) {
+      toast.error('A group password is required to join this group.')
       return
     }
 
@@ -288,6 +298,26 @@ export default function JoinPage({ params }: JoinPageProps) {
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               />
             </div>
+
+            {group?.access_type === 'password' && (
+              <div className="space-y-2">
+                <label htmlFor="group_password" className="text-sm font-medium flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Group Password
+                </label>
+                <Input
+                  id="group_password"
+                  type="password"
+                  placeholder="Enter the group password"
+                  value={formData.group_password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, group_password: e.target.value }))}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  A password is required before you can join this group.
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center space-x-2">
               <Checkbox

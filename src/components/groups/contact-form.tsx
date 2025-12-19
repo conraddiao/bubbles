@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/hooks/use-auth'
 import { contactFormSchema, type ContactFormData } from '@/lib/validations'
 import { toast } from 'sonner'
+import type { ContactGroup } from '@/types'
 
 interface ContactFormProps {
   shareToken: string
@@ -30,7 +31,7 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
   const { user, loading: authLoading } = useAuth()
 
   // Get group information
-  const { data: group, isLoading: groupLoading, error: groupError } = useQuery({
+  const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroup | null>({
     queryKey: ['group-by-token', shareToken],
     queryFn: async () => {
       const result = await getGroupByToken(shareToken)
@@ -63,6 +64,7 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
     mode: 'onChange',
     defaultValues: {
       notifications_enabled: false,
+      group_password: ''
     },
   })
 
@@ -77,11 +79,14 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
     }
   }, [profile, user, setValue])
 
+  const requiresPassword = group?.access_type === 'password'
+
   const joinGroupMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
+      const password = requiresPassword ? data.group_password : undefined
       if (user) {
         // Authenticated user
-        const result = await joinContactGroup(shareToken, data.notifications_enabled)
+        const result = await joinContactGroup(shareToken, data.notifications_enabled, password)
         if (result.error) throw new Error(result.error)
         return result.data
       } else {
@@ -92,7 +97,8 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
           data.last_name,
           data.email,
           data.phone,
-          data.notifications_enabled
+          data.notifications_enabled,
+          password
         )
         if (result.error) throw new Error(result.error)
         return result.data
@@ -103,12 +109,17 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
       toast.success('Successfully joined the group!')
       onSuccess?.()
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to join group')
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to join group'
+      toast.error(message)
     },
   })
 
   const onSubmit = (data: ContactFormData) => {
+    if (requiresPassword && !data.group_password?.trim()) {
+      toast.error('A group password is required to join this group.')
+      return
+    }
     joinGroupMutation.mutate(data)
   }
 
@@ -281,6 +292,27 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
                 <p className="text-sm text-destructive">{errors.phone.message}</p>
               )}
             </div>
+
+            {requiresPassword && (
+              <div className="space-y-2">
+                <label htmlFor="group_password" className="text-sm font-medium">
+                  Group Password
+                </label>
+                <Input
+                  id="group_password"
+                  type="password"
+                  placeholder="Enter the group password"
+                  {...register('group_password')}
+                  aria-invalid={!!errors.group_password}
+                />
+                {errors.group_password && (
+                  <p className="text-sm text-destructive">{errors.group_password.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  The organizer enabled a password for this group. Share the passcode only with trusted members.
+                </p>
+              </div>
+            )}
 
             <div className="flex items-start space-x-3 pt-2">
               <Checkbox
