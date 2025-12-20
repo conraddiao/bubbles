@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, KeyRound, Loader2, MoreVertical, QrCode, Share2 } from 'lucide-react'
+import { ArrowRight, Loader2, MoreVertical, Share2 } from 'lucide-react'
 import { User } from '@supabase/supabase-js'
 
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { JoinGroupCard } from '@/components/join-group-card'
 import { useAuth } from '@/hooks/use-auth'
 import { Profile } from '@/types'
 
@@ -36,7 +37,6 @@ function LandingPage({ user, profile, onSignOut }: LandingPageProps) {
 
   const greetingName = displayName || user?.email || 'there'
   const createGroupLink = user ? '/groups/create' : '/auth?mode=signup'
-  const joinGroupLink = user ? '/join' : '/auth?mode=signin'
   const avatarInitial = displayName?.charAt(0) ?? user?.email?.charAt(0) ?? '?'
 
   useEffect(() => {
@@ -135,31 +135,7 @@ function LandingPage({ user, profile, onSignOut }: LandingPageProps) {
             </CardContent>
           </Card>
 
-          <Card className="h-full rounded-2xl shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
-                <QrCode className="h-5 w-5 text-indigo-600" aria-hidden="true" />
-                Join Group
-              </CardTitle>
-              <CardDescription className="text-slate-600">
-                Join an existing group using a QR code or invite code.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <Link href={joinGroupLink} className="block">
-                <Button variant="outline" className="w-full justify-center gap-2">
-                  <QrCode className="h-4 w-4" aria-hidden="true" />
-                  Scan QR
-                </Button>
-              </Link>
-              <Link href={joinGroupLink} className="block">
-                <Button className="w-full justify-center gap-2 bg-slate-900 text-white hover:bg-slate-800">
-                  <KeyRound className="h-4 w-4" aria-hidden="true" />
-                  Enter Code
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <JoinGroupCard />
 
           <Card className="h-full rounded-2xl shadow-md">
             <CardHeader>
