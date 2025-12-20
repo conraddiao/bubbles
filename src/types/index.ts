@@ -21,6 +21,9 @@ export interface ContactGroup {
   owner_id: string
   is_closed: boolean
   share_token: string
+  requires_password?: boolean
+  is_password_protected?: boolean
+  password_required?: boolean
   created_at: string
   updated_at: string
   owner?: Profile

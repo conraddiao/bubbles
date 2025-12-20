@@ -409,12 +409,7 @@ export async function getGroupByToken(shareToken: string) {
     const { data, error } = await supabase
       .from('contact_groups')
       .select(`
-        id,
-        name,
-        description,
-        is_closed,
-        owner_id,
-        share_token,
+        *,
         owner:profiles!owner_id(first_name, last_name)
       `)
       .eq('share_token', shareToken)
@@ -430,6 +425,40 @@ export async function getGroupByToken(shareToken: string) {
   } catch (error: unknown) {
     console.error('getGroupByToken error:', error)
     return { data: null, error: handleDatabaseError(error) }
+  }
+}
+
+export async function validateGroupPassword(shareToken: string, password: string) {
+  try {
+    const trimmedPassword = password.trim()
+    if (!trimmedPassword) {
+      throw new Error('Password is required to join this group.')
+    }
+
+    const { data, error } = await supabase
+      .rpc('validate_group_password' as any, {
+        group_token: shareToken,
+        password: trimmedPassword,
+      } as any)
+
+    if (error) {
+      throw error
+    }
+
+    const isValid =
+      typeof data === 'boolean'
+        ? data
+        : typeof data === 'object' &&
+            data !== null &&
+            'is_valid' in data &&
+            typeof (data as { is_valid?: unknown }).is_valid === 'boolean'
+          ? Boolean((data as { is_valid?: boolean }).is_valid)
+          : false
+
+    return { data: isValid, error: null }
+  } catch (error: unknown) {
+    console.error('validateGroupPassword error:', error)
+    return { data: false, error: handleDatabaseError(error) }
   }
 }
 
