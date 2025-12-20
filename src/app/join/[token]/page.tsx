@@ -54,13 +54,14 @@ export default function JoinPage({ params }: JoinPageProps) {
             .single<ProfileRow>()
           
           if (profile) {
-            setFormData({
+            setFormData((prev) => ({
               first_name: profile.first_name || '',
               last_name: profile.last_name || '',
               email: profile.email || user.email || '',
               phone: profile.phone || '',
-              notifications_enabled: profile.sms_notifications_enabled || false
-            })
+              notifications_enabled: profile.sms_notifications_enabled || false,
+              group_password: prev.group_password || ''
+            }))
           }
         }
       } catch (error) {
