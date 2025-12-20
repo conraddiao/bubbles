@@ -2,6 +2,7 @@ import { supabase, handleDatabaseError } from './supabase'
 import type { Database, Profile } from '@/types'
 
 type ContactGroupRow = Database['public']['Tables']['contact_groups']['Row']
+type GroupMembershipLookup = Pick<Database['public']['Tables']['group_memberships']['Row'], 'id' | 'departed_at'>
 const supabaseClient = supabase as any
 type AccessType = ContactGroupRow['access_type']
 
@@ -117,7 +118,7 @@ export async function joinContactGroup(
     // Find the group by share token
     const { data: groupData, error: groupError } = await supabase
       .from('contact_groups')
-      .select('id, name, is_closed, access_type, join_password_hash')
+      .select('id,name,is_closed,access_type,join_password_hash')
       .eq('share_token', shareToken)
       .single()
 
@@ -139,19 +140,20 @@ export async function joinContactGroup(
     await ensureValidPasscode(group, groupPassword)
 
     // Check if user is already a member (by user id or email)
-    const { data: existingMemberByUser, error: memberByUserError } = await supabase
+    const { data: existingMemberByUserRaw, error: memberByUserError } = await supabase
       .from('group_memberships')
-      .select('id, departed_at')
+      .select('id,departed_at')
       .eq('group_id', group.id)
+      .eq('user_id', user.id)
       .maybeSingle()
 
     if (memberByUserError) {
       throw memberByUserError
     }
 
-    const { data: existingMemberByEmail, error: memberByEmailError } = await supabase
+    const { data: existingMemberByEmailRaw, error: memberByEmailError } = await supabase
       .from('group_memberships')
-      .select('id, departed_at')
+      .select('id,departed_at')
       .eq('group_id', group.id)
       .eq('email', normalizedEmail)
       .maybeSingle()
@@ -160,6 +162,8 @@ export async function joinContactGroup(
       throw memberByEmailError
     }
 
+    const existingMemberByUser = existingMemberByUserRaw as GroupMembershipLookup | null
+    const existingMemberByEmail = existingMemberByEmailRaw as GroupMembershipLookup | null
     const existingMember = existingMemberByUser ?? existingMemberByEmail
 
     if (existingMember && !existingMember.departed_at) {
@@ -220,7 +224,7 @@ export async function joinContactGroupAnonymous(
     // First, find the group by share token
     const { data: groupData, error: groupError } = await supabase
       .from('contact_groups')
-      .select('id, name, is_closed, access_type, join_password_hash')
+      .select('id,name,is_closed,access_type,join_password_hash')
       .eq('share_token', shareToken)
       .single()
 
@@ -242,9 +246,9 @@ export async function joinContactGroupAnonymous(
     await ensureValidPasscode(group, groupPassword)
 
     // Check if email is already in the group
-    const { data: existingMember, error: existingMemberError } = await supabase
+    const { data: existingMemberRaw, error: existingMemberError } = await supabase
       .from('group_memberships')
-      .select('id, departed_at')
+      .select('id,departed_at')
       .eq('group_id', group.id)
       .eq('email', normalizedEmail)
       .maybeSingle()
@@ -252,6 +256,8 @@ export async function joinContactGroupAnonymous(
     if (existingMemberError) {
       throw existingMemberError
     }
+
+    const existingMember = existingMemberRaw as GroupMembershipLookup | null
 
     if (existingMember && !existingMember.departed_at) {
       throw new Error('This email address is already registered in this group.')
@@ -297,14 +303,14 @@ export async function joinContactGroupAnonymous(
 
 export async function removeGroupMember(membershipId: string) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('group_memberships')
       .update({
         departed_at: new Date().toISOString()
       })
       .eq('id', membershipId)
       .is('departed_at', null)
-      .select('id, departed_at')
+      .select('id,departed_at')
       .maybeSingle()
 
     if (error) throw error
@@ -333,7 +339,7 @@ export async function leaveGroup(groupId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    const { data: membership, error: membershipError } = await supabase
+    const { data: membershipRaw, error: membershipError } = await supabase
       .from('group_memberships')
       .select('id')
       .eq('group_id', groupId)
@@ -344,6 +350,8 @@ export async function leaveGroup(groupId: string) {
     if (membershipError) {
       throw membershipError
     }
+
+    const membership = membershipRaw as { id: string } | null
 
     if (!membership) {
       throw new Error('You are not a current member of this group.')

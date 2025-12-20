@@ -15,7 +15,7 @@ export interface Profile {
 export interface ContactGroup {
   id: string
   name: string
-  description?: string
+  description?: string | null
   owner_id: string
   is_closed: boolean
   share_token: string

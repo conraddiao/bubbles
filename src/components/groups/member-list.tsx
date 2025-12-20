@@ -43,6 +43,29 @@ interface MemberListProps {
   layout?: 'card' | 'embedded'
 }
 
+interface MemberListHeaderProps {
+  memberCount: number
+  groupName: string
+  onExportContacts?: () => void
+}
+
+const MemberListHeader = ({ memberCount, groupName, onExportContacts }: MemberListHeaderProps) => (
+  <div className="flex items-center justify-between">
+    <div>
+      <h3 className="text-lg font-semibold leading-tight">Group Members</h3>
+      <p className="text-sm text-muted-foreground">
+        {memberCount} member{memberCount !== 1 ? 's' : ''} in {groupName}
+      </p>
+    </div>
+    {onExportContacts && memberCount > 0 && (
+      <Button onClick={onExportContacts} variant="outline" size="sm">
+        <Download className="h-4 w-4" />
+        Export Contacts
+      </Button>
+    )}
+  </div>
+)
+
 export function MemberList({ groupId, groupName, isOwner, onExportContacts, layout = 'card' }: MemberListProps) {
   const queryClient = useQueryClient()
 
@@ -98,24 +121,7 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
     }
   }
 
-
-
-  const HeaderTitle = () => (
-    <div className="flex items-center justify-between">
-      <div>
-        <h3 className="text-lg font-semibold leading-tight">Group Members</h3>
-        <p className="text-sm text-muted-foreground">
-          {members?.length || 0} member{(members?.length || 0) !== 1 ? 's' : ''} in {groupName}
-        </p>
-      </div>
-      {onExportContacts && (members?.length || 0) > 0 && (
-        <Button onClick={onExportContacts} variant="outline" size="sm">
-          <Download className="h-4 w-4" />
-          Export Contacts
-        </Button>
-      )}
-    </div>
-  )
+  const memberCount = members?.length ?? 0
 
   if (isLoading) {
     const skeleton = (
@@ -134,13 +140,21 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
     return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <HeaderTitle />
+          <MemberListHeader
+            memberCount={memberCount}
+            groupName={groupName}
+            onExportContacts={onExportContacts}
+          />
         </CardHeader>
         <CardContent>{skeleton}</CardContent>
       </Card>
     ) : (
       <div className="space-y-4">
-        <HeaderTitle />
+        <MemberListHeader
+          memberCount={memberCount}
+          groupName={groupName}
+          onExportContacts={onExportContacts}
+        />
         {skeleton}
       </div>
     )
@@ -155,13 +169,21 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
     return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <HeaderTitle />
+          <MemberListHeader
+            memberCount={memberCount}
+            groupName={groupName}
+            onExportContacts={onExportContacts}
+          />
         </CardHeader>
         <CardContent>{content}</CardContent>
       </Card>
     ) : (
       <div className="space-y-2">
-        <HeaderTitle />
+        <MemberListHeader
+          memberCount={memberCount}
+          groupName={groupName}
+          onExportContacts={onExportContacts}
+        />
         {content}
       </div>
     )
@@ -180,13 +202,21 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
     return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <HeaderTitle />
+          <MemberListHeader
+            memberCount={memberCount}
+            groupName={groupName}
+            onExportContacts={onExportContacts}
+          />
         </CardHeader>
         <CardContent>{emptyState}</CardContent>
       </Card>
     ) : (
       <div className="space-y-4">
-        <HeaderTitle />
+        <MemberListHeader
+          memberCount={memberCount}
+          groupName={groupName}
+          onExportContacts={onExportContacts}
+        />
         {emptyState}
       </div>
     )
@@ -285,13 +315,21 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
   return layout === 'card' ? (
     <Card>
       <CardHeader>
-        <HeaderTitle />
+        <MemberListHeader
+          memberCount={memberCount}
+          groupName={groupName}
+          onExportContacts={onExportContacts}
+        />
       </CardHeader>
       <CardContent>{table}</CardContent>
     </Card>
   ) : (
     <div className="space-y-4">
-      <HeaderTitle />
+      <MemberListHeader
+        memberCount={memberCount}
+        groupName={groupName}
+        onExportContacts={onExportContacts}
+      />
       {table}
     </div>
   )
