@@ -49,11 +49,9 @@ export const profileUpdateSchema = z.object({
 
 export const contactCardSchema = profileUpdateSchema.extend({
   avatar_url: z
-    .string()
-    .url('Enter a valid image URL')
-    .optional()
-    .or(z.literal(''))
-    .transform((value) => (value === '' ? undefined : value)),
+    .union([z.string().url('Enter a valid image URL'), z.literal('')])
+    .transform((value) => (value === '' ? undefined : value))
+    .optional(),
 })
 
 // Phone verification schema
