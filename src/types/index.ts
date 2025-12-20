@@ -2,9 +2,11 @@
 export interface Profile {
   id: string
   email: string
+  full_name?: string
   first_name?: string
   last_name?: string
   phone?: string
+  avatar_url?: string | null
   phone_verified: boolean
   two_factor_enabled: boolean
   sms_notifications_enabled: boolean
@@ -31,10 +33,12 @@ export interface GroupMembership {
   id: string
   group_id: string
   user_id?: string
+  full_name?: string
   first_name: string
   last_name: string
   email: string
   phone?: string
+  avatar_url?: string | null
   notifications_enabled: boolean
   departed_at?: string | null
   joined_at: string
@@ -124,7 +128,7 @@ export type Database = {
     Functions: {
       create_contact_group: {
         Args: { group_name: string; group_description?: string }
-        Returns: string
+        Returns: { group_id: string; share_token: string }
       }
       join_contact_group: {
         Args: { group_token: string; enable_notifications?: boolean }
@@ -163,7 +167,7 @@ export type Database = {
         }>
       }
       update_profile_across_groups: {
-        Args: { new_first_name?: string; new_last_name?: string; new_phone?: string }
+        Args: { new_first_name?: string; new_last_name?: string; new_phone?: string; new_avatar_url?: string | null }
         Returns: boolean
       }
       regenerate_group_token: {

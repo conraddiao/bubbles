@@ -53,7 +53,12 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
       email: user.email || '',
       first_name: user.user_metadata?.first_name || '',
       last_name: user.user_metadata?.last_name || '',
+      full_name:
+        (user.user_metadata?.first_name || user.user_metadata?.last_name)
+          ? `${user.user_metadata.first_name || ''} ${user.user_metadata.last_name || ''}`.trim()
+          : user.user_metadata?.full_name || '',
       phone: user.user_metadata?.phone || null,
+      avatar_url: user.user_metadata?.avatar_url || null,
       phone_verified: false,
       two_factor_enabled: false,
       sms_notifications_enabled: true
