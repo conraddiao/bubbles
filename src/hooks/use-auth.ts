@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, createElement, type ReactNode } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { normalizePhoneInput } from '@/lib/phone'
 import { Profile } from '@/types'
 import { toast } from 'sonner'
 import { fetchUserProfile, updateUserProfile, retryOperation } from '@/lib/auth-service'
@@ -193,6 +194,8 @@ function useAuthState(): AuthContextValue {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
       
+      const fullName = `${firstName} ${lastName}`.trim()
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -200,7 +203,8 @@ function useAuthState(): AuthContextValue {
           data: {
             first_name: firstName,
             last_name: lastName,
-            phone: phone || null,
+            full_name: fullName,
+            phone: normalizePhoneInput(phone) || null,
           }
         }
       })

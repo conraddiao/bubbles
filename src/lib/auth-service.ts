@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { normalizePhoneInput } from './phone'
 import type { Database, Profile } from '@/types'
 
 type ProfileInsert = Database['public']['Tables']['profiles']['Insert'] & { id: string }
@@ -57,7 +58,7 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
         (user.user_metadata?.first_name || user.user_metadata?.last_name)
           ? `${user.user_metadata.first_name || ''} ${user.user_metadata.last_name || ''}`.trim()
           : user.user_metadata?.full_name || '',
-      phone: user.user_metadata?.phone || null,
+      phone: normalizePhoneInput(user.user_metadata?.phone),
       avatar_url: user.user_metadata?.avatar_url || null,
       phone_verified: false,
       two_factor_enabled: false,

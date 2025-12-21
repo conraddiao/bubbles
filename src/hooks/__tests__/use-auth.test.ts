@@ -101,18 +101,21 @@ describe('useAuth', () => {
       
       const { result } = renderHook(() => useAuth())
       
-      const signUpResult = await result.current.signUp(
-        'test@example.com',
-        'password123',
-        'Test User',
-        '+1234567890'
-      )
+    const signUpResult = await result.current.signUp(
+      'test@example.com',
+      'password123',
+      'Test',
+      'User',
+      '+1234567890'
+    )
       
       expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
         options: {
           data: {
+            first_name: 'Test',
+            last_name: 'User',
             full_name: 'Test User',
             phone: '+1234567890',
           },
@@ -130,13 +133,15 @@ describe('useAuth', () => {
       
       const { result } = renderHook(() => useAuth())
       
-      await result.current.signUp('test@example.com', 'password123', 'Test User')
+      await result.current.signUp('test@example.com', 'password123', 'Test', 'User')
       
       expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
         options: {
           data: {
+            first_name: 'Test',
+            last_name: 'User',
             full_name: 'Test User',
             phone: null,
           },
@@ -156,7 +161,8 @@ describe('useAuth', () => {
       const signUpResult = await result.current.signUp(
         'test@example.com',
         'password123',
-        'Test User'
+        'Test',
+        'User'
       )
       
       expect(signUpResult.error).toEqual(error)
@@ -170,7 +176,7 @@ describe('useAuth', () => {
       
       const { result } = renderHook(() => useAuth())
       
-      await result.current.signUp('test@example.com', 'password123', 'Test User')
+      await result.current.signUp('test@example.com', 'password123', 'Test', 'User')
       
       const { toast } = require('sonner')
       expect(toast.success).toHaveBeenCalledWith('Please check your email to verify your account')

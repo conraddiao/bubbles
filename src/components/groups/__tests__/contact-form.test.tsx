@@ -145,7 +145,7 @@ describe('ContactForm', () => {
       await user.tab()
       
       await waitFor(() => {
-        expect(screen.getByText('Invalid phone number format')).toBeInTheDocument()
+        expect(screen.getByText('Invalid phone number format. Use +1234567890')).toBeInTheDocument()
       })
     })
   })
