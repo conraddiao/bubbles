@@ -200,10 +200,10 @@ describe('useAuth', () => {
 
       const { toast } = require('sonner')
       expect(toast.error).toHaveBeenCalledWith(
-        'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+        'Signup failed because the user profile table is missing. Run your database migrations (e.g., npm run migrate or npm run migrate:simple, or supabase db push) and try again.'
       )
       expect(signUpResult.error?.message).toBe(
-        'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+        'Signup failed because the user profile table is missing. Run your database migrations (e.g., npm run migrate or npm run migrate:simple, or supabase db push) and try again.'
       )
     })
   })
