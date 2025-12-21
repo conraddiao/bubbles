@@ -72,9 +72,9 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
 
       if (!result.error) {
         currentForm.reset()
-        onSuccess?.()
-        
-        if (redirectTo) {
+        if (onSuccess) {
+          onSuccess()
+        } else if (redirectTo) {
           window.location.href = redirectTo
         }
       }
@@ -92,9 +92,9 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
 
   const handle2FASuccess = () => {
     currentForm.reset()
-    onSuccess?.()
-    
-    if (redirectTo) {
+    if (onSuccess) {
+      onSuccess()
+    } else if (redirectTo) {
       window.location.href = redirectTo
     }
   }

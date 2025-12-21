@@ -87,18 +87,32 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
 // Update user profile with optimistic updates
 export async function updateUserProfile(
   userId: string, 
-  updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>
+  updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>,
+  email?: string
 ): Promise<Profile | null> {
   try {
     console.log('Updating profile for user:', userId, updates)
-    
+
     const supabaseClient = supabase as any
-    const { data, error } = await supabaseClient
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single()
+    const canUpsert = typeof email === 'string' && email.length > 0
+    const payload = canUpsert
+      ? { id: userId, email, ...updates }
+      : updates
+
+    const query = canUpsert
+      ? supabaseClient
+          .from('profiles')
+          .upsert(payload, { onConflict: 'id' })
+          .select()
+          .single()
+      : supabaseClient
+          .from('profiles')
+          .update(payload)
+          .eq('id', userId)
+          .select()
+          .single()
+
+    const { data, error } = await query
     
     if (error) {
       console.error('Profile update error:', error)

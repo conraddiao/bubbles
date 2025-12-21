@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+'use client'
+
+import { createContext, useContext, useEffect, useState, createElement, type ReactNode } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { Profile } from '@/types'
@@ -21,13 +23,34 @@ interface AuthActions {
   refreshProfile: () => Promise<void>
 }
 
-export function useAuth(): AuthState & AuthActions {
+type AuthContextValue = AuthState & AuthActions
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+function useAuthState(): AuthContextValue {
   const [state, setState] = useState<AuthState>({
     user: null,
     profile: null,
     session: null,
     loading: true,
   })
+
+  const fetchProfileWithTimeout = async (userId: string, timeoutMs: number) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const timeoutPromise = new Promise<Profile | null>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('Profile fetch timed out'))
+      }, timeoutMs)
+    })
+
+    try {
+      return await Promise.race([fetchUserProfile(userId), timeoutPromise])
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }
 
   useEffect(() => {
     let mounted = true
@@ -53,7 +76,7 @@ export function useAuth(): AuthState & AuthActions {
           try {
             const start = performance.now()
             const profile = await retryOperation(
-              () => fetchUserProfile(session.user.id),
+              () => fetchProfileWithTimeout(session.user.id, 6000),
               2, // Only 2 retries for initial load
               1000
             )
@@ -116,7 +139,7 @@ export function useAuth(): AuthState & AuthActions {
           // Always fetch fresh profile on auth state change
           try {
             const start = performance.now()
-            const profile = await fetchUserProfile(session.user.id)
+            const profile = await fetchProfileWithTimeout(session.user.id, 6000)
             console.log(`Profile fetch duration (auth change): ${Math.round(performance.now() - start)}ms`)
             
             if (mounted) {
@@ -259,7 +282,11 @@ export function useAuth(): AuthState & AuthActions {
     }
 
     try {
-      const updatedProfile = await updateUserProfile(state.user.id, updates)
+      const updatedProfile = await updateUserProfile(
+        state.user.id,
+        updates,
+        state.user.email || undefined
+      )
       
       if (updatedProfile) {
         setState(prev => ({ ...prev, profile: updatedProfile }))
@@ -295,4 +322,17 @@ export function useAuth(): AuthState & AuthActions {
     updateProfile,
     refreshProfile,
   }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const auth = useAuthState()
+  return createElement(AuthContext.Provider, { value: auth }, children)
+}
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider')
+  }
+  return context
 }

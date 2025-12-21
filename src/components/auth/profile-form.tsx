@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, User, Phone, Bell } from 'lucide-react'
@@ -17,7 +17,7 @@ interface ProfileFormProps {
 
 export function ProfileForm({ onSuccess }: ProfileFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { profile, updateProfile } = useAuth()
+  const { user, profile, updateProfile } = useAuth()
 
   const {
     register,
@@ -35,6 +35,18 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     },
   })
 
+  useEffect(() => {
+    const firstName = profile?.first_name || user?.user_metadata?.first_name || ''
+    const lastName = profile?.last_name || user?.user_metadata?.last_name || ''
+    const phone = profile?.phone || user?.user_metadata?.phone || ''
+    const smsEnabled = profile?.sms_notifications_enabled ?? true
+
+    setValue('first_name', firstName, { shouldDirty: false })
+    setValue('last_name', lastName, { shouldDirty: false })
+    setValue('phone', phone, { shouldDirty: false })
+    setValue('sms_notifications_enabled', smsEnabled, { shouldDirty: false })
+  }, [profile, user, setValue])
+
   const smsNotificationsEnabled = watch('sms_notifications_enabled')
 
   const onSubmit = async (data: ProfileUpdateFormData) => {
@@ -49,14 +61,6 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    )
   }
 
   return (
@@ -169,10 +173,10 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <h4 className="text-sm font-medium mb-2">Account Information</h4>
           <div className="space-y-1 text-sm text-gray-600">
-            <p><strong>Email:</strong> {profile.email}</p>
-            <p><strong>Phone Verified:</strong> {profile.phone_verified ? 'Yes' : 'No'}</p>
-            <p><strong>2FA Enabled:</strong> {profile.two_factor_enabled ? 'Yes' : 'No'}</p>
-            <p><strong>Member Since:</strong> {new Date(profile.created_at).toLocaleDateString()}</p>
+            <p><strong>Email:</strong> {profile?.email || user?.email || 'Unavailable'}</p>
+            <p><strong>Phone Verified:</strong> {profile?.phone_verified ? 'Yes' : 'No'}</p>
+            <p><strong>2FA Enabled:</strong> {profile?.two_factor_enabled ? 'Yes' : 'No'}</p>
+            <p><strong>Member Since:</strong> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unavailable'}</p>
           </div>
         </div>
       </CardContent>
