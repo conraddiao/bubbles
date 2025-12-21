@@ -161,6 +161,7 @@ export type Database = {
           last_name: string
           email: string
           phone?: string
+          avatar_url?: string | null
           notifications_enabled: boolean
           joined_at: string
           is_owner: boolean

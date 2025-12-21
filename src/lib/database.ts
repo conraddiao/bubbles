@@ -345,72 +345,39 @@ export async function leaveGroup(groupId: string) {
 
 export async function getGroupMembers(groupId: string) {
   try {
-    // First, try to get the current user to determine ownership
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    // Query group memberships using first_name and last_name only
-    const { data: memberships, error: memberError } = await supabase
-      .from('group_memberships')
-      .select(`
-        id,
-        first_name,
-        last_name,
-        full_name,
-        email,
-        phone,
-        avatar_url,
-        notifications_enabled,
-        joined_at,
-        user_id,
-        departed_at
-      `)
-      .eq('group_id', groupId)
-      .is('departed_at', null)
-      .order('joined_at', { ascending: true })
+    const { data, error } = await rpc(supabase).getGroupMembers({
+      group_uuid: groupId
+    })
 
-    if (memberError) throw memberError
+    if (error) throw error
 
-    // Get group info to determine owner
-    const { data: groupData, error: groupError } = await supabase
-      .from('contact_groups')
-      .select('owner_id')
-      .eq('id', groupId)
-      .single()
+    type RpcGroupMember = Database['public']['Functions']['get_group_members']['Returns'][number]
 
-    const group = groupData as ContactGroupRow | null
+    const rpcMembers: RpcGroupMember[] = Array.isArray(data) ? data : []
 
-    if (groupError) throw groupError
-    if (!group) throw new Error('Invalid group')
+    const normalizedMembers = rpcMembers.map((member: RpcGroupMember) => {
+      const firstName = typeof member.first_name === 'string' ? member.first_name.trim() : ''
+      const lastName = typeof member.last_name === 'string' ? member.last_name.trim() : ''
 
-    const transformedData =
-      memberships?.map((member: any) => {
-        const nameParts =
-          typeof member.full_name === 'string' && member.full_name.includes(' ')
-            ? member.full_name.split(' ')
-            : []
+      const hasAvatarKey = 'avatar_url' in member
+      const avatarUrl = hasAvatarKey
+        ? (member as RpcGroupMember & { avatar_url?: string | null }).avatar_url ?? null
+        : null
 
-        const firstName =
-          (typeof member.first_name === 'string' && member.first_name.trim()) ||
-          nameParts[0] ||
-          ''
-        const lastName =
-          (typeof member.last_name === 'string' && member.last_name.trim()) ||
-          (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '')
+      return {
+        id: member.id,
+        first_name: firstName,
+        last_name: lastName,
+        email: member.email,
+        phone: member.phone,
+        avatar_url: avatarUrl,
+        notifications_enabled: member.notifications_enabled,
+        joined_at: member.joined_at,
+        is_owner: member.is_owner
+      }
+    })
 
-        return {
-          id: member.id,
-          first_name: firstName,
-          last_name: lastName,
-          email: member.email,
-          phone: member.phone,
-          avatar_url: member.avatar_url,
-          notifications_enabled: member.notifications_enabled,
-          joined_at: member.joined_at,
-          is_owner: member.user_id === group.owner_id
-        }
-      }) || []
-
-    return { data: transformedData, error: null }
+    return { data: normalizedMembers, error: null }
   } catch (error) {
     return { data: null, error: handleDatabaseError(error) }
   }
