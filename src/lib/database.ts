@@ -345,6 +345,38 @@ export async function leaveGroup(groupId: string) {
 
 export async function getGroupMembers(groupId: string) {
   try {
+    const { data: groupData, error: groupError } = await supabase
+      .from('contact_groups')
+      .select(`
+        id,
+        owner_id,
+        owner:profiles!owner_id(
+          first_name,
+          last_name,
+          email,
+          phone,
+          avatar_url
+        )
+      `)
+      .eq('id', groupId)
+      .single()
+
+    if (groupError) throw groupError
+    if (!groupData) throw new Error('Invalid group')
+
+    type GroupWithOwner = {
+      owner_id: string | null
+      owner: {
+        first_name?: string | null
+        last_name?: string | null
+        email?: string | null
+        phone?: string | null
+        avatar_url?: string | null
+      } | null
+    }
+
+    const group = groupData as GroupWithOwner
+
     const { data, error } = await rpc(supabase).getGroupMembers({
       group_uuid: groupId
     })
@@ -376,6 +408,27 @@ export async function getGroupMembers(groupId: string) {
         is_owner: member.is_owner
       }
     })
+
+    const ownerAlreadyIncluded = normalizedMembers.some((member) => member.is_owner)
+
+    if (!ownerAlreadyIncluded && group.owner_id) {
+      const ownerProfile = group.owner
+
+      const ownerFirstName = (ownerProfile?.first_name ?? '').trim()
+      const ownerLastName = (ownerProfile?.last_name ?? '').trim()
+
+      normalizedMembers.unshift({
+        id: group.owner_id,
+        first_name: ownerFirstName || 'Group',
+        last_name: ownerLastName || 'Owner',
+        email: ownerProfile?.email ?? 'owner@unknown',
+        phone: ownerProfile?.phone ?? undefined,
+        avatar_url: ownerProfile?.avatar_url ?? null,
+        notifications_enabled: false,
+        joined_at: new Date().toISOString(),
+        is_owner: true
+      })
+    }
 
     return { data: normalizedMembers, error: null }
   } catch (error) {
