@@ -11,6 +11,7 @@ export const contactFormSchema = z.object({
     return /^\+?[\d\s\-\(\)]+$/.test(phone)
   }, 'Invalid phone number format'),
   notifications_enabled: z.boolean(),
+  group_password: z.string().max(100, 'Password is too long').optional(),
 })
 
 // Group creation validation schema

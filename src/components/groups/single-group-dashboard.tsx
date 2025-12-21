@@ -1,149 +1,231 @@
 'use client'
 
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Copy, Users, ExternalLink, Settings, Download, UserPlus, ArrowLeft } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Copy, Users, ExternalLink, Settings, Download, Share2, Lock, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { MemberList } from './member-list'
 import { ContactExport } from './contact-export'
-import { GroupSettings } from './group-settings'
 import type { Database } from '@/types'
+import { getGroupMembers, leaveGroup, updateGroupDetails } from '@/lib/database'
+import { useRouter } from 'next/navigation'
 
 interface SingleGroupDashboardProps {
   groupId: string
 }
 
 type ContactGroupRow = Database['public']['Tables']['contact_groups']['Row']
-type GroupMembershipRow = Database['public']['Tables']['group_memberships']['Row']
+type AccessType = ContactGroupRow['access_type']
+type GroupMember = {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string | null
+  notifications_enabled: boolean
+  joined_at: string
+  is_owner: boolean
+}
 
 export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
-  const [showShareLink, setShowShareLink] = useState(false)
-  const [currentView, setCurrentView] = useState<'dashboard' | 'members' | 'export' | 'settings'>('dashboard')
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const exportSectionRef = useRef<HTMLDivElement>(null)
   const [isOwner, setIsOwner] = useState(false)
+  const [formState, setFormState] = useState<{
+    name: string
+    description: string
+    access_type: AccessType
+    is_closed: boolean
+    password: string
+  }>({
+    name: '',
+    description: '',
+    access_type: 'open',
+    is_closed: false,
+    password: ''
+  })
 
-  // Fetch group details with better error handling
-  const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroupRow | null>({
+  const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroupRow | null, Error>({
     queryKey: ['group', groupId],
     queryFn: async () => {
-      console.log('Fetching group with ID:', groupId)
-      
-      // First verify we have a user
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError) {
-        console.error('User auth error:', userError)
-        throw new Error('Authentication error')
+        throw userError
       }
       if (!user) {
         throw new Error('Not authenticated')
       }
-      
-      console.log('User authenticated:', user.id)
-      
-      // Try to fetch the group
+
       const { data, error } = await supabase
         .from('contact_groups')
         .select('*')
         .eq('id', groupId)
         .single<ContactGroupRow>()
-      
+
       if (error) {
-        console.error('Supabase error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          fullError: error
-        })
         throw error
       }
-      
-      console.log('Group fetched successfully:', data)
-      
-      // Check if current user is the owner
+
       setIsOwner(data.owner_id === user.id)
-      
       return data
     },
     retry: 1,
   })
 
-  // Fetch group members with better error handling
-  const { data: members, isLoading: membersLoading } = useQuery<GroupMembershipRow[]>({
+  const { data: members, error: membersError } = useQuery<GroupMember[], Error>({
     queryKey: ['group-members', groupId],
     queryFn: async () => {
-      console.log('Fetching members for group:', groupId)
-      
-      const { data, error } = await supabase
-        .from('group_memberships')
-        .select('*')
-        .eq('group_id', groupId)
-        .order('joined_at', { ascending: true })
-      
-      if (error) {
-        console.error('Members fetch error:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          fullError: error
-        })
-        throw error
+      const result = await getGroupMembers(groupId)
+      if (result.error) {
+        throw new Error(result.error)
       }
-      
-      console.log('Members fetched successfully:', data)
-      return data || []
+      return (result.data || []) as GroupMember[]
     },
-    enabled: !!groupId, // Only run if we have a groupId
+    enabled: !!groupId,
   })
 
+  useEffect(() => {
+    if (group) {
+      setFormState({
+        name: group.name,
+        description: group.description || '',
+        access_type: group.access_type,
+        is_closed: group.is_closed,
+        password: ''
+      })
+    }
+  }, [group])
+
+  const updateGroupMutation = useMutation({
+    mutationFn: async () => {
+      if (!group) {
+        throw new Error('Group not loaded yet.')
+      }
+
+      if (formState.access_type === 'password' && !formState.password && !group.join_password_hash) {
+        throw new Error('Add a password to enable password protection.')
+      }
+
+      const passwordValue =
+        formState.access_type === 'password'
+          ? formState.password || undefined
+          : null
+
+      const result = await updateGroupDetails(groupId, {
+        name: formState.name,
+        description: formState.description,
+        is_closed: formState.is_closed,
+        access_type: formState.access_type,
+        password: passwordValue
+      })
+
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      toast.success('Group settings saved')
+      setFormState((prev) => ({ ...prev, password: '' }))
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update group settings'
+      toast.error(message)
+    }
+  })
+
+  const leaveGroupMutation = useMutation({
+    mutationFn: async () => {
+      const result = await leaveGroup(groupId)
+      if (result.error) {
+        throw new Error(result.error)
+      }
+      return result.data
+    },
+    onSuccess: () => {
+      toast.success('You left the group')
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] })
+      router.push('/')
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to leave group'
+      toast.error(message)
+    }
+  })
+
+  const shareUrl = typeof window !== 'undefined' && group ? `${window.location.origin}/join/${group.share_token}` : ''
+  const accessBadge = group?.access_type === 'password' ? 'Password required' : 'Open link'
+
   const handleCopyShareLink = async () => {
-    if (!group?.share_token) return
-    
-    const shareUrl = `${window.location.origin}/join/${group.share_token}`
+    if (!shareUrl) return
+
     try {
       await navigator.clipboard.writeText(shareUrl)
       toast.success('Share link copied to clipboard')
-    } catch {
-      toast.error('Failed to copy link')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to copy link'
+      toast.error(message)
     }
   }
 
+  const handleShareGroup = async () => {
+    if (!shareUrl) return
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: group?.name ?? 'Contact group invite',
+          text: group?.description ?? 'Join my contact group on bubbles.fyi',
+          url: shareUrl
+        })
+        return
+      } catch (error: unknown) {
+        const isAbort = error instanceof Error && error.name === 'AbortError'
+        if (isAbort) return
+        await handleCopyShareLink()
+        return
+      }
+    }
+
+    await handleCopyShareLink()
+  }
+
   const handleOpenShareLink = () => {
-    if (!group?.share_token) return
+    if (!group?.share_token || typeof window === 'undefined') return
     window.open(`/join/${group.share_token}`, '_blank')
+  }
+
+  const handleScrollToExport = () => {
+    if (exportSectionRef.current) {
+      exportSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
   }
 
   if (groupLoading) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-muted rounded w-2/3 mb-6"></div>
+        <div className="animate-pulse space-y-3 rounded-xl border bg-card/80 p-6 shadow-sm">
+          <div className="h-8 w-1/3 bg-muted rounded" />
+          <div className="h-4 w-2/3 bg-muted rounded" />
         </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="animate-pulse">
-            <CardHeader>
-              <div className="h-6 bg-muted rounded w-1/2"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-4 bg-muted rounded w-full mb-2"></div>
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-            </CardContent>
-          </Card>
-          <Card className="animate-pulse">
-            <CardHeader>
-              <div className="h-6 bg-muted rounded w-1/2"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-4 bg-muted rounded w-full mb-2"></div>
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="animate-pulse">
+          <CardHeader>
+            <div className="h-6 bg-muted rounded w-1/2"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-4 bg-muted rounded w-full mb-2"></div>
+            <div className="h-4 bg-muted rounded w-3/4"></div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -168,244 +250,222 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
     return null
   }
 
-  // Render different views based on currentView state
-  if (currentView === 'members') {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentView('dashboard')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{group.name} - Members</h1>
-            <p className="text-muted-foreground">Manage group members and their information</p>
-          </div>
-        </div>
-        <MemberList 
-          groupId={groupId} 
-          groupName={group.name}
-          isOwner={isOwner}
-          onExportContacts={() => setCurrentView('export')}
-        />
-      </div>
-    )
-  }
-
-  if (currentView === 'export') {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentView('dashboard')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{group.name} - Export Contacts</h1>
-            <p className="text-muted-foreground">Download member contact information</p>
-          </div>
-        </div>
-        <ContactExport 
-          groupId={groupId} 
-          groupName={group.name}
-        />
-      </div>
-    )
-  }
-
-  if (currentView === 'settings' && isOwner) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentView('dashboard')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{group.name} - Settings</h1>
-            <p className="text-muted-foreground">Manage group settings and preferences</p>
-          </div>
-        </div>
-        <GroupSettings 
-          groupId={groupId}
-          onBack={() => setCurrentView('dashboard')}
-        />
-      </div>
-    )
-  }
+  const totalMembers = members?.length || 0
 
   return (
     <div className="space-y-6">
-      {/* Group Header */}
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-3xl font-bold">{group.name}</h1>
-          <Badge variant={group.is_closed ? 'secondary' : 'default'}>
-            {group.is_closed ? 'Closed' : 'Active'}
-          </Badge>
+      <div className="rounded-xl border bg-card/80 p-6 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold leading-tight">{group.name}</h1>
+              <Badge variant={group.is_closed ? 'secondary' : 'default'}>
+                {group.is_closed ? 'Closed to new members' : 'Accepting members'}
+              </Badge>
+              <Badge variant={group.access_type === 'password' ? 'secondary' : 'outline'}>
+                {accessBadge}
+              </Badge>
+            </div>
+            {group.description && (
+              <p className="text-muted-foreground text-base max-w-3xl">{group.description}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={handleShareGroup}>
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleCopyShareLink}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Link
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleOpenShareLink}>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        {group.description && (
-          <p className="text-muted-foreground text-lg">{group.description}</p>
-        )}
+        <p className="mt-3 text-sm text-muted-foreground">
+          {totalMembers} member{totalMembers === 1 ? '' : 's'} can access this group.
+        </p>
       </div>
 
-      {/* Action Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Share Link Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              Invite Members
-            </CardTitle>
-            <CardDescription>
-              Share this link with people you want to join your group
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {showShareLink && (
-              <div className="p-3 bg-muted rounded-lg">
-                <code className="text-sm break-all">
-                  {`${window.location.origin}/join/${group.share_token}`}
-                </code>
-              </div>
-            )}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Members & contacts
+              </CardTitle>
+              <CardDescription>
+                View everyone in the group, remove users, or export contacts.
+              </CardDescription>
+            </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowShareLink(!showShareLink)}
-                className="flex-1"
-              >
-                {showShareLink ? 'Hide Link' : 'Show Link'}
+              <Button variant="outline" size="sm" onClick={handleShareGroup}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share group
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyShareLink}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleOpenShareLink}
-              >
-                <ExternalLink className="h-4 w-4" />
+              <Button variant="outline" size="sm" onClick={handleScrollToExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Contact export
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Members Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Members
-            </CardTitle>
-            <CardDescription>
-              {members?.length || 0} people in this group
-            </CardDescription>
           </CardHeader>
-          <CardContent>
-            {membersLoading ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-4 bg-muted rounded animate-pulse"></div>
-                ))}
-              </div>
-            ) : members && members.length > 0 ? (
-              <div className="space-y-2">
-                {members.slice(0, 3).map((member: GroupMembershipRow) => (
-                  <div key={member.id} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{member.first_name} {member.last_name}</span>
-                    <span className="text-xs text-muted-foreground">{member.email}</span>
-                  </div>
-                ))}
-                {members.length > 3 && (
-                  <p className="text-xs text-muted-foreground">
-                    +{members.length - 3} more members
+          <CardContent className="space-y-8">
+            <MemberList 
+              groupId={groupId} 
+              groupName={group.name}
+              isOwner={isOwner}
+              onExportContacts={handleScrollToExport}
+              layout="embedded"
+            />
+            <div ref={exportSectionRef} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold leading-tight flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    Download contacts
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Export all members or choose specific people to include.
                   </p>
-                )}
+                </div>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No members yet</p>
+              <ContactExport 
+                groupId={groupId} 
+                groupName={group.name}
+                layout="embedded"
+              />
+            </div>
+            {membersError && (
+              <p className="text-sm text-destructive">
+                {membersError.message || 'Unable to load members right now.'}
+              </p>
             )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full mt-3"
-              onClick={() => setCurrentView('members')}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              View All Members
-            </Button>
           </CardContent>
         </Card>
 
-        {/* Actions Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Group Actions
+              Manage group
             </CardTitle>
-            <CardDescription>
-              Manage your group settings and data
-            </CardDescription>
+            <CardDescription>Update details and access controls.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full justify-start"
-              onClick={() => setCurrentView('export')}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Contacts
-            </Button>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Group name</label>
+              <Input
+                value={formState.name}
+                onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
+                disabled={!isOwner || updateGroupMutation.isPending}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={formState.description}
+                onChange={(e) => setFormState((prev) => ({ ...prev, description: e.target.value }))}
+                disabled={!isOwner || updateGroupMutation.isPending}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Access control</p>
+                  <p className="text-xs text-muted-foreground">Choose how people join the group.</p>
+                </div>
+                <Badge variant="outline">{formState.access_type === 'password' ? 'Password' : 'Open'}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant={formState.access_type === 'open' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFormState((prev) => ({ ...prev, access_type: 'open' }))}
+                  disabled={!isOwner || updateGroupMutation.isPending}
+                >
+                  Open link
+                </Button>
+                <Button
+                  type="button"
+                  variant={formState.access_type === 'password' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFormState((prev) => ({ ...prev, access_type: 'password' }))}
+                  disabled={!isOwner || updateGroupMutation.isPending}
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Require password
+                </Button>
+              </div>
+              {formState.access_type === 'password' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Set or update password</label>
+                  <Input
+                    type="password"
+                    placeholder={group.join_password_hash ? 'Enter a new password (optional)' : 'Enter a password'}
+                    value={formState.password}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, password: e.target.value }))}
+                    disabled={!isOwner || updateGroupMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Members will need this password when joining. Leave blank to keep the existing one.
+                  </p>
+                </div>
+              )}
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Close group to new members</p>
+                  <p className="text-xs text-muted-foreground">Existing members stay, but no new joins are allowed.</p>
+                </div>
+                <Switch
+                  checked={formState.is_closed}
+                  onCheckedChange={(checked) => setFormState((prev) => ({ ...prev, is_closed: checked }))}
+                  disabled={!isOwner || updateGroupMutation.isPending}
+                />
+              </div>
+            </div>
+
             {isOwner && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full justify-start"
-                onClick={() => setCurrentView('settings')}
+              <Button
+                className="w-full"
+                onClick={() => updateGroupMutation.mutate()}
+                disabled={updateGroupMutation.isPending}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Group Settings
+                {updateGroupMutation.isPending ? 'Saving...' : 'Save changes'}
               </Button>
             )}
+
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Leave group</p>
+                  <p className="text-xs text-muted-foreground">
+                    You&apos;ll disappear from the public member list, but the group keeps a record that you left.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (leaveGroupMutation.isPending) return
+                    if (confirm('Are you sure you want to leave this group?')) {
+                      leaveGroupMutation.mutate()
+                    }
+                  }}
+                  disabled={leaveGroupMutation.isPending}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {leaveGroupMutation.isPending ? 'Leaving...' : 'Leave group'}
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>
-            Latest updates and member activity in your group
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No recent activity to show.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   )
 }

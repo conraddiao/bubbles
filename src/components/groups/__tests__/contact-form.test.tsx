@@ -42,22 +42,21 @@ describe('ContactForm', () => {
     name: 'Test Group',
     description: 'Test group description',
     is_closed: false,
+    access_type: 'open' as const,
+    join_password_hash: null,
+    share_token: 'token',
     owner: {
       id: 'owner-1',
-      full_name: 'Group Owner',
-      email: 'owner@example.com',
-      phone_verified: true,
-      two_factor_enabled: false,
-      sms_notifications_enabled: true,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
+      first_name: 'Group',
+      last_name: 'Owner'
     }
   }
 
   const mockProfile = {
     id: 'user-1',
     email: 'user@example.com',
-    full_name: 'Test User',
+    first_name: 'Test',
+    last_name: 'User',
     phone: '+1234567890',
     phone_verified: true,
     two_factor_enabled: false,
@@ -111,18 +110,22 @@ describe('ContactForm', () => {
         expect(screen.getByText('Test Group')).toBeInTheDocument()
       })
       
-      const nameInput = screen.getByLabelText('Full Name *')
+      const firstNameInput = screen.getByLabelText('First Name *')
+      const lastNameInput = screen.getByLabelText('Last Name *')
       const emailInput = screen.getByLabelText('Email Address *')
       
       // Type and then clear to trigger validation
-      await user.type(nameInput, 'test')
-      await user.clear(nameInput)
+      await user.type(firstNameInput, 'test')
+      await user.clear(firstNameInput)
+      await user.type(lastNameInput, 'test')
+      await user.clear(lastNameInput)
       await user.type(emailInput, 'test')
       await user.clear(emailInput)
       await user.tab()
       
       await waitFor(() => {
-        expect(screen.getByText('Full name is required')).toBeInTheDocument()
+        expect(screen.getByText('First name is required')).toBeInTheDocument()
+        expect(screen.getByText('Last name is required')).toBeInTheDocument()
         expect(screen.getByText('Invalid email address')).toBeInTheDocument()
       })
     })
@@ -158,7 +161,8 @@ describe('ContactForm', () => {
         expect(screen.getByText('Test Group')).toBeInTheDocument()
       })
       
-      await user.type(screen.getByLabelText('Full Name *'), 'John Doe')
+      await user.type(screen.getByLabelText('First Name *'), 'John')
+      await user.type(screen.getByLabelText('Last Name *'), 'Doe')
       await user.type(screen.getByLabelText('Email Address *'), 'john@example.com')
       await user.type(screen.getByLabelText('Phone Number (Optional)'), '+1234567890')
       await user.click(screen.getByRole('button', { name: 'Join Group' }))
@@ -166,10 +170,12 @@ describe('ContactForm', () => {
       await waitFor(() => {
         expect(mockJoinContactGroupAnonymous).toHaveBeenCalledWith(
           mockShareToken,
-          'John Doe',
+          'John',
+          'Doe',
           'john@example.com',
           '+1234567890',
-          false // Default value when checkbox is not checked
+          false, // Default value when checkbox is not checked
+          undefined
         )
         expect(mockOnSuccess).toHaveBeenCalled()
       })
@@ -188,7 +194,8 @@ describe('ContactForm', () => {
         expect(screen.getByText('Test Group')).toBeInTheDocument()
       })
       
-      await user.type(screen.getByLabelText('Full Name *'), 'John Doe')
+      await user.type(screen.getByLabelText('First Name *'), 'John')
+      await user.type(screen.getByLabelText('Last Name *'), 'Doe')
       await user.type(screen.getByLabelText('Email Address *'), 'john@example.com')
       await user.click(screen.getByRole('button', { name: 'Join Group' }))
       

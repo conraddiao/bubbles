@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
+import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { VercelAnalytics } from "@/components/vercel-analytics";
 
@@ -18,9 +19,11 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <QueryProvider>
-          {children}
-          <Toaster />
-          <VercelAnalytics />
+          <AuthProvider>
+            {children}
+            <Toaster />
+            <VercelAnalytics />
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

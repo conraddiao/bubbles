@@ -26,9 +26,10 @@ interface GroupMember {
 interface ContactExportProps {
   groupId: string
   groupName: string
+  layout?: 'card' | 'embedded'
 }
 
-export function ContactExport({ groupId, groupName }: ContactExportProps) {
+export function ContactExport({ groupId, groupName, layout = 'card' }: ContactExportProps) {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [isExporting, setIsExporting] = useState(false)
 
@@ -42,6 +43,8 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
       return (result.data || []) as GroupMember[]
     },
   })
+  const totalMembers = members?.length ?? 0
+  const disableBulkActions = !members || members.length === 0
 
   // Generate vCard content for a single member
   const generateVCard = (member: GroupMember): string => {
@@ -184,152 +187,173 @@ export function ContactExport({ groupId, groupName }: ContactExportProps) {
     }
   }
 
+  const Header = () => (
+    <div className="flex items-center justify-between">
+      <div>
+        <h3 className="text-lg font-semibold leading-tight">Export Contacts</h3>
+        <p className="text-sm text-muted-foreground">
+          Download contact information in vCard format (.vcf)
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          onClick={exportAllContacts}
+          disabled={isExporting || disableBulkActions}
+          variant="outline"
+          size="sm"
+        >
+          {isExporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          Export All ({totalMembers})
+        </Button>
+        {selectedMembers.length > 0 && (
+          <Button
+            onClick={exportSelectedContacts}
+            disabled={isExporting}
+            size="sm"
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Export Selected ({selectedMembers.length})
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+
   if (isLoading) {
-    return (
+    const loadingContent = (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+    return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <CardTitle>Export Contacts</CardTitle>
-          <CardDescription>Loading members...</CardDescription>
+          <Header />
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        </CardContent>
+        <CardContent>{loadingContent}</CardContent>
       </Card>
+    ) : (
+      <div className="space-y-3">
+        <Header />
+        {loadingContent}
+      </div>
     )
   }
 
   if (!members || members.length === 0) {
-    return (
+    const emptyContent = (
+      <div className="text-center py-6">
+        <Users className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+        <p className="text-sm text-muted-foreground">
+          No members have joined this group yet.
+        </p>
+      </div>
+    )
+    return layout === 'card' ? (
       <Card>
         <CardHeader>
-          <CardTitle>Export Contacts</CardTitle>
-          <CardDescription>No members to export</CardDescription>
+          <Header />
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">
-              No members have joined this group yet.
-            </p>
-          </div>
-        </CardContent>
+        <CardContent>{emptyContent}</CardContent>
       </Card>
+    ) : (
+      <div className="space-y-3">
+        <Header />
+        {emptyContent}
+      </div>
     )
   }
 
-  return (
+  const content = (
+    <div className="space-y-4">
+      {/* Select All Checkbox */}
+      <div className="flex items-center space-x-2 pb-2 border-b">
+        <Checkbox
+          id="select-all"
+          checked={selectedMembers.length === members.length}
+          onCheckedChange={toggleSelectAll}
+        />
+        <label
+          htmlFor="select-all"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Select All Members
+        </label>
+      </div>
+
+      {/* Member List */}
+      <div className="space-y-2">
+        {members.map((member) => (
+          <div
+            key={member.id}
+            className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id={`member-${member.id}`}
+                checked={selectedMembers.includes(member.id)}
+                onCheckedChange={() => toggleMemberSelection(member.id)}
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{getDisplayName(member)}</span>
+                  {member.is_owner && (
+                    <Badge variant="secondary" className="text-xs">
+                      Owner
+                    </Badge>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {member.email}
+                  {member.phone && ` • ${member.phone}`}
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => exportSingleContact(member)}
+              disabled={isExporting}
+              className="shrink-0"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+
+      {/* Export Info */}
+      <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+        <h4 className="text-sm font-medium mb-2">About vCard Export</h4>
+        <ul className="text-xs text-muted-foreground space-y-1">
+          <li>• vCard (.vcf) files can be imported into most contact apps</li>
+          <li>• Individual exports create one contact per file</li>
+          <li>• Bulk exports combine all contacts into a single file</li>
+          <li>• Files include name, email, phone, and group information</li>
+        </ul>
+      </div>
+    </div>
+  )
+
+  return layout === 'card' ? (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Export Contacts</CardTitle>
-            <CardDescription>
-              Download contact information in vCard format (.vcf)
-            </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={exportAllContacts}
-              disabled={isExporting}
-              variant="outline"
-              size="sm"
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              Export All ({members.length})
-            </Button>
-            {selectedMembers.length > 0 && (
-              <Button
-                onClick={exportSelectedContacts}
-                disabled={isExporting}
-                size="sm"
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                Export Selected ({selectedMembers.length})
-              </Button>
-            )}
-          </div>
-        </div>
+        <Header />
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Select All Checkbox */}
-          <div className="flex items-center space-x-2 pb-2 border-b">
-            <Checkbox
-              id="select-all"
-              checked={selectedMembers.length === members.length}
-              onCheckedChange={toggleSelectAll}
-            />
-            <label
-              htmlFor="select-all"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Select All Members
-            </label>
-          </div>
-
-          {/* Member List */}
-          <div className="space-y-2">
-            {members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`member-${member.id}`}
-                    checked={selectedMembers.includes(member.id)}
-                    onCheckedChange={() => toggleMemberSelection(member.id)}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{getDisplayName(member)}</span>
-                      {member.is_owner && (
-                        <Badge variant="secondary" className="text-xs">
-                          Owner
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {member.email}
-                      {member.phone && ` • ${member.phone}`}
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => exportSingleContact(member)}
-                  disabled={isExporting}
-                  className="shrink-0"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          {/* Export Info */}
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <h4 className="text-sm font-medium mb-2">About vCard Export</h4>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• vCard (.vcf) files can be imported into most contact apps</li>
-              <li>• Individual exports create one contact per file</li>
-              <li>• Bulk exports combine all contacts into a single file</li>
-              <li>• Files include name, email, phone, and group information</li>
-            </ul>
-          </div>
-        </div>
-      </CardContent>
+      <CardContent>{content}</CardContent>
     </Card>
+  ) : (
+    <div className="space-y-4">
+      <Header />
+      {content}
+    </div>
   )
 }
