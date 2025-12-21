@@ -28,6 +28,19 @@ type AuthContextValue = AuthState & AuthActions
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+const getFriendlySignUpError = (error: AuthError | null) => {
+  const rawMessage = error?.message?.trim()
+  if (!rawMessage) {
+    return 'An unexpected error occurred during sign up'
+  }
+
+  if (rawMessage.includes('Database error saving new user')) {
+    return 'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+  }
+
+  return rawMessage
+}
+
 function useAuthState(): AuthContextValue {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -212,8 +225,9 @@ function useAuthState(): AuthContextValue {
       clearTimeout(timeoutId)
 
       if (error) {
-        toast.error(error.message)
-        return { error }
+        const friendlyMessage = getFriendlySignUpError(error)
+        toast.error(friendlyMessage)
+        return { error: { ...error, message: friendlyMessage } as AuthError }
       }
 
       if (data.user && !data.session) {
