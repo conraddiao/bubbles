@@ -67,7 +67,7 @@ describe("PhoneVerification", () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText("Invalid phone number format")
+          screen.getByText("Invalid phone number format. Use +1234567890")
         ).toBeInTheDocument();
       });
     });
@@ -136,7 +136,7 @@ describe("PhoneVerification", () => {
       // Should show validation error
       await waitFor(() => {
         expect(
-          screen.getByText("Invalid phone number format")
+          screen.getByText("Invalid phone number format. Use +1234567890")
         ).toBeInTheDocument();
       });
     });

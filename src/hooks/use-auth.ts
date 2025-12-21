@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, createElement, type ReactNode } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { normalizePhoneInput } from '@/lib/phone'
 import { Profile } from '@/types'
 import { toast } from 'sonner'
 import { fetchUserProfile, updateUserProfile, retryOperation } from '@/lib/auth-service'
@@ -26,6 +27,19 @@ interface AuthActions {
 type AuthContextValue = AuthState & AuthActions
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+const getFriendlySignUpError = (error: AuthError | null) => {
+  const rawMessage = error?.message?.trim()
+  if (!rawMessage) {
+    return 'An unexpected error occurred during sign up'
+  }
+
+  if (rawMessage.includes('Database error saving new user')) {
+    return 'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+  }
+
+  return rawMessage
+}
 
 function useAuthState(): AuthContextValue {
   const [state, setState] = useState<AuthState>({
@@ -193,6 +207,8 @@ function useAuthState(): AuthContextValue {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
       
+      const fullName = `${firstName} ${lastName}`.trim()
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -200,7 +216,8 @@ function useAuthState(): AuthContextValue {
           data: {
             first_name: firstName,
             last_name: lastName,
-            phone: phone || null,
+            full_name: fullName,
+            phone: normalizePhoneInput(phone) || null,
           }
         }
       })
@@ -208,8 +225,9 @@ function useAuthState(): AuthContextValue {
       clearTimeout(timeoutId)
 
       if (error) {
-        toast.error(error.message)
-        return { error }
+        const friendlyMessage = getFriendlySignUpError(error)
+        toast.error(friendlyMessage)
+        return { error: { ...error, message: friendlyMessage } as AuthError }
       }
 
       if (data.user && !data.session) {
