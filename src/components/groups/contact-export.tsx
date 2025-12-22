@@ -29,6 +29,16 @@ interface ContactExportProps {
   layout?: 'card' | 'embedded'
 }
 
+const escapeVCardValue = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .trim()
+}
+
 export function ContactExport({ groupId, groupName, layout = 'card' }: ContactExportProps) {
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [isExporting, setIsExporting] = useState(false)
@@ -49,27 +59,28 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
   // Generate vCard content for a single member
   const generateVCard = (member: GroupMember): string => {
     const { firstName, lastName } = extractNames(member)
-    const fullName = getDisplayName(member)
-    
+    const fullName = getDisplayName(member) || member.email || 'Bubbles Member'
+    const givenName = firstName || fullName
+
     const vcard = [
       'BEGIN:VCARD',
       'VERSION:3.0',
-      `FN:${fullName}`,
-      `N:${lastName};${firstName};;;`,
-      `EMAIL:${member.email}`,
+      `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
+      `FN:${escapeVCardValue(fullName)}`,
+      `EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`,
     ]
 
     if (member.phone) {
-      vcard.push(`TEL:${member.phone}`)
+      vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
     }
 
     if (member.avatar_url) {
-      vcard.push(`PHOTO;VALUE=URI:${member.avatar_url}`)
+      vcard.push(`PHOTO;VALUE=URI:${escapeVCardValue(member.avatar_url)}`)
     }
 
     // Add organization/note to indicate the group
-    vcard.push(`ORG:${groupName} | bubbles.fyi`)
-    vcard.push(`NOTE:Member of ${groupName} group from bubbles.fyi`)
+    vcard.push(`ORG:${escapeVCardValue(groupName)} | bubbles.fyi`)
+    vcard.push(`NOTE:${escapeVCardValue(`Member of ${groupName} group from bubbles.fyi`)}`)
 
     vcard.push('END:VCARD')
     return vcard.join('\r\n')
@@ -77,16 +88,39 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
 
   // Generate combined vCard content for multiple members
   const generateBulkVCard = (memberList: GroupMember[]): string => {
-    return memberList.map(generateVCard).join('\r\n')
+    return `${memberList.map(generateVCard).join('\r\n\r\n')}\r\n`
   }
 
   // Download a file with the given content
-  const downloadFile = (content: string, filename: string, mimeType: string = 'text/vcard') => {
-    const blob = new Blob([content], { type: mimeType })
+  const downloadFile = async (content: string, filename: string, mimeType: string = 'text/x-vcard') => {
+    const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
+    const file = new File([blob], filename, { type: blob.type })
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+    const isIOS = /iPad|iPhone|iPod/i.test(userAgent)
+    const isMobileShareCapable = isIOS || /Android/i.test(userAgent)
+    const dataUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`
+
+    if (isMobileShareCapable && navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] })
+        return
+      } catch (error) {
+        console.warn('Share failed, falling back to download', error)
+      }
+    }
+
+    // iOS Safari often ignores the download attribute for blob URLs; navigating to a data URI
+    // prompts the Contacts handler and preserves multiple cards.
+    if (isIOS) {
+      window.location.href = dataUrl
+      return
+    }
+
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = filename
+    link.rel = 'noopener noreferrer'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
