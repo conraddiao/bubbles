@@ -188,15 +188,16 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
   }
 
   const Header = () => (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h3 className="text-lg font-semibold leading-tight">Export Contacts</h3>
         <p className="text-sm text-muted-foreground">
           Download contact information in vCard format (.vcf)
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
         <Button
+          className="w-full sm:w-auto"
           onClick={exportAllContacts}
           disabled={isExporting || disableBulkActions}
           variant="outline"
@@ -211,6 +212,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
         </Button>
         {selectedMembers.length > 0 && (
           <Button
+            className="w-full sm:w-auto"
             onClick={exportSelectedContacts}
             disabled={isExporting}
             size="sm"
@@ -294,7 +296,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
         {members.map((member) => (
           <div
             key={member.id}
-            className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+            className="flex flex-col gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex items-center space-x-3">
               <Checkbox
@@ -303,7 +305,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
                 onCheckedChange={() => toggleMemberSelection(member.id)}
               />
               <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{getDisplayName(member)}</span>
                   {member.is_owner && (
                     <Badge variant="secondary" className="text-xs">
@@ -311,7 +313,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
                     </Badge>
                   )}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground break-words">
                   {member.email}
                   {member.phone && ` • ${member.phone}`}
                 </div>
@@ -322,7 +324,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
               size="sm"
               onClick={() => exportSingleContact(member)}
               disabled={isExporting}
-              className="shrink-0"
+              className="w-full sm:w-auto"
             >
               <FileText className="h-4 w-4" />
             </Button>

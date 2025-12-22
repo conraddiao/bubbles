@@ -50,7 +50,7 @@ interface MemberListHeaderProps {
 }
 
 const MemberListHeader = ({ memberCount, groupName, onExportContacts }: MemberListHeaderProps) => (
-  <div className="flex items-center justify-between">
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div>
       <h3 className="text-lg font-semibold leading-tight">Group Members</h3>
       <p className="text-sm text-muted-foreground">
@@ -58,7 +58,7 @@ const MemberListHeader = ({ memberCount, groupName, onExportContacts }: MemberLi
       </p>
     </div>
     {onExportContacts && memberCount > 0 && (
-      <Button onClick={onExportContacts} variant="outline" size="sm">
+      <Button className="w-full sm:w-auto" onClick={onExportContacts} variant="outline" size="sm">
         <Download className="h-4 w-4" />
         Export Contacts
       </Button>
@@ -223,8 +223,8 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
   }
 
   const table = (
-    <div className="rounded-md border">
-      <Table>
+    <div className="rounded-md border overflow-x-auto">
+      <Table className="min-w-[720px]">
         <TableHeader>
           <TableRow>
             <TableHead>Member</TableHead>
