@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, createElement, type ReactNode } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { normalizePhoneInput } from '@/lib/phone'
 import { Profile } from '@/types'
 import { toast } from 'sonner'
 import { fetchUserProfile, updateUserProfile, retryOperation } from '@/lib/auth-service'
@@ -16,7 +17,13 @@ interface AuthState {
 }
 
 interface AuthActions {
-  signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<{ error?: AuthError }>
+  signUp: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone?: string
+  ) => Promise<{ error?: AuthError; requiresEmailConfirmation?: boolean; email?: string }>
   signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>) => Promise<{ error?: string }>
@@ -26,6 +33,27 @@ interface AuthActions {
 type AuthContextValue = AuthState & AuthActions
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+const getFriendlySignUpError = (error: AuthError | null) => {
+  const rawMessage = error?.message?.trim()
+  if (!rawMessage) {
+    return 'An unexpected error occurred during sign up'
+  }
+
+  if (rawMessage.includes('Database error saving new user')) {
+    return 'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+  }
+
+  if (
+    rawMessage.toLowerCase().includes('already registered') ||
+    rawMessage.toLowerCase().includes('user already exists') ||
+    rawMessage.toLowerCase().includes('duplicate')
+  ) {
+    return 'That email is already confirmed. Please sign in instead.'
+  }
+
+  return rawMessage
+}
 
 function useAuthState(): AuthContextValue {
   const [state, setState] = useState<AuthState>({
@@ -200,7 +228,7 @@ function useAuthState(): AuthContextValue {
           data: {
             first_name: firstName,
             last_name: lastName,
-            phone: phone || null,
+            phone: normalizePhoneInput(phone) || null,
           }
         }
       })
@@ -208,12 +236,14 @@ function useAuthState(): AuthContextValue {
       clearTimeout(timeoutId)
 
       if (error) {
-        toast.error(error.message)
-        return { error }
+        const friendlyMessage = getFriendlySignUpError(error)
+        toast.error(friendlyMessage)
+        return { error: { ...error, message: friendlyMessage } as AuthError }
       }
 
       if (data.user && !data.session) {
         toast.success('Please check your email to verify your account')
+        return { error: undefined, requiresEmailConfirmation: true, email }
       } else if (data.session) {
         toast.success('Account created successfully!')
       }

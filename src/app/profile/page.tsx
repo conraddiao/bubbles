@@ -96,10 +96,6 @@ export default function ProfileSettingsPage() {
       const { error: updateError } = await updateProfile({
         first_name: trimmedValues.first_name,
         last_name: trimmedValues.last_name,
-        full_name:
-          `${trimmedValues.first_name} ${trimmedValues.last_name}`.trim() ||
-          profile.full_name ||
-          '',
         phone: trimmedValues.phone,
         avatar_url: trimmedValues.avatar_url ?? null,
         sms_notifications_enabled: trimmedValues.sms_notifications_enabled,

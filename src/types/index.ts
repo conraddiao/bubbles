@@ -2,7 +2,6 @@
 export interface Profile {
   id: string
   email: string
-  full_name?: string
   first_name?: string
   last_name?: string
   phone?: string
@@ -33,7 +32,6 @@ export interface GroupMembership {
   id: string
   group_id: string
   user_id?: string
-  full_name?: string
   first_name: string
   last_name: string
   email: string

@@ -23,7 +23,8 @@ describe('AuthForm Basic Tests', () => {
     render(<AuthForm mode="signup" />)
     
     expect(screen.getByText('Sign up to create and manage contact groups')).toBeInTheDocument()
-    expect(screen.getByLabelText('Full Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('First Name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Last Name')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create Account' })).toBeInTheDocument()

@@ -23,7 +23,8 @@ describe('useAuth', () => {
   const mockProfile = {
     id: 'test-user-id',
     email: 'test@example.com',
-    full_name: 'Test User',
+    first_name: 'Test',
+    last_name: 'User',
     phone: '+1234567890',
     phone_verified: true,
     two_factor_enabled: false,
@@ -101,19 +102,21 @@ describe('useAuth', () => {
       
       const { result } = renderHook(() => useAuth())
       
-      const signUpResult = await result.current.signUp(
-        'test@example.com',
-        'password123',
-        'Test User',
-        '+1234567890'
-      )
+    const signUpResult = await result.current.signUp(
+      'test@example.com',
+      'password123',
+      'Test',
+      'User',
+      '+1234567890'
+    )
       
       expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
         options: {
           data: {
-            full_name: 'Test User',
+            first_name: 'Test',
+            last_name: 'User',
             phone: '+1234567890',
           },
         },
@@ -130,14 +133,15 @@ describe('useAuth', () => {
       
       const { result } = renderHook(() => useAuth())
       
-      await result.current.signUp('test@example.com', 'password123', 'Test User')
+      await result.current.signUp('test@example.com', 'password123', 'Test', 'User')
       
       expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
         options: {
           data: {
-            full_name: 'Test User',
+            first_name: 'Test',
+            last_name: 'User',
             phone: null,
           },
         },
@@ -156,7 +160,8 @@ describe('useAuth', () => {
       const signUpResult = await result.current.signUp(
         'test@example.com',
         'password123',
-        'Test User'
+        'Test',
+        'User'
       )
       
       expect(signUpResult.error).toEqual(error)
@@ -170,10 +175,35 @@ describe('useAuth', () => {
       
       const { result } = renderHook(() => useAuth())
       
-      await result.current.signUp('test@example.com', 'password123', 'Test User')
+      await result.current.signUp('test@example.com', 'password123', 'Test', 'User')
       
       const { toast } = require('sonner')
       expect(toast.success).toHaveBeenCalledWith('Please check your email to verify your account')
+    })
+
+    it('provides helpful guidance when profiles table is missing', async () => {
+      const error = { message: 'Database error saving new user' } as AuthError
+      vi.mocked(supabase.auth.signUp).mockResolvedValue({
+        data: { user: null, session: null },
+        error,
+      })
+
+      const { result } = renderHook(() => useAuth())
+
+      const signUpResult = await result.current.signUp(
+        'test@example.com',
+        'password123',
+        'Test',
+        'User'
+      )
+
+      const { toast } = require('sonner')
+      expect(toast.error).toHaveBeenCalledWith(
+        'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+      )
+      expect(signUpResult.error?.message).toBe(
+        'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+      )
     })
   })
 
@@ -282,7 +312,7 @@ describe('useAuth', () => {
         expect(result.current.loading).toBe(false)
       })
       
-      const updates = { full_name: 'Updated Name', phone_verified: true }
+      const updates = { first_name: 'Updated', last_name: 'Name', phone_verified: true }
       const updateResult = await result.current.updateProfile(updates)
       
       expect(mockUpdate).toHaveBeenCalledWith(updates)
@@ -311,7 +341,7 @@ describe('useAuth', () => {
         expect(result.current.loading).toBe(false)
       })
       
-      const updateResult = await result.current.updateProfile({ full_name: 'Updated Name' })
+      const updateResult = await result.current.updateProfile({ first_name: 'Updated', last_name: 'Name' })
       
       expect(updateResult.error).toBe('Update failed')
     })
@@ -323,7 +353,7 @@ describe('useAuth', () => {
         expect(result.current.loading).toBe(false)
       })
       
-      const updateResult = await result.current.updateProfile({ full_name: 'Updated Name' })
+      const updateResult = await result.current.updateProfile({ first_name: 'Updated', last_name: 'Name' })
       
       expect(updateResult.error).toBe('No user logged in')
     })
