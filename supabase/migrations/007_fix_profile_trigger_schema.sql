@@ -7,7 +7,8 @@ BEGIN
   INSERT INTO public.profiles (
     id,
     email,
-    full_name,
+    first_name,
+    last_name,
     phone,
     phone_verified,
     two_factor_enabled,
@@ -16,7 +17,8 @@ BEGIN
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
     COALESCE(NEW.raw_user_meta_data->>'phone', NULL),
     FALSE,
     FALSE,

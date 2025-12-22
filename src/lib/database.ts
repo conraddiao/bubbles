@@ -161,16 +161,16 @@ export async function joinContactGroup(
     }
 
     // Add user to group
-    const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.full_name
+    const firstName = profile.first_name?.trim() || ''
+    const lastName = profile.last_name?.trim() || ''
 
     const { data: membership, error: memberError } = await supabaseClient
       .from('group_memberships')
       .insert({
         group_id: group.id,
         user_id: user.id,
-        first_name: profile.first_name || 'Member',
-        last_name: profile.last_name || '',
-        full_name: fullName || 'Member',
+        first_name: firstName || 'Member',
+        last_name: lastName,
         email: profile.email,
         phone: profile.phone,
         avatar_url: profile.avatar_url,
@@ -249,16 +249,16 @@ export async function joinContactGroupAnonymous(
     }
 
     // Add member to group
-    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim() || 'Member'
+    const normalizedFirstName = firstName.trim()
+    const normalizedLastName = lastName.trim()
 
     const { data: membership, error: memberError } = await supabaseClient
       .from('group_memberships')
       .insert({
         group_id: group.id,
         user_id: null, // Anonymous user
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        full_name: fullName,
+        first_name: normalizedFirstName || 'Member',
+        last_name: normalizedLastName,
         email: email.toLowerCase().trim(),
         phone: phone?.trim() || null,
         avatar_url: null,
@@ -355,7 +355,6 @@ export async function getGroupMembers(groupId: string) {
         id,
         first_name,
         last_name,
-        full_name,
         email,
         phone,
         avatar_url,
@@ -384,18 +383,8 @@ export async function getGroupMembers(groupId: string) {
 
     const transformedData =
       memberships?.map((member: any) => {
-        const nameParts =
-          typeof member.full_name === 'string' && member.full_name.includes(' ')
-            ? member.full_name.split(' ')
-            : []
-
-        const firstName =
-          (typeof member.first_name === 'string' && member.first_name.trim()) ||
-          nameParts[0] ||
-          ''
-        const lastName =
-          (typeof member.last_name === 'string' && member.last_name.trim()) ||
-          (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '')
+        const firstName = typeof member.first_name === 'string' ? member.first_name.trim() : ''
+        const lastName = typeof member.last_name === 'string' ? member.last_name.trim() : ''
 
         return {
           id: member.id,

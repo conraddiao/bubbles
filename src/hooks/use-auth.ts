@@ -17,7 +17,13 @@ interface AuthState {
 }
 
 interface AuthActions {
-  signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<{ error?: AuthError }>
+  signUp: (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    phone?: string
+  ) => Promise<{ error?: AuthError; requiresEmailConfirmation?: boolean; email?: string }>
   signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>) => Promise<{ error?: string }>
@@ -36,6 +42,14 @@ const getFriendlySignUpError = (error: AuthError | null) => {
 
   if (rawMessage.includes('Database error saving new user')) {
     return 'Signup failed because the user profile table is missing. Please run database migrations and try again.'
+  }
+
+  if (
+    rawMessage.toLowerCase().includes('already registered') ||
+    rawMessage.toLowerCase().includes('user already exists') ||
+    rawMessage.toLowerCase().includes('duplicate')
+  ) {
+    return 'That email is already confirmed. Please sign in instead.'
   }
 
   return rawMessage
@@ -207,8 +221,6 @@ function useAuthState(): AuthContextValue {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
       
-      const fullName = `${firstName} ${lastName}`.trim()
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -216,7 +228,6 @@ function useAuthState(): AuthContextValue {
           data: {
             first_name: firstName,
             last_name: lastName,
-            full_name: fullName,
             phone: normalizePhoneInput(phone) || null,
           }
         }
@@ -232,6 +243,7 @@ function useAuthState(): AuthContextValue {
 
       if (data.user && !data.session) {
         toast.success('Please check your email to verify your account')
+        return { error: undefined, requiresEmailConfirmation: true, email }
       } else if (data.session) {
         toast.success('Account created successfully!')
       }

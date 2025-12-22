@@ -23,7 +23,8 @@ describe('useAuth', () => {
   const mockProfile = {
     id: 'test-user-id',
     email: 'test@example.com',
-    full_name: 'Test User',
+    first_name: 'Test',
+    last_name: 'User',
     phone: '+1234567890',
     phone_verified: true,
     two_factor_enabled: false,
@@ -116,7 +117,6 @@ describe('useAuth', () => {
           data: {
             first_name: 'Test',
             last_name: 'User',
-            full_name: 'Test User',
             phone: '+1234567890',
           },
         },
@@ -142,7 +142,6 @@ describe('useAuth', () => {
           data: {
             first_name: 'Test',
             last_name: 'User',
-            full_name: 'Test User',
             phone: null,
           },
         },
@@ -313,7 +312,7 @@ describe('useAuth', () => {
         expect(result.current.loading).toBe(false)
       })
       
-      const updates = { full_name: 'Updated Name', phone_verified: true }
+      const updates = { first_name: 'Updated', last_name: 'Name', phone_verified: true }
       const updateResult = await result.current.updateProfile(updates)
       
       expect(mockUpdate).toHaveBeenCalledWith(updates)
@@ -342,7 +341,7 @@ describe('useAuth', () => {
         expect(result.current.loading).toBe(false)
       })
       
-      const updateResult = await result.current.updateProfile({ full_name: 'Updated Name' })
+      const updateResult = await result.current.updateProfile({ first_name: 'Updated', last_name: 'Name' })
       
       expect(updateResult.error).toBe('Update failed')
     })
@@ -354,7 +353,7 @@ describe('useAuth', () => {
         expect(result.current.loading).toBe(false)
       })
       
-      const updateResult = await result.current.updateProfile({ full_name: 'Updated Name' })
+      const updateResult = await result.current.updateProfile({ first_name: 'Updated', last_name: 'Name' })
       
       expect(updateResult.error).toBe('No user logged in')
     })

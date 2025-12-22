@@ -29,7 +29,8 @@ vi.mock('sonner', () => ({
 const mockMembers = [
   {
     id: '1',
-    full_name: 'John Doe',
+    first_name: 'John',
+    last_name: 'Doe',
     email: 'john@example.com',
     phone: '+1234567890',
     notifications_enabled: true,
@@ -38,7 +39,8 @@ const mockMembers = [
   },
   {
     id: '2',
-    full_name: 'Jane Smith',
+    first_name: 'Jane',
+    last_name: 'Smith',
     email: 'jane@example.com',
     phone: undefined,
     notifications_enabled: false,

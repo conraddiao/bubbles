@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -23,6 +24,7 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
   const [isLoading, setIsLoading] = useState(false)
   const [show2FA, setShow2FA] = useState(false)
   const [userEmail, setUserEmail] = useState('')
+  const router = useRouter()
   const { signIn, signUp } = useAuth()
 
   const isSignUp = authMode === 'signup'
@@ -52,6 +54,11 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
           signUpData.last_name,
           signUpData.phone
         )
+        if (!result.error && result.requiresEmailConfirmation) {
+          const encodedEmail = encodeURIComponent(signUpData.email)
+          router.push(`/auth/check-email?email=${encodedEmail}`)
+          return
+        }
       } else {
         const signInData = data as SignInFormData
         result = await signIn(signInData.email, signInData.password)
