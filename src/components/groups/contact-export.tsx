@@ -95,9 +95,12 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
   const downloadFile = async (content: string, filename: string, mimeType: string = 'text/x-vcard') => {
     const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
     const file = new File([blob], filename, { type: blob.type })
-    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : ''
+    const isIOS = /iPad|iPhone|iPod/i.test(userAgent)
+    const isMobileShareCapable = isIOS || /Android/i.test(userAgent)
+    const dataUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`
 
-    if (navigator.canShare?.({ files: [file] })) {
+    if (isMobileShareCapable && navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file] })
         return
@@ -106,12 +109,11 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
       }
     }
 
-    // iOS Safari sometimes ignores the download attribute for blobs; using a data URI opened in a new tab
-    // helps surface the Contacts handler for .vcf files.
+    // iOS Safari often ignores the download attribute for blob URLs; navigating to a data URI
+    // prompts the Contacts handler and preserves multiple cards.
     if (isIOS) {
-      const dataUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`
-      const newWindow = window.open(dataUrl, '_blank')
-      if (newWindow) return
+      window.location.href = dataUrl
+      return
     }
 
     const url = URL.createObjectURL(blob)
