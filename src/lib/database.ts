@@ -489,27 +489,78 @@ export async function getUserGroups() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    console.log('Fetching groups for user:', user.id)
+    const membershipFilters = [`user_id.eq.${user.id}`]
 
-    // With RLS enabled, this query will automatically filter to user's accessible groups
-    const { data: groups, error: groupsError } = await supabase
-      .from('contact_groups')
-      .select(`
-        *,
-        owner:profiles!owner_id(first_name, last_name)
-      `)
-      .order('created_at', { ascending: false })
-
-    if (groupsError) {
-      console.error('Error fetching groups:', groupsError)
-      throw groupsError
+    if (typeof user.email === 'string' && user.email.length > 0) {
+      membershipFilters.push(`email.eq.${user.email}`)
     }
 
-    console.log('User accessible groups found:', groups?.length || 0)
+    type MembershipGroupRef = Pick<Database['public']['Tables']['group_memberships']['Row'], 'group_id'>
+    const { data: memberships, error: membershipsError } = await supabase
+      .from('group_memberships')
+      .select('group_id')
+      .or(membershipFilters.join(','))
+      .is('departed_at', null)
 
-    // Get member counts for each group
+    if (membershipsError) {
+      throw membershipsError
+    }
+
+    const accessibleGroupIds = new Set<string>()
+    const membershipRecords: MembershipGroupRef[] = memberships ?? []
+
+    for (const membership of membershipRecords) {
+      if (typeof membership.group_id === 'string') {
+        accessibleGroupIds.add(membership.group_id)
+      }
+    }
+
+    const baseSelect = '*, owner:profiles!owner_id(first_name, last_name)'
+    type GroupWithOwner = ContactGroupRow & { owner?: Profile }
+    const groupsById = new Map<string, GroupWithOwner>()
+
+    if (accessibleGroupIds.size > 0) {
+      const { data: memberGroups, error: memberGroupsError } = await supabase
+        .from('contact_groups')
+        .select(baseSelect)
+        .in('id', Array.from(accessibleGroupIds))
+        .order('created_at', { ascending: false })
+        .returns<GroupWithOwner[]>()
+
+      if (memberGroupsError) {
+        throw memberGroupsError
+      }
+
+      for (const group of memberGroups ?? []) {
+        if (typeof group.id === 'string') {
+          groupsById.set(group.id, group)
+        }
+      }
+    }
+
+    const { data: ownedGroups, error: ownedGroupsError } = await supabase
+      .from('contact_groups')
+      .select(baseSelect)
+      .eq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+      .returns<GroupWithOwner[]>()
+
+    if (ownedGroupsError) {
+      throw ownedGroupsError
+    }
+
+    for (const group of ownedGroups ?? []) {
+      if (typeof group.id === 'string') {
+        groupsById.set(group.id, group)
+      }
+    }
+
+    const mergedGroups = Array.from(groupsById.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+
     const groupsWithCounts = await Promise.all(
-      (groups || []).map(async (group: any) => {
+      mergedGroups.map(async (group) => {
         const { count } = await supabase
           .from('group_memberships')
           .select('*', { count: 'exact', head: true })
@@ -522,11 +573,9 @@ export async function getUserGroups() {
         }
       })
     )
-    
-    console.log('Groups with counts:', groupsWithCounts)
+
     return { data: groupsWithCounts, error: null }
   } catch (error) {
-    console.error('getUserGroups error:', error)
     return { data: null, error: handleDatabaseError(error) }
   }
 }
