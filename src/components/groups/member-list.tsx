@@ -123,6 +123,73 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
 
   const memberCount = members?.length ?? 0
 
+  const mobileList = members ? (
+    <div className="flex flex-col gap-3 md:hidden">
+      {members.map((member) => (
+        <div key={member.id} className="rounded-lg border bg-card/50 p-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarFallback>
+                {getInitials(member)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{getDisplayName(member)}</span>
+                {member.is_owner && (
+                  <Badge variant="secondary" className="text-xs">
+                    Owner
+                  </Badge>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Mail className="h-3 w-3" />
+                <span className="truncate">{member.email}</span>
+              </div>
+              {member.phone && (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Phone className="h-3 w-3" />
+                  <span>{member.phone}</span>
+                </div>
+              )}
+            </div>
+            {isOwner && !member.is_owner && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleRemoveMember(member)}
+                disabled={removeMemberMutation.isPending}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              {member.notifications_enabled ? (
+                <>
+                  <Bell className="h-4 w-4 text-green-600" />
+                  <span className="text-green-600">Enabled</span>
+                </>
+              ) : (
+                <>
+                  <BellOff className="h-4 w-4" />
+                  <span>Disabled</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <Badge variant="outline" className="text-[10px]">
+                Joined {formatDistanceToNow(new Date(member.joined_at), { addSuffix: true })}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : null
+
   if (isLoading) {
     const skeleton = (
       <div className="space-y-4">
@@ -223,7 +290,7 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
   }
 
   const table = (
-    <div className="rounded-md border">
+    <div className="hidden rounded-md border md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -321,7 +388,10 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
           onExportContacts={onExportContacts}
         />
       </CardHeader>
-      <CardContent>{table}</CardContent>
+      <CardContent className="space-y-4">
+        {mobileList}
+        {table}
+      </CardContent>
     </Card>
   ) : (
     <div className="space-y-4">
@@ -330,6 +400,7 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
         groupName={groupName}
         onExportContacts={onExportContacts}
       />
+      {mobileList}
       {table}
     </div>
   )
