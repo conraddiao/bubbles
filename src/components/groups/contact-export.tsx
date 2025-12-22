@@ -88,17 +88,21 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
 
   // Generate combined vCard content for multiple members
   const generateBulkVCard = (memberList: GroupMember[]): string => {
-    return memberList.map(generateVCard).join('\r\n\r\n')
+    return `${memberList.map(generateVCard).join('\r\n\r\n')}\r\n`
   }
 
   // Download a file with the given content
-  const downloadFile = async (content: string, filename: string, mimeType: string = 'text/vcard') => {
+  const downloadFile = async (content: string, filename: string, mimeType: string = 'text/x-vcard') => {
     const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
     const file = new File([blob], filename, { type: blob.type })
 
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file] })
-      return
+      try {
+        await navigator.share({ files: [file] })
+        return
+      } catch (error) {
+        console.warn('Share failed, falling back to download', error)
+      }
     }
 
     const url = URL.createObjectURL(blob)
