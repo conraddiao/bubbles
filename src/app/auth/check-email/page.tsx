@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 
 interface CheckEmailPageProps {
-  searchParams?: { email?: string }
+  searchParams?: Promise<{ email?: string }>
 }
 
-export default function CheckEmailPage({ searchParams }: CheckEmailPageProps) {
-  const email = searchParams?.email ? decodeURIComponent(searchParams.email) : null
+export default async function CheckEmailPage({ searchParams }: CheckEmailPageProps) {
+  const params = await searchParams
+  const email = params?.email ? decodeURIComponent(params.email) : null
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
