@@ -164,6 +164,23 @@ export type Database = {
           is_owner: boolean
         }>
       }
+      get_group_by_share_token: {
+        Args: { group_token: string }
+        Returns: Array<{
+          id: string
+          name: string
+          description?: string | null
+          is_closed: boolean
+          access_type: 'open' | 'password'
+          join_password_hash?: string | null
+          owner_id: string
+          share_token: string
+          created_at: string
+          updated_at: string
+          owner_first_name?: string | null
+          owner_last_name?: string | null
+        }>
+      }
       update_profile_across_groups: {
         Args: { new_first_name?: string; new_last_name?: string; new_phone?: string; new_avatar_url?: string | null }
         Returns: boolean
