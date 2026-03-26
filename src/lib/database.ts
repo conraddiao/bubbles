@@ -433,14 +433,33 @@ export async function getUserGroups() {
 
     console.log('Fetching groups for user:', user.id)
 
-    // With RLS enabled, this query will automatically filter to user's accessible groups
-    const { data: groups, error: groupsError } = await supabase
+    // Fetch group IDs the user is a member of (but does not own)
+    const { data: memberships } = await supabase
+      .from('group_memberships')
+      .select('group_id')
+      .eq('user_id', user.id)
+
+    const memberGroupIds = (memberships as Array<{ group_id: string }> | null)?.map((m) => m.group_id) ?? []
+
+    // Explicitly filter to groups the user owns or is a member of.
+    // This is belt-and-suspenders on top of RLS to guard against overly
+    // broad "public can view by share_token" policies that may still be
+    // active in the database.
+    let query = supabase
       .from('contact_groups')
       .select(`
         *,
         owner:profiles!owner_id(first_name, last_name)
       `)
       .order('created_at', { ascending: false })
+
+    if (memberGroupIds.length > 0) {
+      query = query.or(`owner_id.eq.${user.id},id.in.(${memberGroupIds.join(',')})`)
+    } else {
+      query = query.eq('owner_id', user.id)
+    }
+
+    const { data: groups, error: groupsError } = await query
 
     if (groupsError) {
       console.error('Error fetching groups:', groupsError)
