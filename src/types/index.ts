@@ -24,7 +24,7 @@ export interface ContactGroup {
   join_password_hash?: string | null
   created_at: string
   updated_at: string
-  owner?: Profile
+  owner?: Pick<Profile, 'first_name' | 'last_name'>
   member_count?: number
 }
 
