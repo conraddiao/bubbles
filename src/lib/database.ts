@@ -433,11 +433,12 @@ export async function getUserGroups() {
 
     console.log('Fetching groups for user:', user.id)
 
-    // Fetch group IDs the user is a member of (but does not own)
+    // Fetch group IDs the user is an active member of (but does not own)
     const { data: memberships } = await supabase
       .from('group_memberships')
       .select('group_id')
       .eq('user_id', user.id)
+      .is('departed_at', null)
 
     const memberGroupIds = (memberships as Array<{ group_id: string }> | null)?.map((m) => m.group_id) ?? []
 
