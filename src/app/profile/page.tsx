@@ -215,7 +215,7 @@ export default function ProfileSettingsPage() {
                       id="phone"
                       type="tel"
                       {...contactForm.register('phone')}
-                      placeholder="+1 (555) 555-0101"
+                      placeholder="(555) 555-0101"
                     />
                     {contactForm.formState.errors.phone && (
                       <p className="text-sm text-red-500">

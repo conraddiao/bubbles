@@ -181,12 +181,13 @@ function useAuthState(): AuthContextValue {
           } catch (error) {
             console.error('Profile fetch failed on auth change:', error)
             if (mounted) {
-              setState({
+              // Preserve existing profile on fetch failure to avoid redirect loops
+              setState(prev => ({
+                ...prev,
                 user: session.user,
-                profile: null,
                 session,
                 loading: false,
-              })
+              }))
             }
           }
         } else if (mounted) {
