@@ -205,7 +205,7 @@ export async function joinContactGroupAnonymous(
       member_first_name: firstName.trim(),
       member_last_name: lastName.trim(),
       member_email: normalizedEmail,
-      member_phone: phone?.trim() || null,
+      member_phone: phone?.trim() || undefined,
       enable_notifications: enableNotifications
     })
 
