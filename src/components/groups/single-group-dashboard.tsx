@@ -253,11 +253,11 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
   const totalMembers = members?.length || 0
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto space-y-6 max-w-4xl px-1 sm:px-0">
       <div className="rounded-xl border bg-card/80 p-6 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-start gap-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-bold leading-tight">{group.name}</h1>
               <Badge variant={group.is_closed ? 'secondary' : 'default'}>
                 {group.is_closed ? 'Closed to new members' : 'Accepting members'}
@@ -270,16 +270,16 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
               <p className="text-muted-foreground text-base max-w-3xl">{group.description}</p>
             )}
           </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={handleShareGroup}>
+          <div className="flex w-full flex-col gap-2 lg:ml-auto lg:w-auto lg:flex-row lg:items-center">
+            <Button className="w-full justify-center sm:w-auto" variant="outline" size="sm" onClick={handleShareGroup}>
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </Button>
-            <Button variant="outline" size="sm" onClick={handleCopyShareLink}>
+            <Button className="w-full justify-center sm:w-auto" variant="outline" size="sm" onClick={handleCopyShareLink}>
               <Copy className="h-4 w-4 mr-2" />
               Copy Link
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleOpenShareLink}>
+            <Button className="w-full justify-center sm:w-auto" variant="ghost" size="icon" onClick={handleOpenShareLink}>
               <ExternalLink className="h-4 w-4" />
             </Button>
           </div>
@@ -291,7 +291,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
@@ -301,12 +301,12 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
                 View everyone in the group, remove users, or export contacts.
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleShareGroup}>
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end lg:w-auto">
+              <Button className="w-full justify-center sm:w-auto" variant="outline" size="sm" onClick={handleShareGroup}>
                 <Share2 className="h-4 w-4 mr-2" />
                 Share group
               </Button>
-              <Button variant="outline" size="sm" onClick={handleScrollToExport}>
+              <Button className="w-full justify-center sm:w-auto" variant="outline" size="sm" onClick={handleScrollToExport}>
                 <Download className="h-4 w-4 mr-2" />
                 Contact export
               </Button>
@@ -321,7 +321,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
               layout="embedded"
             />
             <div ref={exportSectionRef} className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold leading-tight flex items-center gap-2">
                     <Download className="h-4 w-4" />
@@ -373,7 +373,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
               />
             </div>
             <div className="space-y-3 rounded-lg border p-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-medium">Access control</p>
                   <p className="text-xs text-muted-foreground">Choose how people join the group.</p>
@@ -416,7 +416,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
                   </p>
                 </div>
               )}
-              <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Close group to new members</p>
                   <p className="text-xs text-muted-foreground">Existing members stay, but no new joins are allowed.</p>
@@ -440,7 +440,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
             )}
 
             <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-medium">Leave group</p>
                   <p className="text-xs text-muted-foreground">
@@ -448,6 +448,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
                   </p>
                 </div>
                 <Button
+                  className="w-full sm:w-auto"
                   variant="outline"
                   size="sm"
                   onClick={() => {

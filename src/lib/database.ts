@@ -431,47 +431,78 @@ export async function getUserGroups() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
-    console.log('Fetching groups for user:', user.id)
+    const membershipFilters = [`user_id.eq.${user.id}`]
 
-    // Fetch group IDs the user is an active member of (but does not own)
-    const { data: memberships } = await supabase
+    if (typeof user.email === 'string' && user.email.length > 0) {
+      membershipFilters.push(`email.eq.${user.email}`)
+    }
+
+    type MembershipGroupRef = Pick<Database['public']['Tables']['group_memberships']['Row'], 'group_id'>
+    const { data: memberships, error: membershipsError } = await supabase
       .from('group_memberships')
       .select('group_id')
-      .eq('user_id', user.id)
+      .or(membershipFilters.join(','))
       .is('departed_at', null)
 
-    const memberGroupIds = (memberships as Array<{ group_id: string }> | null)?.map((m) => m.group_id) ?? []
+    if (membershipsError) {
+      throw membershipsError
+    }
 
-    // Explicitly filter to groups the user owns or is a member of.
-    // This is belt-and-suspenders on top of RLS to guard against overly
-    // broad "public can view by share_token" policies that may still be
-    // active in the database.
-    let query = supabase
+    const accessibleGroupIds = new Set<string>()
+    const membershipRecords: MembershipGroupRef[] = memberships ?? []
+
+    for (const membership of membershipRecords) {
+      if (typeof membership.group_id === 'string') {
+        accessibleGroupIds.add(membership.group_id)
+      }
+    }
+
+    const baseSelect = '*, owner:profiles!owner_id(first_name, last_name)'
+    type GroupWithOwner = ContactGroupRow & { owner?: Profile }
+    const groupsById = new Map<string, GroupWithOwner>()
+
+    if (accessibleGroupIds.size > 0) {
+      const { data: memberGroups, error: memberGroupsError } = await supabase
+        .from('contact_groups')
+        .select(baseSelect)
+        .in('id', Array.from(accessibleGroupIds))
+        .order('created_at', { ascending: false })
+        .returns<GroupWithOwner[]>()
+
+      if (memberGroupsError) {
+        throw memberGroupsError
+      }
+
+      for (const group of memberGroups ?? []) {
+        if (typeof group.id === 'string') {
+          groupsById.set(group.id, group)
+        }
+      }
+    }
+
+    const { data: ownedGroups, error: ownedGroupsError } = await supabase
       .from('contact_groups')
-      .select(`
-        *,
-        owner:profiles!owner_id(first_name, last_name)
-      `)
+      .select(baseSelect)
+      .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
+      .returns<GroupWithOwner[]>()
 
-    if (memberGroupIds.length > 0) {
-      query = query.or(`owner_id.eq.${user.id},id.in.(${memberGroupIds.join(',')})`)
-    } else {
-      query = query.eq('owner_id', user.id)
+    if (ownedGroupsError) {
+      throw ownedGroupsError
     }
 
-    const { data: groups, error: groupsError } = await query
-
-    if (groupsError) {
-      console.error('Error fetching groups:', groupsError)
-      throw groupsError
+    for (const group of ownedGroups ?? []) {
+      if (typeof group.id === 'string') {
+        groupsById.set(group.id, group)
+      }
     }
 
-    console.log('User accessible groups found:', groups?.length || 0)
+    const mergedGroups = Array.from(groupsById.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
 
-    // Get member counts for each group
     const groupsWithCounts = await Promise.all(
-      (groups || []).map(async (group: any) => {
+      mergedGroups.map(async (group) => {
         const { count } = await supabase
           .from('group_memberships')
           .select('*', { count: 'exact', head: true })
@@ -484,11 +515,9 @@ export async function getUserGroups() {
         }
       })
     )
-    
-    console.log('Groups with counts:', groupsWithCounts)
+
     return { data: groupsWithCounts, error: null }
   } catch (error) {
-    console.error('getUserGroups error:', error)
     return { data: null, error: handleDatabaseError(error) }
   }
 }
