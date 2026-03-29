@@ -28,6 +28,8 @@ const rpc = (client: typeof supabase) => ({
     client.rpc('close_contact_group' as any, args as any),
   getGroupMembers: (args: { group_uuid: string }) =>
     client.rpc('get_group_members' as any, args as any),
+  getGroupByShareToken: (args: { group_token: string }) =>
+    client.rpc('get_group_by_share_token' as any, args as any),
   updateProfileAcrossGroups: (args: {
     new_first_name?: string
     new_last_name?: string
@@ -538,30 +540,28 @@ export async function getGroupByToken(shareToken: string) {
   try {
     console.log('Fetching group by token:', shareToken)
     
-    // With RLS enabled, this query will work for public access via share_token
-    const { data, error } = await supabase
-      .from('contact_groups')
-      .select(`
-        id,
-        name,
-        description,
-        is_closed,
-        access_type,
-        join_password_hash,
-        owner_id,
-        share_token,
-        owner:profiles!owner_id(first_name, last_name)
-      `)
-      .eq('share_token', shareToken)
-      .single()
+    const group = await fetchGroupByShareToken(shareToken)
 
-    if (error) {
-      console.error('Group fetch error:', error)
-      throw error
+    if (!group) {
+      throw new Error('Invalid group link or group not found.')
     }
 
-    console.log('Group data fetched:', data)
-    return { data, error: null }
+    const owner =
+      group.owner_first_name || group.owner_last_name
+        ? {
+            first_name: group.owner_first_name ?? undefined,
+            last_name: group.owner_last_name ?? undefined
+          }
+        : undefined
+
+    const { owner_first_name, owner_last_name, ...rest } = group
+    const normalizedGroup = {
+      ...rest,
+      owner
+    }
+
+    console.log('Group data fetched:', normalizedGroup)
+    return { data: normalizedGroup, error: null }
   } catch (error: unknown) {
     console.error('getGroupByToken error:', error)
     return { data: null, error: handleDatabaseError(error) }

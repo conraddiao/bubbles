@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isOptionalE164Phone, isRequiredE164Phone } from './phone'
+import { isOptionalE164Phone, isRequiredE164Phone, toE164US } from './phone'
 
 // Contact form validation schema
 export const contactFormSchema = z.object({
@@ -44,7 +44,9 @@ export const profileUpdateSchema = z.object({
   phone: z
     .string()
     .optional()
-    .refine(isOptionalE164Phone, 'Invalid phone number format. Use +1234567890'),
+    .transform((val) => (val ? toE164US(val) ?? val : undefined))
+    .refine(isOptionalE164Phone, 'Invalid phone number. Use a 10-digit US number or international format.')
+    .optional(),
   sms_notifications_enabled: z.boolean(),
 })
 

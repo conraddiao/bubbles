@@ -24,7 +24,7 @@ export interface ContactGroup {
   join_password_hash?: string | null
   created_at: string
   updated_at: string
-  owner?: Profile
+  owner?: Pick<Profile, 'first_name' | 'last_name'>
   member_count?: number
 }
 
@@ -162,6 +162,23 @@ export type Database = {
           notifications_enabled: boolean
           joined_at: string
           is_owner: boolean
+        }>
+      }
+      get_group_by_share_token: {
+        Args: { group_token: string }
+        Returns: Array<{
+          id: string
+          name: string
+          description?: string | null
+          is_closed: boolean
+          access_type: 'open' | 'password'
+          join_password_hash?: string | null
+          owner_id: string
+          share_token: string
+          created_at: string
+          updated_at: string
+          owner_first_name?: string | null
+          owner_last_name?: string | null
         }>
       }
       update_profile_across_groups: {

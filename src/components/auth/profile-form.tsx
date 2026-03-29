@@ -120,7 +120,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="Enter your phone number"
+                placeholder="(555) 123-4567"
                 {...register('phone')}
                 className={errors.phone ? 'border-red-500' : ''}
               />
@@ -128,7 +128,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 <p className="text-sm text-red-500">{errors.phone.message}</p>
               )}
               <p className="text-xs text-gray-500">
-                Required for SMS notifications and two-factor authentication
+                US numbers accepted in any format. Required for SMS notifications and two-factor authentication.
               </p>
             </div>
           </div>
