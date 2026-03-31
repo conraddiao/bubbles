@@ -46,16 +46,16 @@ export function JoinGroupCard() {
   return (
     <Card className="h-full rounded-2xl shadow-md">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl text-slate-900">
+        <CardTitle className="flex items-center gap-2 text-xl text-foreground">
           Join Group
         </CardTitle>
-        <CardDescription className="text-slate-600">
+        <CardDescription className="text-muted-foreground">
           Enter a short invite code to jump into the right group.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <form className="space-y-2" onSubmit={handleCodeSubmit}>
-          <label className="text-sm font-medium text-slate-800" htmlFor="join-code">
+          <label className="text-sm font-medium text-foreground" htmlFor="join-code">
             Enter invite code
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">

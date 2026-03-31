@@ -169,8 +169,8 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
             <div className="flex items-center gap-1">
               {member.notifications_enabled ? (
                 <>
-                  <Bell className="h-4 w-4 text-green-600" />
-                  <span className="text-green-600">Enabled</span>
+                  <Bell className="h-4 w-4 text-primary" />
+                  <span className="text-primary">Enabled</span>
                 </>
               ) : (
                 <>

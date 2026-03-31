@@ -129,7 +129,7 @@ export function PhoneVerification({ onSuccess, onCancel }: PhoneVerificationProp
               {errors.phone && (
                 <p className="text-sm text-red-500">{errors.phone.message}</p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 We&apos;ll send a verification code to this number
               </p>
             </div>
@@ -149,7 +149,7 @@ export function PhoneVerification({ onSuccess, onCancel }: PhoneVerificationProp
               {errors.verification_code && (
                 <p className="text-sm text-red-500">{errors.verification_code.message}</p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Code sent to {phoneNumber}
               </p>
             </div>
@@ -167,7 +167,7 @@ export function PhoneVerification({ onSuccess, onCancel }: PhoneVerificationProp
 
         {step === 'code' && (
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Didn&apos;t receive the code?
             </p>
             <Button
@@ -209,10 +209,10 @@ export function PhoneVerification({ onSuccess, onCancel }: PhoneVerificationProp
           )}
         </div>
 
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+        <div className="mt-4 p-3 bg-secondary rounded-lg">
           <div className="flex items-start gap-2">
-            <Shield className="h-4 w-4 text-blue-600 mt-0.5" />
-            <div className="text-xs text-blue-800">
+            <Shield className="h-4 w-4 text-primary mt-0.5" />
+            <div className="text-xs text-foreground">
               <p className="font-medium mb-1">Why verify your phone?</p>
               <p>Phone verification enables SMS notifications and two-factor authentication for enhanced security.</p>
             </div>

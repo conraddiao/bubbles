@@ -205,7 +205,7 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -218,7 +218,7 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
           {isSignUp && (
             <div className="space-y-2">
               <label htmlFor="phone" className="text-sm font-medium">
-                Phone Number <span className="text-gray-500">(optional)</span>
+                Phone Number <span className="text-muted-foreground">(optional)</span>
               </label>
               <Input
                 id="phone"
@@ -230,7 +230,7 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
               {signUpForm.formState.errors.phone && (
                 <p className="text-sm text-red-500">{signUpForm.formState.errors.phone.message}</p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Phone number is required for SMS notifications and 2FA
               </p>
             </div>
@@ -247,13 +247,13 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}
             {' '}
             <button
               type="button"
               onClick={toggleMode}
-              className="font-medium text-blue-600 hover:text-blue-500 underline"
+              className="font-medium text-primary hover:text-[var(--accent-dark)] underline"
             >
               {isSignUp ? 'Sign In' : 'Sign Up'}
             </button>
@@ -261,7 +261,7 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
         </div>
 
         {isSignUp && (
-          <div className="mt-4 text-xs text-gray-500 text-center">
+          <div className="mt-4 text-xs text-muted-foreground text-center">
             By creating an account, you agree to our Terms of Service and Privacy Policy
           </div>
         )}

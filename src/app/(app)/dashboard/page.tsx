@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowRight, Share2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { KeyRound, Loader2, Plus, Users } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { JoinGroupCard } from '@/components/join-group-card'
-import { getUserGroups } from '@/lib/database'
+import { Input } from '@/components/ui/input'
+import { getUserGroups, getGroupByToken } from '@/lib/database'
 import { useAuth } from '@/hooks/use-auth'
 
 export const dynamic = 'force-dynamic'
@@ -22,6 +22,7 @@ interface DashboardGroup {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const { user, profile } = useAuth()
   const { data: groups, isLoading: groupsLoading, error: groupsError } = useQuery({
     queryKey: ['user-groups'],
@@ -32,7 +33,10 @@ export default function DashboardPage() {
     },
     enabled: Boolean(user),
   })
-  const [showAllGroups, setShowAllGroups] = useState(false)
+
+  const [codeValue, setCodeValue] = useState('')
+  const [codeError, setCodeError] = useState<string | null>(null)
+  const [isCheckingCode, setIsCheckingCode] = useState(false)
 
   const displayName = [
     profile?.first_name ?? user?.user_metadata?.first_name,
@@ -44,112 +48,129 @@ export default function DashboardPage() {
 
   const greetingName = displayName || user?.email || 'there'
 
+  const handleCodeSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setCodeError(null)
+
+    const normalizedCode = codeValue.trim()
+    if (!normalizedCode) {
+      setCodeError('Enter a group code to continue.')
+      return
+    }
+
+    setIsCheckingCode(true)
+    try {
+      const { data, error } = await getGroupByToken(normalizedCode)
+      if (error || !data) {
+        setCodeError('We couldn\u2019t find a group with that code.')
+        return
+      }
+      router.push(`/join/${normalizedCode}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to check that code right now.'
+      setCodeError(message)
+    } finally {
+      setIsCheckingCode(false)
+    }
+  }
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 space-y-2">
+    <div className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12">
+      {/* Header with greeting and create button */}
+      <header className="mb-8">
         <p className="font-label text-sm font-semibold uppercase tracking-wide text-primary">
           Shared Contact Groups
         </p>
-        <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl">
-          Welcome back, {greetingName}!
-        </h1>
-        <p className="text-muted-foreground">
-          Jump into your groups or start a new one to keep everyone connected.
-        </p>
+        <div className="mt-2 flex items-start justify-between gap-4">
+          <h1 className="font-display text-2xl font-bold leading-tight sm:text-3xl">
+            Welcome back, {greetingName}!
+          </h1>
+          <Link href="/groups/create">
+            <Button size="sm" className="shrink-0 gap-1.5">
+              <Plus className="size-4" />
+              New Group
+            </Button>
+          </Link>
+        </div>
       </header>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="h-full rounded-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <ArrowRight className="h-5 w-5 text-primary" aria-hidden="true" />
-              Create Group
-            </CardTitle>
-            <CardDescription>
-              Spin up a group to gather and share contact information.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/groups/create">
-              <Button className="w-full">Create Group</Button>
+      {/* Join group — inline input */}
+      <form onSubmit={handleCodeSubmit} className="mb-8">
+        <label htmlFor="join-code" className="mb-1.5 block text-sm font-medium">
+          Join a group
+        </label>
+        <div className="flex gap-2">
+          <Input
+            id="join-code"
+            value={codeValue}
+            onChange={(e) => setCodeValue(e.target.value)}
+            placeholder="Enter invite code"
+            className="flex-1"
+            autoComplete="off"
+            inputMode="text"
+            aria-invalid={Boolean(codeError)}
+          />
+          <Button type="submit" variant="secondary" className="shrink-0 gap-1.5" disabled={isCheckingCode}>
+            <KeyRound className="size-4" />
+            {isCheckingCode ? 'Checking\u2026' : 'Join'}
+          </Button>
+        </div>
+        {codeError && <p className="mt-1.5 text-sm text-destructive">{codeError}</p>}
+      </form>
+
+      {/* Groups list — primary content */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <Users className="size-4" />
+          Your groups
+        </h2>
+
+        {groupsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : groupsError ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            Error loading groups: {groupsError.message}
+          </div>
+        ) : !groups || groups.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              No groups yet. Create one or join with an invite code.
+            </p>
+            <Link href="/groups/create" className="mt-3 inline-block">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Plus className="size-4" />
+                Create your first group
+              </Button>
             </Link>
-          </CardContent>
-        </Card>
-
-        <JoinGroupCard />
-
-        <Card className="h-full rounded-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Share2 className="h-5 w-5 text-primary" aria-hidden="true" />
-              My Groups
-            </CardTitle>
-            <CardDescription>
-              Review and manage the groups you&apos;ve created or joined.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {groupsLoading ? (
-              <div className="space-y-2">
-                <div className="h-4 rounded bg-muted animate-pulse" />
-                <div className="h-4 w-3/4 rounded bg-muted animate-pulse" />
-              </div>
-            ) : groupsError ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                Error loading groups: {groupsError.message}
-              </div>
-            ) : !groups || groups.length === 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  No groups yet. Create your first group to get started.
-                </p>
-                <Link href="/groups/create">
-                  <Button className="w-full">Create Group</Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {(showAllGroups ? groups : groups.slice(0, 3)).map((group: DashboardGroup) => (
-                  <Link
-                    key={group.id}
-                    href={`/groups/${group.id}`}
-                    className="block rounded-xl border border-border bg-card px-3 py-2 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--accent-light)] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">
-                          {group.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {group.member_count} member{group.member_count !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      {group.is_owner && (
-                        <span className="text-xs font-medium text-primary">Owner</span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-                {groups.length > 3 && !showAllGroups && (
-                  <p className="text-xs text-muted-foreground">+{groups.length - 3} more groups</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {groups.map((group: DashboardGroup) => (
+              <Link
+                key={group.id}
+                href={`/groups/${group.id}`}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 transition hover:border-[var(--accent-light)] hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">
+                    {group.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {group.member_count} member{group.member_count !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                {group.is_owner && (
+                  <span className="rounded-full bg-[var(--accent-light)] px-2 py-0.5 text-xs font-medium text-primary">
+                    Owner
+                  </span>
                 )}
-                {groups.length > 3 && (
-                  <div className="pt-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-primary hover:bg-accent"
-                      onClick={() => setShowAllGroups((prev) => !prev)}
-                    >
-                      {showAllGroups ? 'Show less' : 'See all'}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
