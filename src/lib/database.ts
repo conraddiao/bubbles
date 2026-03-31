@@ -540,21 +540,25 @@ export async function getGroupByToken(shareToken: string) {
   try {
     console.log('Fetching group by token:', shareToken)
     
-    const group = await fetchGroupByShareToken(shareToken)
+    const { data, error } = await rpc(supabaseClient).getGroupByShareToken({ group_token: shareToken })
+    if (error) throw error
 
-    if (!group) {
+    // RPC returns flat row with owner_first_name/owner_last_name fields
+    const row = data as (ContactGroupRow & { owner_first_name?: string | null; owner_last_name?: string | null }) | null
+
+    if (!row) {
       throw new Error('Invalid group link or group not found.')
     }
 
     const owner =
-      group.owner_first_name || group.owner_last_name
+      row.owner_first_name || row.owner_last_name
         ? {
-            first_name: group.owner_first_name ?? undefined,
-            last_name: group.owner_last_name ?? undefined
+            first_name: row.owner_first_name ?? undefined,
+            last_name: row.owner_last_name ?? undefined
           }
         : undefined
 
-    const { owner_first_name, owner_last_name, ...rest } = group
+    const { owner_first_name, owner_last_name, ...rest } = row
     const normalizedGroup = {
       ...rest,
       owner
