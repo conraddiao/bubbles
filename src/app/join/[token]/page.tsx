@@ -137,21 +137,21 @@ export default function JoinPage({ params }: JoinPageProps) {
 
   if (groupLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   if (groupError || !group) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-center text-red-600">Group Not Found</CardTitle>
+            <CardTitle className="text-center text-destructive">Group Not Found</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               The group link is invalid or the group no longer exists.
             </p>
             <Link href="/">
@@ -168,13 +168,13 @@ export default function JoinPage({ params }: JoinPageProps) {
 
   if (group.is_closed) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-center">Group Closed</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               This group is no longer accepting new members.
             </p>
             <Link href="/">
@@ -191,20 +191,20 @@ export default function JoinPage({ params }: JoinPageProps) {
 
   if (hasJoined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-center flex items-center justify-center gap-2">
-              <CheckCircle className="h-6 w-6 text-green-600" />
+              <CheckCircle className="h-6 w-6 text-[#065F46]" />
               Successfully Joined!
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               You&apos;ve been added to <strong>{group.name}</strong>. Other members can now see your contact information.
             </p>
             {user ? (
-              <Link href="/">
+              <Link href="/dashboard">
                 <Button>Go to Dashboard</Button>
               </Link>
             ) : (
@@ -224,7 +224,7 @@ export default function JoinPage({ params }: JoinPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function JoinPage({ params }: JoinPageProps) {
             {group.description || 'Share your contact information with other group members.'}
           </CardDescription>
           {group.owner && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Organized by {group.owner.first_name} {group.owner.last_name}
             </p>
           )}

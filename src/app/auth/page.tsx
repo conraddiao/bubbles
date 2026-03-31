@@ -5,16 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { AuthForm } from '@/components/auth/auth-form'
 import { useAuth } from '@/hooks/use-auth'
 
-// Force dynamic rendering
 export const dynamic = 'force-dynamic'
 
 function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading } = useAuth()
-  
+
   const mode = searchParams.get('mode') as 'signin' | 'signup' || 'signin'
-  const redirectTo = searchParams.get('redirect') || '/'
+  const redirectTo = searchParams.get('redirect') || '/dashboard'
 
   useEffect(() => {
     if (!loading && user) {
@@ -25,19 +24,19 @@ function AuthContent() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   if (user) {
-    return null // Will redirect
+    return null
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <AuthForm 
+        <AuthForm
           mode={mode}
           onSuccess={() => router.push(redirectTo)}
           redirectTo={redirectTo}
@@ -51,7 +50,7 @@ export default function AuthPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     }>
       <AuthContent />
