@@ -154,7 +154,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
       toast.success('You left the group')
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
       queryClient.invalidateQueries({ queryKey: ['group', groupId] })
-      router.push('/')
+      router.push('/dashboard')
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to leave group'
