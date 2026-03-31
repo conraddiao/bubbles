@@ -89,8 +89,8 @@ export function TwoFactorVerification({ email, onSuccess, onBack }: TwoFactorVer
       </CardHeader>
       
       <CardContent>
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-800">
+        <div className="mb-4 p-3 bg-secondary rounded-lg">
+          <p className="text-sm text-foreground">
             <strong>Signing in as:</strong> {email}
           </p>
         </div>
@@ -127,7 +127,7 @@ export function TwoFactorVerification({ email, onSuccess, onBack }: TwoFactorVer
 
         <div className="mt-6 space-y-3">
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Didn&apos;t receive the code?
             </p>
             <Button
@@ -150,7 +150,7 @@ export function TwoFactorVerification({ email, onSuccess, onBack }: TwoFactorVer
               variant="link"
               size="sm"
               onClick={onBack}
-              className="text-gray-500"
+              className="text-muted-foreground"
             >
               <ArrowLeft className="mr-1 h-3 w-3" />
               Back to Sign In
@@ -158,8 +158,8 @@ export function TwoFactorVerification({ email, onSuccess, onBack }: TwoFactorVer
           </div>
         </div>
 
-        <div className="mt-6 p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600">
+        <div className="mt-6 p-3 bg-secondary rounded-lg">
+          <p className="text-xs text-muted-foreground">
             <strong>Having trouble?</strong> Make sure your phone can receive SMS messages and check your spam folder. 
             If you&apos;re still having issues, contact support.
           </p>

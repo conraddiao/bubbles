@@ -238,7 +238,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
           The group you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
         </p>
         {groupError && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-destructive">
             Error: {groupError.message}
           </p>
         )}

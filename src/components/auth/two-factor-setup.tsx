@@ -146,7 +146,7 @@ export function TwoFactorSetup({ onSuccess }: TwoFactorSetupProps) {
               {errors.code && (
                 <p className="text-sm text-red-500">{errors.code.message}</p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Code sent to {profile?.phone}
               </p>
             </div>
@@ -206,15 +206,15 @@ export function TwoFactorSetup({ onSuccess }: TwoFactorSetupProps) {
         <div className="flex items-center justify-between p-4 border rounded-lg">
           <div className="flex items-center gap-3">
             {profile?.two_factor_enabled ? (
-              <ShieldCheck className="h-8 w-8 text-green-600" />
+              <ShieldCheck className="h-8 w-8 text-primary" />
             ) : (
-              <ShieldX className="h-8 w-8 text-gray-400" />
+              <ShieldX className="h-8 w-8 text-muted-foreground" />
             )}
             <div>
               <h3 className="font-medium">
                 SMS Two-Factor Authentication
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {profile?.two_factor_enabled 
                   ? 'Enabled - Your account is protected with 2FA'
                   : 'Disabled - Enable 2FA for enhanced security'
@@ -244,21 +244,21 @@ export function TwoFactorSetup({ onSuccess }: TwoFactorSetupProps) {
 
         <div className="space-y-4">
           <h4 className="font-medium">How it works:</h4>
-          <div className="space-y-3 text-sm text-gray-600">
+          <div className="space-y-3 text-sm text-muted-foreground">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium">
+              <div className="w-6 h-6 rounded-full bg-[var(--accent-light)] text-primary flex items-center justify-center text-xs font-medium">
                 1
               </div>
               <p>When you sign in, you&apos;ll enter your email and password as usual</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium">
+              <div className="w-6 h-6 rounded-full bg-[var(--accent-light)] text-primary flex items-center justify-center text-xs font-medium">
                 2
               </div>
               <p>We&apos;ll send a 6-digit verification code to your phone via SMS</p>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-medium">
+              <div className="w-6 h-6 rounded-full bg-[var(--accent-light)] text-primary flex items-center justify-center text-xs font-medium">
                 3
               </div>
               <p>Enter the code to complete your sign-in and access your account</p>
@@ -267,12 +267,12 @@ export function TwoFactorSetup({ onSuccess }: TwoFactorSetupProps) {
         </div>
 
         {profile?.two_factor_enabled && (
-          <div className="p-4 bg-green-50 rounded-lg">
-            <div className="flex items-center gap-2 text-green-800 mb-2">
+          <div className="p-4 bg-[#D1FAE5] rounded-lg">
+            <div className="flex items-center gap-2 text-[#065F46] mb-2">
               <ShieldCheck className="h-4 w-4" />
               <span className="font-medium">2FA is Active</span>
             </div>
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-[#065F46]">
               Your account is protected with two-factor authentication. 
               You can disable it at any time, but we recommend keeping it enabled for security.
             </p>

@@ -127,7 +127,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
               {errors.phone && (
                 <p className="text-sm text-red-500">{errors.phone.message}</p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 US numbers accepted in any format. Required for SMS notifications and two-factor authentication.
               </p>
             </div>
@@ -145,7 +145,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                   <label htmlFor="sms_notifications" className="text-sm font-medium">
                     SMS Notifications
                   </label>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Receive text messages for group updates and important notifications
                   </p>
                 </div>
@@ -170,9 +170,9 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
           </div>
         </form>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+        <div className="mt-6 p-4 bg-secondary rounded-lg">
           <h4 className="text-sm font-medium mb-2">Account Information</h4>
-          <div className="space-y-1 text-sm text-gray-600">
+          <div className="space-y-1 text-sm text-muted-foreground">
             <p><strong>Email:</strong> {profile?.email || user?.email || 'Unavailable'}</p>
             <p><strong>Phone Verified:</strong> {profile?.phone_verified ? 'Yes' : 'No'}</p>
             <p><strong>2FA Enabled:</strong> {profile?.two_factor_enabled ? 'Yes' : 'No'}</p>
