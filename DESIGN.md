@@ -38,7 +38,7 @@
 - **Surface:** `#FEFAF4` — Cream card/sheet layer. Slight warm lift above background.
 - **Surface 2:** `#F0E8D9` — Deeper warm for hover states, sidebar, secondary surfaces.
 - **Primary text:** `#1C1713` — Near-black with warmth baked in. Not neutral gray-black.
-- **Muted text:** `#9C8E82` — Warm pencil gray. Reads like text in a notebook.
+- **Muted text:** `#7A6E63` — Warm pencil gray, darkened for WCAG AA contrast (4.6:1 on parchment).
 - **Accent:** `#E8622A` — Burnt sienna / persimmon. Confident, alive, zero enterprise. Primary interactive color.
 - **Accent light:** `#F5C4AB` — For badge backgrounds, avatar fills, light accent areas.
 - **Accent dark:** `#B84A1A` — Hover/pressed state for accent.
@@ -59,7 +59,7 @@
   --surface: #FEFAF4;
   --surface-2: #F0E8D9;
   --text-primary: #1C1713;
-  --text-muted: #9C8E82;
+  --text-muted: #7A6E63;
   --accent: #E8622A;
   --accent-light: #F5C4AB;
   --accent-dark: #B84A1A;

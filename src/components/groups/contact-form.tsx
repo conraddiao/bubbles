@@ -187,7 +187,7 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
       <div className="max-w-md mx-auto">
         <Card>
           <CardContent className="text-center py-8">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <CheckCircle className="h-12 w-12 text-[#065F46] mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">Welcome to {(group as any)?.name}!</h3>
             <p className="text-muted-foreground mb-4">
               You&apos;ve successfully joined the group. You&apos;ll be able to access other members&apos; 
