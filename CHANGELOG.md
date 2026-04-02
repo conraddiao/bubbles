@@ -2,6 +2,14 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.1.2.0] - 2026-04-01
+
+### Added
+- Sign in with Google: one-click OAuth via Supabase PKCE flow
+- Server-side OAuth callback route using `@supabase/ssr` for secure token exchange
+- "Continue with Google" button with Google logo on sign-in and sign-up pages
+- Full test coverage for Google OAuth flow (callback route, hook, and UI tests)
+
 ## [0.1.1.0] - 2026-03-31
 
 ### Added
