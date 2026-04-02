@@ -5,9 +5,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   test: {
-    // Load test DB credentials from .env.test.local
-    // Vitest auto-loads .env.test.local in test mode (NODE_ENV=test)
-    envDir: '.',
+    // Vitest auto-loads .env.test.local from the project root in test mode
     environment: 'node',
     include: ['src/**/*.integration.test.ts'],
     setupFiles: ['./src/test/setup-integration.ts'],
