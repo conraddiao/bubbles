@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Users, Loader2 } from 'lucide-react'
+import { Download, FileText, Users, Loader2, UserPlus, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -91,31 +91,37 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
     return `${memberList.map(generateVCard).join('\r\n\r\n')}\r\n`
   }
 
-  // Download a file with the given content
-  const downloadFile = async (content: string, filename: string, mimeType: string = 'text/x-vcard') => {
-    const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/i.test(navigator.userAgent)
+
+  // Path A: data URI → Safari contact preview ("Create New Contact" at bottom)
+  const downloadViaDataUri = (content: string, filename: string) => {
+    const dataUrl = `data:text/x-vcard;charset=utf-8,${encodeURIComponent(content)}`
+    window.location.href = dataUrl
+  }
+
+  // Path B: share sheet → user picks Contacts app → native import
+  const downloadViaShare = async (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/x-vcard;charset=utf-8' })
     const file = new File([blob], filename, { type: blob.type })
-    const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-    const isIOS = /iPad|iPhone|iPod/i.test(userAgent)
-    const isMobileShareCapable = isIOS || /Android/i.test(userAgent)
-    const dataUrl = `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`
 
-    if (isMobileShareCapable && navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file] })
-        return
-      } catch (error) {
-        console.warn('Share failed, falling back to download', error)
-      }
-    }
-
-    // iOS Safari often ignores the download attribute for blob URLs; navigating to a data URI
-    // prompts the Contacts handler and preserves multiple cards.
-    if (isIOS) {
-      window.location.href = dataUrl
+    if (!navigator.canShare?.({ files: [file] })) {
+      downloadViaDataUri(content, filename)
       return
     }
 
+    try {
+      await navigator.share({ files: [file] })
+    } catch (error) {
+      // User dismissed the share sheet — intentional, don't trigger another UI
+      if ((error as { name?: string }).name === 'AbortError') return
+      console.warn('Share failed, falling back', error)
+      downloadViaDataUri(content, filename)
+    }
+  }
+
+  // Desktop path: blob URL download
+  const downloadViaBlob = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/x-vcard;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -127,14 +133,24 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
     URL.revokeObjectURL(url)
   }
 
-  // Export individual member contact
-  const exportSingleContact = async (member: GroupMember) => {
+  const getSingleContactFilename = (member: GroupMember) => {
+    const { firstName, lastName } = extractNames(member)
+    return `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
+  }
+
+  // Export individual member contact (desktop + Android)
+  const exportSingleContact = async (member: GroupMember, via: 'share' | 'direct' | 'auto' = 'auto') => {
     try {
       setIsExporting(true)
       const vCardContent = generateVCard(member)
-      const { firstName, lastName } = extractNames(member)
-      const filename = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
-      downloadFile(vCardContent, filename)
+      const filename = getSingleContactFilename(member)
+      if (via === 'share') {
+        await downloadViaShare(vCardContent, filename)
+      } else if (via === 'direct') {
+        downloadViaDataUri(vCardContent, filename)
+      } else {
+        downloadViaBlob(vCardContent, filename)
+      }
       toast.success(`Contact exported: ${getDisplayName(member)}`)
     } catch (error) {
       console.error('Failed to export contact:', error)
@@ -145,7 +161,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
   }
 
   // Export selected members
-  const exportSelectedContacts = async () => {
+  const exportSelectedContacts = async (via: 'share' | 'direct' | 'auto' = 'auto') => {
     if (!members || selectedMembers.length === 0) {
       toast.error('Please select at least one member to export')
       return
@@ -153,25 +169,29 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
 
     try {
       setIsExporting(true)
-      const selectedMemberData = members.filter(member => 
+      const selectedMemberData = members.filter(member =>
         selectedMembers.includes(member.id)
       )
-      
-      if (selectedMemberData.length === 1) {
-        // Single contact export
-        const member = selectedMemberData[0]
-        const vCardContent = generateVCard(member)
-        const { firstName, lastName } = extractNames(member)
-        const filename = `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
-        downloadFile(vCardContent, filename)
-        toast.success(`Contact exported: ${getDisplayName(member)}`)
+
+      const isSingle = selectedMemberData.length === 1
+      const vCardContent = isSingle
+        ? generateVCard(selectedMemberData[0])
+        : generateBulkVCard(selectedMemberData)
+      const filename = isSingle
+        ? getSingleContactFilename(selectedMemberData[0])
+        : `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_contacts.vcf`
+
+      if (via === 'share') {
+        await downloadViaShare(vCardContent, filename)
+      } else if (via === 'direct') {
+        downloadViaDataUri(vCardContent, filename)
       } else {
-        // Bulk export
-        const vCardContent = generateBulkVCard(selectedMemberData)
-        const filename = `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_contacts.vcf`
-        downloadFile(vCardContent, filename)
-        toast.success(`${selectedMemberData.length} contacts exported`)
+        downloadViaBlob(vCardContent, filename)
       }
+      toast.success(isSingle
+        ? `Contact exported: ${getDisplayName(selectedMemberData[0])}`
+        : `${selectedMemberData.length} contacts exported`
+      )
     } catch (error) {
       console.error('Failed to export contacts:', error)
       toast.error('Failed to export contacts')
@@ -181,7 +201,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
   }
 
   // Export all members
-  const exportAllContacts = async () => {
+  const exportAllContacts = async (via: 'share' | 'direct' | 'auto' = 'auto') => {
     if (!members || members.length === 0) {
       toast.error('No members to export')
       return
@@ -191,7 +211,13 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
       setIsExporting(true)
       const vCardContent = generateBulkVCard(members)
       const filename = `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_all_contacts.vcf`
-      downloadFile(vCardContent, filename)
+      if (via === 'share') {
+        await downloadViaShare(vCardContent, filename)
+      } else if (via === 'direct') {
+        downloadViaDataUri(vCardContent, filename)
+      } else {
+        downloadViaBlob(vCardContent, filename)
+      }
       toast.success(`All ${members.length} contacts exported`)
     } catch (error) {
       console.error('Failed to export all contacts:', error)
@@ -230,32 +256,72 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
         </p>
       </div>
       <div className="flex gap-2">
-        <Button
-          onClick={exportAllContacts}
-          disabled={isExporting || disableBulkActions}
-          variant="outline"
-          size="sm"
-        >
-          {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          Export All ({totalMembers})
-        </Button>
-        {selectedMembers.length > 0 && (
+        {isIOS ? (
+          <>
+            <Button
+              onClick={() => exportAllContacts('direct')}
+              disabled={isExporting || disableBulkActions}
+              variant="outline"
+              size="sm"
+              title="Open in Contacts app"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              Add All ({totalMembers})
+            </Button>
+            <Button
+              onClick={() => exportAllContacts('share')}
+              disabled={isExporting || disableBulkActions}
+              variant="outline"
+              size="sm"
+              title="Share via iOS share sheet"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+              Share All ({totalMembers})
+            </Button>
+          </>
+        ) : (
           <Button
-            onClick={exportSelectedContacts}
-            disabled={isExporting}
+            onClick={() => exportAllContacts()}
+            disabled={isExporting || disableBulkActions}
+            variant="outline"
             size="sm"
           >
-            {isExporting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            Export Selected ({selectedMembers.length})
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Export All ({totalMembers})
           </Button>
+        )}
+        {selectedMembers.length > 0 && (
+          isIOS ? (
+            <>
+              <Button
+                onClick={() => exportSelectedContacts('direct')}
+                disabled={isExporting}
+                size="sm"
+                title="Open in Contacts app"
+              >
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                Add ({selectedMembers.length})
+              </Button>
+              <Button
+                onClick={() => exportSelectedContacts('share')}
+                disabled={isExporting}
+                size="sm"
+                title="Share via iOS share sheet"
+              >
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                Share ({selectedMembers.length})
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={() => exportSelectedContacts()}
+              disabled={isExporting}
+              size="sm"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Export Selected ({selectedMembers.length})
+            </Button>
+          )
         )}
       </div>
     </div>
@@ -351,15 +417,38 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
                 </div>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => exportSingleContact(member)}
-              disabled={isExporting}
-              className="shrink-0"
-            >
-              <FileText className="h-4 w-4" />
-            </Button>
+            {isIOS ? (
+              <div className="flex gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => exportSingleContact(member, 'direct')}
+                  disabled={isExporting}
+                  title="Open in Contacts app"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => exportSingleContact(member, 'share')}
+                  disabled={isExporting}
+                  title="Share via iOS share sheet"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => exportSingleContact(member)}
+                disabled={isExporting}
+                className="shrink-0"
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         ))}
       </div>
