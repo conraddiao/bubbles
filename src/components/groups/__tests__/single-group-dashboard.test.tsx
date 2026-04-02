@@ -18,6 +18,11 @@ vi.mock('@/hooks/use-auth', () => ({
   useAuth: vi.fn(() => createMockUseAuth()),
 }))
 
+// QRCodeSVG doesn't render in jsdom; replace with a simple placeholder
+vi.mock('qrcode.react', () => ({
+  QRCodeSVG: ({ value }: { value: string }) => <div data-testid="qr-code" data-value={value} />,
+}))
+
 const mockGetUser = vi.fn()
 const mockSingle = vi.fn()
 const mockFrom = vi.fn()
@@ -118,53 +123,69 @@ describe('SingleGroupDashboard', () => {
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
-  it('renders group name and description', async () => {
+  it('renders group name in header and QR hero', async () => {
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
-      expect(screen.getByText('Wedding Party')).toBeInTheDocument()
-      // Description appears in both the display <p> and settings <textarea>
-      expect(screen.getAllByText('Our big day contacts').length).toBeGreaterThanOrEqual(1)
+      const names = screen.getAllByText('Wedding Party')
+      expect(names.length).toBeGreaterThanOrEqual(2) // header bar + QR hero
     })
   })
 
-  it('shows correct badges for open group', async () => {
+  it('shows live member count in QR hero', async () => {
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
-      expect(screen.getByText('Accepting members')).toBeInTheDocument()
-    })
-    // "Open link" appears both in header badge and settings section
-    expect(screen.getAllByText('Open link').length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('shows correct badge for closed group', async () => {
-    setupSupabaseMock({ ...mockGroup, is_closed: true })
-
-    render(<SingleGroupDashboard groupId="g1" />)
-    await waitFor(() => {
-      expect(screen.getByText('Closed to new members')).toBeInTheDocument()
+      expect(screen.getByText('1 joined so far')).toBeInTheDocument()
     })
   })
 
-  it('shows member count', async () => {
+  it('shows QR code when share URL is available', async () => {
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
-      expect(screen.getByText(/1 member can access this group/)).toBeInTheDocument()
+      expect(screen.getByTestId('qr-code')).toBeInTheDocument()
     })
   })
 
-  it('owner sees save button', async () => {
+  it('renders back button with correct aria-label', async () => {
     render(<SingleGroupDashboard groupId="g1" />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Back to dashboard' })).toBeInTheDocument()
+    })
+  })
+
+  it('renders settings menu button', async () => {
+    render(<SingleGroupDashboard groupId="g1" />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
+    })
+  })
+
+  it('owner opens drawer and sees save button', async () => {
+    const user = userEvent.setup()
+    render(<SingleGroupDashboard groupId="g1" />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Group settings' }))
+
     await waitFor(() => {
       expect(screen.getByText('Save changes')).toBeInTheDocument()
     })
   })
 
-  it('non-owner does not see save button', async () => {
+  it('non-owner opens drawer and does not see save button', async () => {
     setupSupabaseMock({ ...mockGroup, owner_id: 'other-user-id' })
 
+    const user = userEvent.setup()
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
-      expect(screen.getByText('Wedding Party')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Group settings' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Leave group')).toBeInTheDocument()
     })
     expect(screen.queryByText('Save changes')).not.toBeInTheDocument()
   })
@@ -176,22 +197,28 @@ describe('SingleGroupDashboard', () => {
 
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
-      expect(screen.getByText('Wedding Party')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
     })
 
-    const leaveButton = screen.getByRole('button', { name: /Leave group/ })
-    await user.click(leaveButton)
+    await user.click(screen.getByRole('button', { name: 'Group settings' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Leave group')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /Leave group/ }))
 
     expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to leave this group?')
     expect(mockLeaveGroup).toHaveBeenCalledWith('g1')
     confirmSpy.mockRestore()
   })
 
-  it('has icon-only button with aria-label', async () => {
+  it('shows error state when group is not found', async () => {
+    mockSingle.mockResolvedValue({ data: null, error: { message: 'Not found' } })
+
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
-      expect(screen.getByText('Wedding Party')).toBeInTheDocument()
+      expect(screen.getByText('Group not found')).toBeInTheDocument()
     })
-    expect(screen.getByRole('button', { name: 'Open share link in new tab' })).toBeInTheDocument()
   })
 })
