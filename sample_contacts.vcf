@@ -1,0 +1,27 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Doe;Jane;;;
+FN:Jane Doe
+EMAIL;TYPE=INTERNET:jane.doe@example.com
+TEL;TYPE=CELL:+1-555-123-4567
+ORG:Bubbles Sample
+NOTE:Sample contact 1
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Smith;John;;;
+FN:John Smith
+EMAIL;TYPE=INTERNET:john.smith@example.com
+TEL;TYPE=CELL:+1-555-987-6543
+ORG:Bubbles Sample
+NOTE:Sample contact 2
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Garcia;Maria;;;
+FN:Maria Garcia
+EMAIL;TYPE=INTERNET:maria.garcia@example.com
+TEL;TYPE=CELL:+1-555-456-7890
+ORG:Bubbles Sample
+NOTE:Sample contact 3
+END:VCARD
