@@ -255,6 +255,55 @@ describe('useAuth', () => {
     })
   })
 
+  describe('Sign In with Google', () => {
+    it('calls signInWithOAuth with google provider', async () => {
+      vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({
+        data: { provider: 'google', url: 'https://accounts.google.com/o/oauth2/v2/auth' },
+        error: null,
+      })
+
+      const { result } = renderHook(() => useAuth())
+
+      const signInResult = await result.current.signInWithGoogle()
+
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: {
+          redirectTo: expect.stringContaining('/auth/callback'),
+        },
+      })
+
+      expect(signInResult.error).toBeUndefined()
+    })
+
+    it('handles OAuth errors', async () => {
+      const error = { message: 'OAuth provider not configured' }
+      vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({
+        data: { provider: 'google', url: null },
+        error,
+      })
+
+      const { result } = renderHook(() => useAuth())
+
+      const signInResult = await result.current.signInWithGoogle()
+
+      expect(signInResult.error).toEqual(error)
+
+      const { toast } = require('sonner')
+      expect(toast.error).toHaveBeenCalledWith('OAuth provider not configured')
+    })
+
+    it('handles unexpected exceptions', async () => {
+      vi.mocked(supabase.auth.signInWithOAuth).mockRejectedValue(new Error('Network error'))
+
+      const { result } = renderHook(() => useAuth())
+
+      const signInResult = await result.current.signInWithGoogle()
+
+      expect(signInResult.error?.message).toBe('An unexpected error occurred during Google sign in')
+    })
+  })
+
   describe('Sign Out', () => {
     it('signs out user', async () => {
       vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null })

@@ -25,6 +25,7 @@ interface AuthActions {
     phone?: string
   ) => Promise<{ error?: AuthError; requiresEmailConfirmation?: boolean; email?: string }>
   signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
+  signInWithGoogle: () => Promise<{ error?: AuthError }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>) => Promise<{ error?: string }>
   refreshProfile: () => Promise<void>
@@ -286,6 +287,28 @@ function useAuthState(): AuthContextValue {
     }
   }
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        toast.error(error.message)
+        return { error }
+      }
+
+      return { error: undefined }
+    } catch (error) {
+      const message = 'An unexpected error occurred during Google sign in'
+      toast.error(message)
+      return { error: { message } as AuthError }
+    }
+  }
+
   const signOut = async () => {
     try {
       // Clear state immediately to prevent profile fetches during signout
@@ -349,6 +372,7 @@ function useAuthState(): AuthContextValue {
     ...state,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     updateProfile,
     refreshProfile,
