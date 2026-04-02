@@ -38,6 +38,7 @@ type MockSupabaseClient = {
   auth: {
     signUp: () => MockResponse
     signInWithPassword: () => MockResponse
+    signInWithOAuth: () => MockResponse
     signOut: () => Promise<{ error: null }>
     getSession: () => Promise<{ data: { session: null }; error: null }>
     onAuthStateChange: () => { data: { subscription: { unsubscribe: () => void } } }
@@ -86,6 +87,7 @@ const createMockClient = (): MockSupabaseClient => {
     auth: {
       signUp: mockResponse,
       signInWithPassword: mockResponse,
+      signInWithOAuth: mockResponse,
       signOut: () => Promise.resolve({ error: null }),
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: mockSubscription } }),
