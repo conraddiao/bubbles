@@ -16,6 +16,7 @@ describe('AuthForm', () => {
     vi.clearAllMocks()
     // Reset mock functions but keep the same mock object
     mockUseAuth.signIn.mockClear()
+    mockUseAuth.signInWithGoogle.mockClear()
     mockUseAuth.signUp.mockClear()
     mockUseAuth.signOut.mockClear()
     mockUseAuth.updateProfile.mockClear()
@@ -220,6 +221,69 @@ describe('AuthForm', () => {
       
       await waitFor(() => {
         expect(onSuccess).toHaveBeenCalled()
+      })
+    })
+  })
+
+  describe('Google Sign-In', () => {
+    it('renders Continue with Google button in sign-in mode', () => {
+      render(<AuthForm />)
+
+      expect(screen.getByRole('button', { name: /Continue with Google/i })).toBeInTheDocument()
+    })
+
+    it('renders Continue with Google button in sign-up mode', () => {
+      render(<AuthForm mode="signup" />)
+
+      expect(screen.getByRole('button', { name: /Continue with Google/i })).toBeInTheDocument()
+    })
+
+    it('calls signInWithGoogle when Google button is clicked', async () => {
+      const user = userEvent.setup()
+      mockUseAuth.signInWithGoogle.mockResolvedValue({ error: undefined })
+
+      render(<AuthForm />)
+
+      await user.click(screen.getByRole('button', { name: /Continue with Google/i }))
+
+      await waitFor(() => {
+        expect(mockUseAuth.signInWithGoogle).toHaveBeenCalled()
+      })
+    })
+
+    it('shows loading state on Google button during sign-in', async () => {
+      const user = userEvent.setup()
+      let resolveGoogle: (value: unknown) => void
+      mockUseAuth.signInWithGoogle.mockImplementation(() => new Promise(resolve => {
+        resolveGoogle = resolve
+      }))
+
+      render(<AuthForm />)
+
+      await user.click(screen.getByRole('button', { name: /Continue with Google/i }))
+
+      expect(screen.getByRole('button', { name: /Continue with Google/i })).toBeDisabled()
+
+      act(() => {
+        resolveGoogle({ error: undefined })
+      })
+    })
+
+    it('disables email submit button while Google sign-in is loading', async () => {
+      const user = userEvent.setup()
+      let resolveGoogle: (value: unknown) => void
+      mockUseAuth.signInWithGoogle.mockImplementation(() => new Promise(resolve => {
+        resolveGoogle = resolve
+      }))
+
+      render(<AuthForm />)
+
+      await user.click(screen.getByRole('button', { name: /Continue with Google/i }))
+
+      expect(screen.getByRole('button', { name: 'Sign In' })).toBeDisabled()
+
+      act(() => {
+        resolveGoogle({ error: undefined })
       })
     })
   })
