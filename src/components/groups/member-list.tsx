@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2, Phone, Mail, Bell, BellOff, Users, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -68,6 +68,10 @@ const MemberListHeader = ({ memberCount, groupName, onExportContacts }: MemberLi
 
 export function MemberList({ groupId, groupName, isOwner, onExportContacts, layout = 'card' }: MemberListProps) {
   const queryClient = useQueryClient()
+  const knownMemberIdsRef = useRef<Set<string>>(new Set())
+  const isInitialLoadRef = useRef(true)
+  const animationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [newMemberIds, setNewMemberIds] = useState<Set<string>>(new Set())
 
   const { data: members, isLoading, error } = useQuery<GroupMember[]>({
     queryKey: ['group-members', groupId],
@@ -79,6 +83,33 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
       return (result.data || []) as GroupMember[]
     },
   })
+
+  // Detect newly joined members for animation
+  useEffect(() => {
+    if (!members) return
+    const currentIds = new Set(members.map(m => m.id))
+    // Skip on first load (populate known IDs without animating)
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false
+      knownMemberIdsRef.current = currentIds
+      return
+    }
+    const freshIds = new Set<string>()
+    for (const id of currentIds) {
+      if (!knownMemberIdsRef.current.has(id)) {
+        freshIds.add(id)
+      }
+    }
+    knownMemberIdsRef.current = currentIds
+    if (freshIds.size > 0) {
+      if (animationTimerRef.current) clearTimeout(animationTimerRef.current)
+      setNewMemberIds(prev => new Set([...prev, ...freshIds]))
+      animationTimerRef.current = setTimeout(() => {
+        setNewMemberIds(new Set())
+        animationTimerRef.current = null
+      }, 700)
+    }
+  }, [members])
 
   const removeMemberMutation = useMutation({
     mutationFn: async (membershipId: string) => {
@@ -100,8 +131,15 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
 
   // Set up real-time subscription for member updates
   useEffect(() => {
-    const subscription = subscribeToGroupMembers(groupId, () => {
-      // Invalidate and refetch member data when changes occur
+    const subscription = subscribeToGroupMembers(groupId, (payload: unknown) => {
+      const p = payload as Record<string, unknown> | null
+      if (p?.eventType === 'INSERT') {
+        const newRecord = p.new as Record<string, unknown> | undefined
+        if (newRecord) {
+          const name = [newRecord.first_name, newRecord.last_name].filter(Boolean).join(' ') || 'Someone'
+          toast(`${name} just joined!`)
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
     })
 
@@ -126,7 +164,7 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
   const mobileList = members ? (
     <div className="flex flex-col gap-3 md:hidden">
       {members.map((member) => (
-        <div key={member.id} className="rounded-lg border bg-card/50 p-3 shadow-sm">
+        <div key={member.id} className={`rounded-lg border bg-card/50 p-3 shadow-sm${newMemberIds.has(member.id) ? ' animate-bubble-enter' : ''}`}>
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarFallback>
@@ -143,12 +181,12 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <Mail className="h-3 w-3" />
+                <Mail className="h-3 w-3" aria-hidden="true" />
                 <span className="truncate">{member.email}</span>
               </div>
               {member.phone && (
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Phone className="h-3 w-3" />
+                  <Phone className="h-3 w-3" aria-hidden="true" />
                   <span>{member.phone}</span>
                 </div>
               )}
@@ -160,8 +198,9 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
                 onClick={() => handleRemoveMember(member)}
                 disabled={removeMemberMutation.isPending}
                 className="text-destructive hover:text-destructive"
+                aria-label={`Remove ${getDisplayName(member)} from group`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -169,8 +208,8 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
             <div className="flex items-center gap-1">
               {member.notifications_enabled ? (
                 <>
-                  <Bell className="h-4 w-4 text-primary" />
-                  <span className="text-primary">Enabled</span>
+                  <Bell className="h-4 w-4 text-[#065F46]" />
+                  <span className="text-[#065F46]">Enabled</span>
                 </>
               ) : (
                 <>
@@ -303,7 +342,7 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
         </TableHeader>
         <TableBody>
           {members.map((member) => (
-            <TableRow key={member.id}>
+            <TableRow key={member.id} className={newMemberIds.has(member.id) ? 'animate-bubble-enter' : ''}>
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar>
@@ -326,7 +365,7 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
               <TableCell>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <Mail className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
                     <span className="truncate">{member.email}</span>
                   </div>
                   {member.phone && (
@@ -341,8 +380,8 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
                 <div className="flex items-center gap-2">
                   {member.notifications_enabled ? (
                     <>
-                      <Bell className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-green-600">Enabled</span>
+                      <Bell className="h-4 w-4 text-[#065F46]" />
+                      <span className="text-sm text-[#065F46]">Enabled</span>
                     </>
                   ) : (
                     <>
@@ -366,8 +405,9 @@ export function MemberList({ groupId, groupName, isOwner, onExportContacts, layo
                       onClick={() => handleRemoveMember(member)}
                       disabled={removeMemberMutation.isPending}
                       className="text-destructive hover:text-destructive"
+                      aria-label={`Remove ${getDisplayName(member)} from group`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   )}
                 </TableCell>

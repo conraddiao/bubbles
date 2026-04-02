@@ -75,7 +75,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12">
+    <div className="animate-fade-up-in mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12">
       {/* Header with greeting and create button */}
       <header className="mb-8">
         <p className="font-label text-sm font-semibold uppercase tracking-wide text-primary">
@@ -119,7 +119,7 @@ export default function DashboardPage() {
       </form>
 
       {/* Groups list — primary content */}
-      <section>
+      <section aria-label="Your groups">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           <Users className="size-4" />
           Your groups
@@ -151,7 +151,7 @@ export default function DashboardPage() {
               <Link
                 key={group.id}
                 href={`/groups/${group.id}`}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 transition hover:border-[var(--accent-light)] hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className="active-scale flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 transition hover:border-[var(--accent-light)] hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">

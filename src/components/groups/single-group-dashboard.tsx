@@ -253,7 +253,7 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
   const totalMembers = members?.length || 0
 
   return (
-    <div className="mx-auto space-y-6 max-w-4xl px-1 sm:px-0">
+    <div className="animate-fade-up-in mx-auto space-y-6 max-w-4xl px-1 sm:px-0">
       <div className="rounded-xl border bg-card/80 p-6 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
           <div className="space-y-2">
@@ -279,8 +279,8 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
               <Copy className="h-4 w-4 mr-2" />
               Copy Link
             </Button>
-            <Button className="w-full justify-center sm:w-auto" variant="ghost" size="icon" onClick={handleOpenShareLink}>
-              <ExternalLink className="h-4 w-4" />
+            <Button className="w-full justify-center sm:w-auto" variant="ghost" size="icon" onClick={handleOpenShareLink} aria-label="Open share link in new tab">
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>

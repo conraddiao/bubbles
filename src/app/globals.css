@@ -64,7 +64,7 @@
   --secondary: #F0E8D9;
   --secondary-foreground: #1C1713;
   --muted: #F0E8D9;
-  --muted-foreground: #9C8E82;
+  --muted-foreground: #7A6E63;
   --accent: #F0E8D9;
   --accent-foreground: #1C1713;
   --destructive: #C53030;
@@ -77,7 +77,7 @@
   --surface: #FEFAF4;
   --surface-2: #F0E8D9;
   --text-primary: #1C1713;
-  --text-muted: #9C8E82;
+  --text-muted: #7A6E63;
   --accent-color: #E8622A;
   --accent-light: #F5C4AB;
   --accent-dark: #B84A1A;
@@ -150,5 +150,52 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* DESIGN.md — Motion tokens */
+:root {
+  --ease-enter: ease-out;
+  --ease-exit: ease-in;
+  --ease-move: ease-in-out;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-micro: 75ms;
+  --duration-short: 200ms;
+  --duration-medium: 300ms;
+  --duration-long: 500ms;
+}
+
+@keyframes bubble-enter {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-up-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-bubble-enter {
+  animation: bubble-enter var(--duration-medium) var(--ease-spring) both;
+}
+
+.animate-fade-up-in {
+  animation: fade-up-in var(--duration-short) var(--ease-enter) both;
+}
+
+.active-scale {
+  transition: transform var(--duration-micro) var(--ease-move);
+}
+.active-scale:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bubble-enter,
+  .animate-fade-up-in {
+    animation: none;
+  }
+  .active-scale:active {
+    transform: none;
   }
 }

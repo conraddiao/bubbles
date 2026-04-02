@@ -34,15 +34,27 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12">
+      <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12">
         <header className="mb-10 text-center">
           <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
             Bubbles
           </h1>
-          <p className="mt-3 text-lg text-muted-foreground">
-            Create or join shared contact groups to keep everyone connected.
+          <p className="mt-4 text-xl leading-relaxed text-muted-foreground sm:text-2xl">
+            The easiest way to swap contacts<br className="hidden sm:inline" /> at your next gathering.
           </p>
         </header>
+
+        <div className="mb-10 space-y-4 text-center text-base text-foreground/80">
+          <p>
+            Weddings, park hangs, house parties, that friend-of-a-friend dinner
+            where everyone clicked. <strong className="text-foreground">Bubbles</strong> lets
+            the whole group share contact info in seconds.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Flash a QR code. Everyone joins. No app downloads, no awkward
+            &ldquo;what&rsquo;s your number?&rdquo; one by one.
+          </p>
+        </div>
 
         <div className="space-y-3">
           <Link href="/auth?mode=signup" className="block">
@@ -57,10 +69,12 @@ export default function Home() {
           </Link>
         </div>
 
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Flash a QR code at your next gathering. Everyone joins, everyone shares contacts.
-        </p>
-      </div>
+        <footer className="mt-10 text-center">
+          <p className="font-label text-xs uppercase tracking-widest text-muted-foreground">
+            Made for real life, not the enterprise
+          </p>
+        </footer>
+      </main>
     </div>
   )
 }
