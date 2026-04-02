@@ -30,6 +30,7 @@ export const mockAuthState = {
 export const mockAuthActions = {
   signUp: vi.fn(),
   signIn: vi.fn(),
+  signInWithGoogle: vi.fn(),
   signOut: vi.fn(),
   updateProfile: vi.fn(),
   refreshProfile: vi.fn(),
