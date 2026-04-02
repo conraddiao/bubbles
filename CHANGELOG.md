@@ -2,6 +2,16 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.0.1] - 2026-04-01
+
+### Added
+- Integration test infrastructure: `npm run test:integration` runs tests against a real local Supabase instance instead of mocks
+- Supabase local dev scripts: `db:start`, `db:stop`, `db:status`, `db:reset` — one-command local DB management via the Supabase CLI
+- `supabase/seed.sql` with real test data: 2 users (Alice + Bob), 2 groups (Book Club open, Hiking Crew closed), 4 memberships with fixed UUIDs for predictable assertions
+- `.env.test.local.example` — template to copy for local test DB credentials
+- Separate Vitest integration config (`vitest.integration.config.ts`) and setup (`src/test/setup-integration.ts`) that bypasses the Supabase mock
+- Example integration test showing the connection pattern and seed data queries
+
 ## [0.2.0.0] - 2026-04-01
 
 ### Added
