@@ -28,6 +28,20 @@ All notable changes to Bubbles will be documented in this file.
 - `getUserGroups` now excludes archived groups from the default dashboard query
 - Group settings now resolves archived groups correctly (previously showed "Group not found" for archived groups)
 
+## [0.1.3.0] - 2026-04-02
+
+### Changed
+- Group page rebuilt around the 75/23/2 job-to-be-done split: QR code is now the dominant full-bleed hero, members are below the fold, admin is hidden behind a `···` overflow menu
+- QR code shows the group's join link in real time — point your phone at it and scan; no hunting for a "Share" button
+- Live member count in the QR hero ticks up as people scan and join
+- Group settings (name, description, access control, close group, leave) moved into a bottom-sheet drawer; non-owners see only "Leave group"
+- Removed duplicate Share/Copy buttons that competed for attention with the QR code
+
+### Added
+- `qrcode.react` for SVG-based QR rendering (retina-sharp, no canvas required)
+- `QrCodeHero` component: full-bleed `#E8622A` hero, Fraunces group name, live count, pill action buttons
+- `GroupSettingsDrawer` component: Radix Dialog bottom sheet with owner/non-owner adaptive content
+
 ## [0.1.2.0] - 2026-04-01
 
 ### Added
