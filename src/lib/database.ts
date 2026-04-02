@@ -26,6 +26,10 @@ const rpc = (client: typeof supabase) => ({
     client.rpc('remove_group_member' as any, args as any),
   closeContactGroup: (args: { group_uuid: string }) =>
     client.rpc('close_contact_group' as any, args as any),
+  archiveContactGroup: (args: { group_uuid: string }) =>
+    client.rpc('archive_contact_group' as any, args as any),
+  unarchiveContactGroup: (args: { group_uuid: string }) =>
+    client.rpc('unarchive_contact_group' as any, args as any),
   getGroupMembers: (args: { group_uuid: string }) =>
     client.rpc('get_group_members' as any, args as any),
   getGroupByShareToken: (args: { group_token: string }) =>
@@ -270,6 +274,32 @@ export async function closeContactGroup(groupId: string) {
   }
 }
 
+export async function archiveContactGroup(groupId: string) {
+  try {
+    const { data, error } = await rpc(supabase).archiveContactGroup({
+      group_uuid: groupId
+    })
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    return { data: null, error: handleDatabaseError(error) }
+  }
+}
+
+export async function unarchiveContactGroup(groupId: string) {
+  try {
+    const { data, error } = await rpc(supabase).unarchiveContactGroup({
+      group_uuid: groupId
+    })
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    return { data: null, error: handleDatabaseError(error) }
+  }
+}
+
 export async function leaveGroup(groupId: string) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
@@ -480,6 +510,7 @@ export async function getUserGroups() {
         .from('contact_groups')
         .select(baseSelect)
         .in('id', Array.from(accessibleGroupIds))
+        .is('archived_at', null)
         .order('created_at', { ascending: false })
         .returns<GroupWithOwner[]>()
 
@@ -498,6 +529,7 @@ export async function getUserGroups() {
       .from('contact_groups')
       .select(baseSelect)
       .eq('owner_id', user.id)
+      .is('archived_at', null)
       .order('created_at', { ascending: false })
       .returns<GroupWithOwner[]>()
 
@@ -526,6 +558,45 @@ export async function getUserGroups() {
           ...group,
           member_count: count || 0,
           is_owner: group.owner_id === user.id
+        }
+      })
+    )
+
+    return { data: groupsWithCounts, error: null }
+  } catch (error) {
+    return { data: null, error: handleDatabaseError(error) }
+  }
+}
+
+export async function getArchivedGroups() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const baseSelect = '*, owner:profiles!owner_id(first_name, last_name)'
+    type GroupWithOwner = ContactGroupRow & { owner?: Profile }
+
+    const { data: archivedGroups, error } = await supabase
+      .from('contact_groups')
+      .select(baseSelect)
+      .eq('owner_id', user.id)
+      .not('archived_at', 'is', null)
+      .order('archived_at', { ascending: false })
+      .returns<GroupWithOwner[]>()
+
+    if (error) throw error
+
+    const groupsWithCounts = await Promise.all(
+      (archivedGroups ?? []).map(async (group) => {
+        const { count } = await supabase
+          .from('group_memberships')
+          .select('*', { count: 'exact', head: true })
+          .eq('group_id', group.id)
+
+        return {
+          ...group,
+          member_count: count || 0,
+          is_owner: true
         }
       })
     )

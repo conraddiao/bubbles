@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getUserGroups, getGroupByToken } from '@/lib/database'
+import { getUserGroups, getGroupByToken, getArchivedGroups } from '@/lib/database'
 import { useAuth } from '@/hooks/use-auth'
 
 export const dynamic = 'force-dynamic'
@@ -37,6 +37,17 @@ export default function DashboardPage() {
   const [codeValue, setCodeValue] = useState('')
   const [codeError, setCodeError] = useState<string | null>(null)
   const [isCheckingCode, setIsCheckingCode] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+
+  const { data: archivedGroups } = useQuery({
+    queryKey: ['archived-groups'],
+    queryFn: async () => {
+      const result = await getArchivedGroups()
+      if (result.error) throw new Error(result.error)
+      return result.data || []
+    },
+    enabled: Boolean(user),
+  })
 
   const displayName = [
     profile?.first_name ?? user?.user_metadata?.first_name,
@@ -171,6 +182,47 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Archived groups — only shown when the user has archived groups */}
+      {archivedGroups && archivedGroups.length > 0 && (
+        <section aria-label="Archived groups" className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowArchived((prev) => !prev)}
+            className="mb-3 flex w-full items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Users className="size-4" />
+            Archived groups ({archivedGroups.length})
+            <span className="ml-auto text-xs font-normal normal-case">
+              {showArchived ? 'Hide' : 'Show'}
+            </span>
+          </button>
+
+          {showArchived && (
+            <div className="space-y-2">
+              {archivedGroups.map((group: DashboardGroup) => (
+                <Link
+                  key={group.id}
+                  href={`/groups/${group.id}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card/50 px-4 py-3 opacity-60 transition hover:opacity-100 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {group.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {group.member_count} member{group.member_count !== 1 ? 's' : ''} · Archived
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    Archived
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }

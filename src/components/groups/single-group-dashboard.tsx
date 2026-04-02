@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Users, ExternalLink, Settings, Download, Share2, Lock, LogOut } from 'lucide-react'
+import { ArchiveRestore, Copy, Users, ExternalLink, Settings, Download, Share2, Lock, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { MemberList } from './member-list'
 import { ContactExport } from './contact-export'
 import type { Database } from '@/types'
-import { getGroupMembers, leaveGroup, updateGroupDetails } from '@/lib/database'
+import { getGroupMembers, leaveGroup, updateGroupDetails, unarchiveContactGroup } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 
 interface SingleGroupDashboardProps {
@@ -162,6 +162,24 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
     }
   })
 
+  const unarchiveMutation = useMutation({
+    mutationFn: async () => {
+      const result = await unarchiveContactGroup(groupId)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      toast.success('Group unarchived and restored to your dashboard.')
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['archived-groups'] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to unarchive group'
+      toast.error(message)
+    }
+  })
+
   const shareUrl = typeof window !== 'undefined' && group ? `${window.location.origin}/join/${group.share_token}` : ''
   const accessBadge = group?.access_type === 'password' ? 'Password required' : 'Open link'
 
@@ -259,6 +277,9 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-bold leading-tight">{group.name}</h1>
+              {group.archived_at && (
+                <Badge variant="secondary">Archived</Badge>
+              )}
               <Badge variant={group.is_closed ? 'secondary' : 'default'}>
                 {group.is_closed ? 'Closed to new members' : 'Accepting members'}
               </Badge>
@@ -271,6 +292,18 @@ export function SingleGroupDashboard({ groupId }: SingleGroupDashboardProps) {
             )}
           </div>
           <div className="flex w-full flex-col gap-2 lg:ml-auto lg:w-auto lg:flex-row lg:items-center">
+            {isOwner && group.archived_at && (
+              <Button
+                className="w-full justify-center sm:w-auto"
+                variant="outline"
+                size="sm"
+                onClick={() => unarchiveMutation.mutate()}
+                disabled={unarchiveMutation.isPending}
+              >
+                <ArchiveRestore className="h-4 w-4 mr-2" />
+                {unarchiveMutation.isPending ? 'Restoring...' : 'Unarchive'}
+              </Button>
+            )}
             <Button className="w-full justify-center sm:w-auto" variant="outline" size="sm" onClick={handleShareGroup}>
               <Share2 className="h-4 w-4 mr-2" />
               Share

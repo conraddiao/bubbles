@@ -3,15 +3,17 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { ArrowLeft, Copy, ExternalLink, Trash2, UserMinus, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Archive, ArchiveRestore, Copy, ExternalLink, Trash2, UserMinus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { 
-  getGroupMembers, 
-  removeGroupMember, 
+import {
+  getGroupMembers,
+  removeGroupMember,
   closeContactGroup,
+  archiveContactGroup,
+  unarchiveContactGroup,
   regenerateGroupToken,
   getUserGroups
 } from '@/lib/database'
@@ -82,6 +84,39 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
     },
   })
 
+  const archiveMutation = useMutation({
+    mutationFn: async () => {
+      const result = await archiveContactGroup(groupId)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      toast.success('Group archived. You can find it in your archived groups.')
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['archived-groups'] })
+      onBack?.()
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to archive group')
+    },
+  })
+
+  const unarchiveMutation = useMutation({
+    mutationFn: async () => {
+      const result = await unarchiveContactGroup(groupId)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      toast.success('Group unarchived and restored to your dashboard.')
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['archived-groups'] })
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to unarchive group')
+    },
+  })
+
   const regenerateTokenMutation = useMutation({
     mutationFn: async () => {
       const result = await regenerateGroupToken(groupId)
@@ -118,6 +153,16 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
     if (confirm('Are you sure you want to close this group? This will notify all members and prevent new joiners. This action cannot be undone.')) {
       closeGroupMutation.mutate()
     }
+  }
+
+  const handleArchiveGroup = () => {
+    if (confirm('Archive this group? It will be hidden from your dashboard but all data is preserved. You can unarchive it at any time.')) {
+      archiveMutation.mutate()
+    }
+  }
+
+  const handleUnarchiveGroup = () => {
+    unarchiveMutation.mutate()
   }
 
   const handleRegenerateToken = () => {
@@ -183,8 +228,12 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
           onCopyShareLink={handleCopyShareLink}
           onRegenerateToken={handleRegenerateToken}
           onCloseGroup={handleCloseGroup}
+          onArchiveGroup={handleArchiveGroup}
+          onUnarchiveGroup={handleUnarchiveGroup}
           isRegenerating={regenerateTokenMutation.isPending}
           isClosing={closeGroupMutation.isPending}
+          isArchiving={archiveMutation.isPending}
+          isUnarchiving={unarchiveMutation.isPending}
         />
       )}
     </div>
@@ -283,17 +332,25 @@ interface SettingsTabProps {
   onCopyShareLink: () => void
   onRegenerateToken: () => void
   onCloseGroup: () => void
+  onArchiveGroup: () => void
+  onUnarchiveGroup: () => void
   isRegenerating: boolean
   isClosing: boolean
+  isArchiving: boolean
+  isUnarchiving: boolean
 }
 
-function SettingsTab({ 
-  group, 
-  onCopyShareLink, 
-  onRegenerateToken, 
+function SettingsTab({
+  group,
+  onCopyShareLink,
+  onRegenerateToken,
   onCloseGroup,
+  onArchiveGroup,
+  onUnarchiveGroup,
   isRegenerating,
-  isClosing
+  isClosing,
+  isArchiving,
+  isUnarchiving,
 }: SettingsTabProps) {
   const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/join/${group?.share_token}`
 
@@ -361,7 +418,47 @@ function SettingsTab({
         </CardContent>
       </Card>
 
-      {!group?.is_closed && (
+      <Card className="border-muted">
+        <CardHeader>
+          <CardTitle>Archive Group</CardTitle>
+          <CardDescription>
+            Hide this group from your dashboard. All data is preserved and you can unarchive at any time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {group?.archived_at ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={onUnarchiveGroup}
+                disabled={isUnarchiving}
+              >
+                <ArchiveRestore className="h-4 w-4" />
+                {isUnarchiving ? 'Restoring...' : 'Unarchive Group'}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Restore this group to your dashboard.
+              </p>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="secondary"
+                onClick={onArchiveGroup}
+                disabled={isArchiving}
+              >
+                <Archive className="h-4 w-4" />
+                {isArchiving ? 'Archiving...' : 'Archive Group'}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                The group will be hidden from your dashboard. Members are unaffected.
+              </p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {!group?.is_closed && !group?.archived_at && (
         <Card className="border-destructive/20">
           <CardHeader>
             <CardTitle className="text-destructive">Danger Zone</CardTitle>
