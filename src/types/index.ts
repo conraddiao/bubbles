@@ -19,7 +19,7 @@ export interface ContactGroup {
   description?: string | null
   owner_id: string
   is_closed: boolean
-  archived_at?: string | null
+  archived_at: string | null
   share_token: string
   access_type: 'open' | 'password'
   join_password_hash?: string | null

@@ -83,7 +83,7 @@ async function ensureValidPasscode(group: ContactGroupRow, passcode?: string) {
 async function getGroupForJoin(shareToken: string) {
   const { data: groupData, error: groupError } = await supabase
     .from('contact_groups')
-    .select('id,name,is_closed,access_type,join_password_hash')
+    .select('id,name,is_closed,archived_at,access_type,join_password_hash')
     .eq('share_token', shareToken)
     .single()
 
@@ -156,6 +156,10 @@ export async function joinContactGroup(
       throw new Error('This group is closed and no longer accepting new members.')
     }
 
+    if (group.archived_at) {
+      throw new Error('This group is no longer available.')
+    }
+
     await ensureValidPasscode(group, groupPassword)
 
     const { data, error } = await rpc(supabase).joinContactGroup({
@@ -196,6 +200,10 @@ export async function joinContactGroupAnonymous(
 
     if (group.is_closed) {
       throw new Error('This group is closed and no longer accepting new members.')
+    }
+
+    if (group.archived_at) {
+      throw new Error('This group is no longer available.')
     }
 
     await ensureValidPasscode(group, groupPassword)
@@ -596,7 +604,7 @@ export async function getArchivedGroups() {
         return {
           ...group,
           member_count: count || 0,
-          is_owner: true
+          is_owner: group.owner_id === user.id
         }
       })
     )

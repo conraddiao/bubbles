@@ -5,6 +5,17 @@ import { render } from '@/test/utils'
 import { GroupSettings } from '../group-settings'
 import * as database from '@/lib/database'
 
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: { id: 'test-user-id' } },
+        error: null,
+      }),
+    },
+  },
+}))
+
 vi.mock('@/lib/database', () => ({
   getGroupMembers: vi.fn(),
   removeGroupMember: vi.fn(),
@@ -13,6 +24,7 @@ vi.mock('@/lib/database', () => ({
   unarchiveContactGroup: vi.fn(),
   regenerateGroupToken: vi.fn(),
   getUserGroups: vi.fn(),
+  getArchivedGroups: vi.fn(),
 }))
 
 vi.mock('sonner', () => ({
@@ -24,6 +36,7 @@ vi.mock('sonner', () => ({
 
 const mockGetGroupMembers = vi.mocked(database.getGroupMembers)
 const mockGetUserGroups = vi.mocked(database.getUserGroups)
+const mockGetArchivedGroups = vi.mocked(database.getArchivedGroups)
 const mockArchiveContactGroup = vi.mocked(database.archiveContactGroup)
 const mockUnarchiveContactGroup = vi.mocked(database.unarchiveContactGroup)
 
@@ -47,7 +60,9 @@ const mockArchivedGroup = {
 }
 
 function setup(group = mockActiveGroup) {
-  mockGetUserGroups.mockResolvedValue({ data: [group], error: null })
+  const isArchived = !!group.archived_at
+  mockGetUserGroups.mockResolvedValue({ data: isArchived ? [] : [group], error: null })
+  mockGetArchivedGroups.mockResolvedValue({ data: isArchived ? [group] : [], error: null })
   mockGetGroupMembers.mockResolvedValue({ data: [], error: null })
 }
 

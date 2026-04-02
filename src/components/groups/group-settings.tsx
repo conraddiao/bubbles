@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 
 import { ArrowLeft, Archive, ArchiveRestore, Copy, ExternalLink, Trash2, UserMinus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,7 +16,8 @@ import {
   archiveContactGroup,
   unarchiveContactGroup,
   regenerateGroupToken,
-  getUserGroups
+  getUserGroups,
+  getArchivedGroups
 } from '@/lib/database'
 
 import { toast } from 'sonner'
@@ -28,10 +30,17 @@ interface GroupSettingsProps {
 
 export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
   const [activeTab, setActiveTab] = useState<'members' | 'settings'>('members')
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
-  // Get group details from the user groups query
-  const { data: groups } = useQuery({
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null)
+    })
+  }, [])
+
+  // Get group details from active groups, with fallback to archived groups
+  const { data: activeGroups } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => {
       const result = await getUserGroups()
@@ -40,7 +49,17 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
     },
   })
 
-  const group = groups?.find((g: ContactGroup) => g?.id === groupId)
+  const { data: archivedGroups } = useQuery({
+    queryKey: ['archived-groups'],
+    queryFn: async () => {
+      const result = await getArchivedGroups()
+      if (result.error) throw new Error(result.error)
+      return result.data || []
+    },
+  })
+
+  const group = activeGroups?.find((g: ContactGroup) => g?.id === groupId)
+    ?? archivedGroups?.find((g: ContactGroup) => g?.id === groupId)
 
   const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ['group-members', groupId],
@@ -225,6 +244,7 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
       {activeTab === 'settings' && (
         <SettingsTab
           group={group}
+          isOwner={currentUserId === group?.owner_id}
           onCopyShareLink={handleCopyShareLink}
           onRegenerateToken={handleRegenerateToken}
           onCloseGroup={handleCloseGroup}
@@ -329,6 +349,7 @@ function MembersTab({ members, isLoading, onRemoveMember, isGroupClosed }: Membe
 
 interface SettingsTabProps {
   group: ContactGroup
+  isOwner: boolean
   onCopyShareLink: () => void
   onRegenerateToken: () => void
   onCloseGroup: () => void
@@ -342,6 +363,7 @@ interface SettingsTabProps {
 
 function SettingsTab({
   group,
+  isOwner,
   onCopyShareLink,
   onRegenerateToken,
   onCloseGroup,
@@ -418,45 +440,47 @@ function SettingsTab({
         </CardContent>
       </Card>
 
-      <Card className="border-muted">
-        <CardHeader>
-          <CardTitle>Archive Group</CardTitle>
-          <CardDescription>
-            Hide this group from your dashboard. All data is preserved and you can unarchive at any time.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {group?.archived_at ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={onUnarchiveGroup}
-                disabled={isUnarchiving}
-              >
-                <ArchiveRestore className="h-4 w-4" />
-                {isUnarchiving ? 'Restoring...' : 'Unarchive Group'}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Restore this group to your dashboard.
-              </p>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="secondary"
-                onClick={onArchiveGroup}
-                disabled={isArchiving}
-              >
-                <Archive className="h-4 w-4" />
-                {isArchiving ? 'Archiving...' : 'Archive Group'}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                The group will be hidden from your dashboard. Members are unaffected.
-              </p>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      {isOwner && (
+        <Card className="border-muted">
+          <CardHeader>
+            <CardTitle>Archive Group</CardTitle>
+            <CardDescription>
+              Hide this group from your dashboard. All data is preserved and you can unarchive at any time.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {group?.archived_at ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={onUnarchiveGroup}
+                  disabled={isUnarchiving}
+                >
+                  <ArchiveRestore className="h-4 w-4" />
+                  {isUnarchiving ? 'Restoring...' : 'Unarchive Group'}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Restore this group to your dashboard.
+                </p>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={onArchiveGroup}
+                  disabled={isArchiving}
+                >
+                  <Archive className="h-4 w-4" />
+                  {isArchiving ? 'Archiving...' : 'Archive Group'}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  The group will be hidden from your dashboard. Members are unaffected.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {!group?.is_closed && !group?.archived_at && (
         <Card className="border-destructive/20">
