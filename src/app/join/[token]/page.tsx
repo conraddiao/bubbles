@@ -189,6 +189,29 @@ export default function JoinPage({ params }: JoinPageProps) {
     )
   }
 
+  if (group.archived_at) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center">Group Not Available</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-muted-foreground mb-4">
+              This group is no longer available.
+            </p>
+            <Link href="/">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Go Home
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (hasJoined) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">

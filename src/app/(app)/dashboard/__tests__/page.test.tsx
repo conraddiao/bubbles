@@ -23,12 +23,14 @@ vi.mock('@/hooks/use-auth', () => ({
 vi.mock('@/lib/database', () => ({
   getUserGroups: vi.fn(),
   getGroupByToken: vi.fn(),
+  getArchivedGroups: vi.fn(),
 }))
 
 import { useAuth } from '@/hooks/use-auth'
 const mockUseAuth = vi.mocked(useAuth)
 const mockGetUserGroups = vi.mocked(database.getUserGroups)
 const mockGetGroupByToken = vi.mocked(database.getGroupByToken)
+const mockGetArchivedGroups = vi.mocked(database.getArchivedGroups)
 
 const mockGroups = [
   { id: 'g1', name: 'Wedding Party', is_owner: true, member_count: 12, share_token: 'abc123' },
@@ -42,6 +44,7 @@ describe('DashboardPage', () => {
       createMockUseAuth() as ReturnType<typeof useAuth>
     )
     mockGetUserGroups.mockResolvedValue({ data: mockGroups, error: null })
+    mockGetArchivedGroups.mockResolvedValue({ data: [], error: null })
   })
 
   it('renders greeting with user name', async () => {
@@ -127,6 +130,46 @@ describe('DashboardPage', () => {
     await waitFor(() => {
       const newGroupLink = screen.getByText('New Group').closest('a')
       expect(newGroupLink).toHaveAttribute('href', '/groups/create')
+    })
+  })
+
+  it('does not render archived section when no archived groups', async () => {
+    mockGetArchivedGroups.mockResolvedValue({ data: [], error: null })
+    render(<DashboardPage />)
+    await waitFor(() => {
+      expect(screen.getByText('Wedding Party')).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/Archived groups/)).not.toBeInTheDocument()
+  })
+
+  it('renders archived section toggle when archived groups exist', async () => {
+    mockGetArchivedGroups.mockResolvedValue({
+      data: [{ id: 'g-old', name: 'Old Group', is_owner: true, member_count: 2, share_token: 'old1' }],
+      error: null,
+    })
+    render(<DashboardPage />)
+    await waitFor(() => {
+      expect(screen.getByText(/Archived groups/)).toBeInTheDocument()
+    })
+    // Archived group name hidden by default (collapsed)
+    expect(screen.queryByText('Old Group')).not.toBeInTheDocument()
+  })
+
+  it('shows archived groups after clicking the toggle', async () => {
+    const user = userEvent.setup()
+    mockGetArchivedGroups.mockResolvedValue({
+      data: [{ id: 'g-old', name: 'Old Group', is_owner: true, member_count: 2, share_token: 'old1' }],
+      error: null,
+    })
+    render(<DashboardPage />)
+    await waitFor(() => {
+      expect(screen.getByText(/Archived groups/)).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByText(/Archived groups/))
+
+    await waitFor(() => {
+      expect(screen.getByText('Old Group')).toBeInTheDocument()
     })
   })
 })

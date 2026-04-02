@@ -53,6 +53,7 @@ vi.mock('@/lib/database', () => ({
   removeGroupMember: vi.fn(),
   updateGroupDetails: vi.fn(),
   leaveGroup: vi.fn(),
+  unarchiveContactGroup: vi.fn(),
   subscribeToGroupMembers: vi.fn(() => ({
     unsubscribe: vi.fn(),
   })),
@@ -220,5 +221,22 @@ describe('SingleGroupDashboard', () => {
     await waitFor(() => {
       expect(screen.getByText('Group not found')).toBeInTheDocument()
     })
+  })
+
+  it('shows Archived badge when group has archived_at set', async () => {
+    setupSupabaseMock({ ...mockGroup, archived_at: '2026-03-01T00:00:00Z' })
+
+    render(<SingleGroupDashboard groupId="g1" />)
+    await waitFor(() => {
+      expect(screen.getByText('Archived')).toBeInTheDocument()
+    })
+  })
+
+  it('does not show Archived badge for non-archived group', async () => {
+    render(<SingleGroupDashboard groupId="g1" />)
+    await waitFor(() => {
+      expect(screen.getByText('Wedding Party')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Archived')).not.toBeInTheDocument()
   })
 })

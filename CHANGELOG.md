@@ -2,6 +2,32 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.0.1] - 2026-04-01
+
+### Added
+- Integration test infrastructure: `npm run test:integration` runs tests against a real local Supabase instance instead of mocks
+- Supabase local dev scripts: `db:start`, `db:stop`, `db:status`, `db:reset` — one-command local DB management via the Supabase CLI
+- `supabase/seed.sql` with real test data: 2 users (Alice + Bob), 2 groups (Book Club open, Hiking Crew closed), 4 memberships with fixed UUIDs for predictable assertions
+- `.env.test.local.example` — template to copy for local test DB credentials
+- Separate Vitest integration config (`vitest.integration.config.ts`) and setup (`src/test/setup-integration.ts`) that bypasses the Supabase mock
+- Example integration test showing the connection pattern and seed data queries
+
+## [0.2.0.0] - 2026-04-01
+
+### Added
+- Archive groups: group owners can now hide completed or retired groups from their dashboard without deleting them. Archives are fully reversible — unarchive at any time from the group settings page.
+- Archived groups section: a collapsible "Archived" section on the dashboard shows all archived groups with a muted style and an "Archived" badge
+- Archive/Unarchive buttons in group settings (owner-only — non-owners do not see these controls)
+- "Archived" badge on the group detail page when a group has been archived
+- `archived_at` column on `contact_groups` with partial indexes for efficient active-group queries
+- `archive_contact_group` and `unarchive_contact_group` Supabase RPC functions (owner-only, SECURITY DEFINER)
+- `getArchivedGroups` database function — returns only owned groups where `archived_at IS NOT NULL`
+- Archived group join protection: share links for archived groups show "Group Not Available" instead of the join form
+
+### Changed
+- `getUserGroups` now excludes archived groups from the default dashboard query
+- Group settings now resolves archived groups correctly (previously showed "Group not found" for archived groups)
+
 ## [0.1.3.0] - 2026-04-02
 
 ### Changed

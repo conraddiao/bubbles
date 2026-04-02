@@ -16,7 +16,12 @@
     "migrate": "node database/migrate.js",
     "migrate:simple": "node database/migrate-simple.js",
     "migrate:cleanup": "node database/migrate.js --cleanup",
-    "migrate:drop-full-name": "node database/cleanup-full-name.js"
+    "migrate:drop-full-name": "node database/cleanup-full-name.js",
+    "db:start": "npx supabase start",
+    "db:stop": "npx supabase stop",
+    "db:status": "npx supabase status",
+    "db:reset": "npx supabase db reset",
+    "test:integration": "vitest --run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

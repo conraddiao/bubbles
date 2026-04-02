@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, MoreHorizontal } from 'lucide-react'
+import { ArrowLeft, ArchiveRestore, MoreHorizontal } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { MemberList } from './member-list'
@@ -10,7 +10,7 @@ import { ContactExport } from './contact-export'
 import { QrCodeHero } from './qr-code-hero'
 import { GroupSettingsDrawer } from './group-settings-drawer'
 import type { Database } from '@/types'
-import { getGroupMembers } from '@/lib/database'
+import { getGroupMembers, unarchiveContactGroup } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -80,6 +80,24 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
 
   const totalMembers = members?.length ?? 0
 
+  const unarchiveMutation = useMutation({
+    mutationFn: async () => {
+      const result = await unarchiveContactGroup(groupId)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      toast.success('Group unarchived and restored to your dashboard.')
+      queryClient.invalidateQueries({ queryKey: ['group', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['archived-groups'] })
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to unarchive group'
+      toast.error(message)
+    },
+  })
+
   if (groupLoading) {
     return (
       <div className="flex flex-col">
@@ -133,6 +151,21 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
           <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
+
+      {/* Archived banner */}
+      {group.archived_at && isOwner && (
+        <div className="flex items-center justify-between bg-[#F0E8D9] px-4 py-2.5">
+          <p className="text-sm text-[#7A6E63]">This group is archived</p>
+          <button
+            onClick={() => unarchiveMutation.mutate()}
+            disabled={unarchiveMutation.isPending}
+            className="flex items-center gap-1.5 text-sm font-semibold text-[#E8622A] disabled:opacity-50"
+          >
+            <ArchiveRestore className="h-4 w-4" aria-hidden="true" />
+            {unarchiveMutation.isPending ? 'Restoring…' : 'Unarchive'}
+          </button>
+        </div>
+      )}
 
       {/* QR hero — the moment */}
       <QrCodeHero
