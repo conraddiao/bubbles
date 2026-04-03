@@ -28,8 +28,8 @@ export const signUpSchema = z.object({
   last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
   phone: z
     .string()
-    .optional()
-    .refine(isOptionalE164Phone, 'Invalid phone number format. Use +1234567890'),
+    .min(1, 'Phone number is required')
+    .refine(isRequiredE164Phone, 'Invalid phone number format. Use +1234567890'),
   sms_notifications_enabled: z.boolean(),
 })
 
