@@ -19,6 +19,7 @@ export interface ContactGroup {
   description?: string | null
   owner_id: string
   is_closed: boolean
+  archived_at: string | null
   share_token: string
   access_type: 'open' | 'password'
   join_password_hash?: string | null
@@ -105,7 +106,9 @@ export type Database = {
           Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token' | 'access_type'> & {
             join_password_hash?: string | null
           }
-        Update: Partial<Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token'>>
+        Update: Partial<Omit<ContactGroup, 'id' | 'created_at' | 'updated_at' | 'share_token'>> & {
+          archived_at?: string | null
+        }
       }
       group_memberships: {
         Row: GroupMembership
@@ -148,6 +151,14 @@ export type Database = {
         Returns: boolean
       }
       close_contact_group: {
+        Args: { group_uuid: string }
+        Returns: boolean
+      }
+      archive_contact_group: {
+        Args: { group_uuid: string }
+        Returns: boolean
+      }
+      unarchive_contact_group: {
         Args: { group_uuid: string }
         Returns: boolean
       }
