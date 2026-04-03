@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Users, Loader2, UserPlus, Share2 } from 'lucide-react'
+import { Download, FileText, Users, Loader2, UserPlus, Share2, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -227,6 +227,46 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
     }
   }
 
+  // Send contacts via SMS (MMS with .vcf attachment)
+  const [smsPhone, setSmsPhone] = useState('')
+  const [showSmsInput, setShowSmsInput] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+
+  const sendContactsViaSms = async () => {
+    if (!smsPhone.trim()) {
+      toast.error('Enter a phone number')
+      return
+    }
+
+    try {
+      setIsSending(true)
+      const res = await fetch('/api/sms/send-contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: smsPhone.trim(),
+          groupId,
+          groupName,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send')
+      }
+
+      toast.success('Contacts sent! Check your messages.')
+      setShowSmsInput(false)
+      setSmsPhone('')
+    } catch (error) {
+      console.error('SMS send error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to send contacts via SMS')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   // Toggle member selection
   const toggleMemberSelection = (memberId: string) => {
     setSelectedMembers(prev => 
@@ -323,9 +363,47 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
             </Button>
           )
         )}
+        <Button
+          onClick={() => setShowSmsInput(!showSmsInput)}
+          disabled={disableBulkActions}
+          variant="outline"
+          size="sm"
+          title="Text contacts to a phone number via MMS"
+        >
+          <Smartphone className="h-4 w-4" />
+          Text Me
+        </Button>
       </div>
     </div>
   )
+
+  const SmsPanel = () => showSmsInput ? (
+    <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30">
+      <Smartphone className="h-4 w-4 text-muted-foreground shrink-0" />
+      <input
+        type="tel"
+        placeholder="+1 (555) 123-4567"
+        value={smsPhone}
+        onChange={(e) => setSmsPhone(e.target.value)}
+        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        onKeyDown={(e) => { if (e.key === 'Enter') sendContactsViaSms() }}
+      />
+      <Button
+        onClick={sendContactsViaSms}
+        disabled={isSending || !smsPhone.trim()}
+        size="sm"
+      >
+        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
+      </Button>
+      <Button
+        onClick={() => { setShowSmsInput(false); setSmsPhone('') }}
+        variant="ghost"
+        size="sm"
+      >
+        Cancel
+      </Button>
+    </div>
+  ) : null
 
   if (isLoading) {
     const loadingContent = (
@@ -374,6 +452,9 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
 
   const content = (
     <div className="space-y-4">
+      {/* SMS Panel */}
+      <SmsPanel />
+
       {/* Select All Checkbox */}
       <div className="flex items-center space-x-2 pb-2 border-b">
         <Checkbox
