@@ -1,16 +1,17 @@
 'use client'
 
 import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Share2 } from 'lucide-react'
+import { Copy, Pencil, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface QrCodeHeroProps {
   groupName: string
   shareUrl: string
   memberCount: number
+  onSettingsClick?: () => void
 }
 
-export function QrCodeHero({ groupName, shareUrl, memberCount }: QrCodeHeroProps) {
+export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick }: QrCodeHeroProps) {
   const handleCopyLink = async () => {
     if (!shareUrl) return
     try {
@@ -35,7 +36,16 @@ export function QrCodeHero({ groupName, shareUrl, memberCount }: QrCodeHeroProps
   }
 
   return (
-    <div className="flex flex-col items-center gap-5 bg-[#E8622A] px-6 py-10">
+    <div className="relative flex flex-col items-center gap-5 bg-[#E8622A] px-6 py-10">
+      {onSettingsClick && (
+        <button
+          onClick={onSettingsClick}
+          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-[#FEFAF4]/80 transition-colors hover:bg-[#FEFAF4]/10"
+          aria-label="Group settings"
+        >
+          <Pencil className="h-5 w-5" aria-hidden="true" />
+        </button>
+      )}
       <div className="space-y-1 text-center">
         <h1 className="font-display text-3xl font-semibold leading-tight text-[#FEFAF4]">
           {groupName}

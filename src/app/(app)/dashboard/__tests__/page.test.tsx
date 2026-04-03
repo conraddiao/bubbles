@@ -3,7 +3,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/test/utils'
 import DashboardPage from '../page'
-import { createMockUseAuth, mockProfile } from '@/test/mocks/auth'
+import { createMockUseAuth } from '@/test/mocks/auth'
 import * as database from '@/lib/database'
 
 const mockPush = vi.fn()
@@ -22,14 +22,14 @@ vi.mock('@/hooks/use-auth', () => ({
 
 vi.mock('@/lib/database', () => ({
   getUserGroups: vi.fn(),
-  getGroupByToken: vi.fn(),
+  createContactGroup: vi.fn(),
   getArchivedGroups: vi.fn(),
 }))
 
 import { useAuth } from '@/hooks/use-auth'
 const mockUseAuth = vi.mocked(useAuth)
 const mockGetUserGroups = vi.mocked(database.getUserGroups)
-const mockGetGroupByToken = vi.mocked(database.getGroupByToken)
+const mockCreateContactGroup = vi.mocked(database.createContactGroup)
 const mockGetArchivedGroups = vi.mocked(database.getArchivedGroups)
 
 const mockGroups = [
@@ -45,20 +45,14 @@ describe('DashboardPage', () => {
     )
     mockGetUserGroups.mockResolvedValue({ data: mockGroups, error: null })
     mockGetArchivedGroups.mockResolvedValue({ data: [], error: null })
-  })
-
-  it('renders greeting with user name', async () => {
-    render(<DashboardPage />)
-    await waitFor(() => {
-      expect(screen.getByText(/Welcome back, Test User!/)).toBeInTheDocument()
-    })
+    mockCreateContactGroup.mockResolvedValue({ data: { group_id: 'new-id' }, error: null } as any)
   })
 
   it('renders empty state when no groups', async () => {
     mockGetUserGroups.mockResolvedValue({ data: [], error: null })
     render(<DashboardPage />)
     await waitFor(() => {
-      expect(screen.getByText('No groups yet. Create one or join with an invite code.')).toBeInTheDocument()
+      expect(screen.getByText('No groups yet. Tap New Group to get started.')).toBeInTheDocument()
     })
   })
 
@@ -89,47 +83,20 @@ describe('DashboardPage', () => {
     })
   })
 
-  it('join form shows error for empty input', async () => {
+  it('has New Group button that creates a group and navigates', async () => {
     const user = userEvent.setup()
     render(<DashboardPage />)
 
+    const newGroupBtn = screen.getByRole('button', { name: /New Group/ })
+    expect(newGroupBtn).toBeInTheDocument()
+
+    await user.click(newGroupBtn)
+
     await waitFor(() => {
-      expect(screen.getByText(/Welcome back/)).toBeInTheDocument()
+      expect(mockCreateContactGroup).toHaveBeenCalled()
     })
-
-    const joinButton = screen.getByRole('button', { name: /Join/ })
-    await user.click(joinButton)
-
     await waitFor(() => {
-      expect(screen.getByText('Enter a group code to continue.')).toBeInTheDocument()
-    })
-  })
-
-  it('join form navigates on valid code', async () => {
-    const user = userEvent.setup()
-    mockGetGroupByToken.mockResolvedValue({ data: { id: 'g3' } as any, error: null })
-    render(<DashboardPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText(/Welcome back/)).toBeInTheDocument()
-    })
-
-    const input = screen.getByPlaceholderText('Enter invite code')
-    await user.type(input, 'testcode')
-
-    const joinButton = screen.getByRole('button', { name: /Join/ })
-    await user.click(joinButton)
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/join/testcode')
-    })
-  })
-
-  it('has New Group button linking to create page', async () => {
-    render(<DashboardPage />)
-    await waitFor(() => {
-      const newGroupLink = screen.getByText('New Group').closest('a')
-      expect(newGroupLink).toHaveAttribute('href', '/groups/create')
+      expect(mockPush).toHaveBeenCalledWith('/groups/new-id?created=true')
     })
   })
 

@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { LogOut, Settings } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
+import { ArrowLeft, LogOut, Settings } from 'lucide-react'
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
@@ -18,6 +18,8 @@ import { useAuth } from '@/hooks/use-auth'
 export function AppHeader() {
   const { user, profile, signOut } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const isHome = pathname === '/dashboard'
 
   const displayName = [
     profile?.first_name ?? user?.user_metadata?.first_name,
@@ -36,10 +38,26 @@ export function AppHeader() {
 
   return (
     <header className="border-b border-border" role="banner">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+      <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+        {/* Left slot: back arrow on mobile for non-home pages */}
+        <div className="block sm:hidden">
+          {isHome ? (
+            <div className="h-11 w-11" aria-hidden="true" />
+          ) : (
+            <Link href="/dashboard">
+              <button
+                className="flex h-11 w-11 items-center justify-center rounded-full text-[#7A6E63] transition-colors hover:bg-[#F0E8D9]"
+                aria-label="Back to dashboard"
+              >
+                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </Link>
+          )}
+        </div>
+
         <Link
           href="/dashboard"
-          className="font-display text-xl font-bold tracking-tight text-foreground"
+          className="absolute left-1/2 -translate-x-1/2 font-display text-xl font-bold tracking-tight text-foreground sm:static sm:translate-x-0"
         >
           Bubbles
         </Link>

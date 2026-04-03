@@ -2,11 +2,17 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Users, Loader2, UserPlus, Share2, Smartphone } from 'lucide-react'
+import { ChevronDown, Download, FileText, Users, Loader2, UserPlus, Share2, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { getGroupMembers } from '@/lib/database'
 import { toast } from 'sonner'
 import { getDisplayName, extractNames } from '@/lib/name-utils'
@@ -288,48 +294,10 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
   }
 
   const Header = () => (
-    <div className="flex items-center justify-between">
-      <div>
-        <h3 className="text-lg font-semibold leading-tight">Export Contacts</h3>
-        <p className="text-sm text-muted-foreground">
-          Download contact information in vCard format (.vcf)
-        </p>
-      </div>
-      <div className="flex gap-2">
-        {isIOS ? (
-          <>
-            <Button
-              onClick={() => exportAllContacts('direct')}
-              disabled={isExporting || disableBulkActions}
-              variant="outline"
-              size="sm"
-              title="Open in Contacts app"
-            >
-              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-              Add All ({totalMembers})
-            </Button>
-            <Button
-              onClick={() => exportAllContacts('share')}
-              disabled={isExporting || disableBulkActions}
-              variant="outline"
-              size="sm"
-              title="Share via iOS share sheet"
-            >
-              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-              Share All ({totalMembers})
-            </Button>
-          </>
-        ) : (
-          <Button
-            onClick={() => exportAllContacts()}
-            disabled={isExporting || disableBulkActions}
-            variant="outline"
-            size="sm"
-          >
-            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Export All ({totalMembers})
-          </Button>
-        )}
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+      <h3 className="text-lg font-semibold leading-tight">Export Contacts</h3>
+      <div className="flex shrink-0 items-center gap-1">
+        {/* Selected-member export (inline, only when selection active) */}
         {selectedMembers.length > 0 && (
           isIOS ? (
             <>
@@ -359,20 +327,60 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
               size="sm"
             >
               {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Export Selected ({selectedMembers.length})
+              Export ({selectedMembers.length})
             </Button>
           )
         )}
-        <Button
-          onClick={() => setShowSmsInput(!showSmsInput)}
-          disabled={disableBulkActions}
-          variant="outline"
-          size="sm"
-          title="Text contacts to a phone number via MMS"
-        >
-          <Smartphone className="h-4 w-4" />
-          Text Me
-        </Button>
+
+        {/* Text Me + export-all dropdown (split button) */}
+        <div className="flex">
+          <Button
+            onClick={() => setShowSmsInput(!showSmsInput)}
+            disabled={disableBulkActions}
+            variant="outline"
+            size="sm"
+            className="rounded-r-none border-r-0"
+          >
+            <Smartphone className="h-4 w-4" />
+            Text Me
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-l-none px-2"
+                disabled={isExporting || disableBulkActions}
+                aria-label="Export options"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isIOS ? (
+                <>
+                  <DropdownMenuItem onClick={() => exportAllContacts('direct')}>
+                    <UserPlus className="h-4 w-4" />
+                    Add All ({totalMembers})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportAllContacts('share')}>
+                    <Share2 className="h-4 w-4" />
+                    Share All ({totalMembers})
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={() => exportAllContacts()}>
+                  <Download className="h-4 w-4" />
+                  Export All ({totalMembers})
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   )
@@ -534,16 +542,6 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
         ))}
       </div>
 
-      {/* Export Info */}
-      <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-        <h4 className="text-sm font-medium mb-2">About vCard Export</h4>
-        <ul className="text-xs text-muted-foreground space-y-1">
-          <li>• vCard (.vcf) files can be imported into most contact apps</li>
-          <li>• Individual exports create one contact per file</li>
-          <li>• Bulk exports combine all contacts into a single file</li>
-          <li>• Files include name, email, phone, and group information</li>
-        </ul>
-      </div>
     </div>
   )
 

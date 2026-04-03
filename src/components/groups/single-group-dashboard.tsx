@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ArchiveRestore, MoreHorizontal } from 'lucide-react'
+import { ArchiveRestore } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { MemberList } from './member-list'
@@ -12,7 +12,6 @@ import { GroupSettingsDrawer } from './group-settings-drawer'
 import type { Database } from '@/types'
 import { getGroupMembers, unarchiveContactGroup } from '@/lib/database'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 interface SingleGroupDashboardProps {
   groupId: string
@@ -101,11 +100,6 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
   if (groupLoading) {
     return (
       <div className="flex flex-col">
-        <div className="flex items-center justify-between border-b border-[#E0D5C5] bg-[#FEFAF4] px-4 py-3">
-          <div className="h-8 w-8 animate-pulse rounded-full bg-[#E0D5C5]" />
-          <div className="h-4 w-32 animate-pulse rounded bg-[#E0D5C5]" />
-          <div className="h-8 w-8 animate-pulse rounded-full bg-[#E0D5C5]" />
-        </div>
         <div className="flex flex-col items-center gap-5 bg-[#E8622A] px-6 py-10">
           <div className="h-8 w-48 animate-pulse rounded bg-[#FEFAF4]/20" />
           <div className="h-[232px] w-[232px] animate-pulse rounded-2xl bg-[#FEFAF4]/20" />
@@ -132,26 +126,6 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header bar */}
-      <div className="flex items-center justify-between border-b border-[#E0D5C5] bg-[#FEFAF4] px-2 py-1">
-        <Link href="/dashboard">
-          <button
-            className="flex h-11 w-11 items-center justify-center rounded-full text-[#7A6E63] transition-colors hover:bg-[#F0E8D9]"
-            aria-label="Back to dashboard"
-          >
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-          </button>
-        </Link>
-        <h2 className="font-label text-base font-semibold text-[#1C1713]">{group.name}</h2>
-        <button
-          className="flex h-11 w-11 items-center justify-center rounded-full text-[#7A6E63] transition-colors hover:bg-[#F0E8D9]"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Group settings"
-        >
-          <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
-
       {/* Archived banner */}
       {group.archived_at && isOwner && (
         <div className="flex items-center justify-between bg-[#F0E8D9] px-4 py-2.5">
@@ -172,6 +146,7 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
         groupName={group.name}
         shareUrl={shareUrl}
         memberCount={totalMembers}
+        onSettingsClick={() => setDrawerOpen(true)}
       />
 
       {/* Members + export */}
