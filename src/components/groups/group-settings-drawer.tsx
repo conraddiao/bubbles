@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
-import { leaveGroup, updateGroupDetails } from '@/lib/database'
+import { archiveContactGroup, leaveGroup, updateGroupDetails } from '@/lib/database'
 import type { Database } from '@/types'
 
 type ContactGroupRow = Database['public']['Tables']['contact_groups']['Row']
@@ -104,10 +104,35 @@ export function GroupSettingsDrawer({
     },
   })
 
+  const archiveGroupMutation = useMutation({
+    mutationFn: async () => {
+      const result = await archiveContactGroup(groupId)
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      toast.success('Group archived')
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['archived-groups'] })
+      onLeaveSuccess()
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to archive group'
+      toast.error(message)
+    },
+  })
+
   const handleLeave = () => {
     if (leaveGroupMutation.isPending) return
     if (confirm('Are you sure you want to leave this group?')) {
       leaveGroupMutation.mutate()
+    }
+  }
+
+  const handleArchive = () => {
+    if (archiveGroupMutation.isPending) return
+    if (confirm('Archive this group? It will be hidden from your dashboard.')) {
+      archiveGroupMutation.mutate()
     }
   }
 
@@ -223,22 +248,31 @@ export function GroupSettingsDrawer({
 
               <div className="border-t border-[#E0D5C5] pt-3">
                 <button
-                  onClick={handleLeave}
-                  disabled={leaveGroupMutation.isPending}
-                  className="w-full rounded-xl border border-[#C53030] py-3 text-sm font-semibold text-[#C53030] font-label transition-colors hover:bg-[#FEE2E2] disabled:opacity-50"
+                  onClick={handleArchive}
+                  disabled={archiveGroupMutation.isPending}
+                  className="w-full rounded-xl border border-[#7A6E63] py-3 text-sm font-semibold text-[#7A6E63] font-label transition-colors hover:bg-[#F0E8D9] disabled:opacity-50"
                 >
-                  {leaveGroupMutation.isPending ? 'Leaving...' : 'Leave group'}
+                  {archiveGroupMutation.isPending ? 'Archiving...' : 'Archive group'}
                 </button>
               </div>
             </div>
           ) : (
-            <button
-              onClick={handleLeave}
-              disabled={leaveGroupMutation.isPending}
-              className="w-full rounded-xl border border-[#C53030] py-3 text-sm font-semibold text-[#C53030] font-label transition-colors hover:bg-[#FEE2E2] disabled:opacity-50"
-            >
-              {leaveGroupMutation.isPending ? 'Leaving...' : 'Leave group'}
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={handleLeave}
+                disabled={leaveGroupMutation.isPending}
+                className="w-full rounded-xl border border-[#C53030] py-3 text-sm font-semibold text-[#C53030] font-label transition-colors hover:bg-[#FEE2E2] disabled:opacity-50"
+              >
+                {leaveGroupMutation.isPending ? 'Leaving...' : 'Leave group'}
+              </button>
+              <button
+                onClick={handleArchive}
+                disabled={archiveGroupMutation.isPending}
+                className="w-full rounded-xl border border-[#7A6E63] py-3 text-sm font-semibold text-[#7A6E63] font-label transition-colors hover:bg-[#F0E8D9] disabled:opacity-50"
+              >
+                {archiveGroupMutation.isPending ? 'Archiving...' : 'Archive group'}
+              </button>
+            </div>
           )}
         </Dialog.Content>
       </Dialog.Portal>
