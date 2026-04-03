@@ -22,7 +22,8 @@ interface AuthActions {
     password: string,
     firstName: string,
     lastName: string,
-    phone?: string
+    phone?: string,
+    smsNotificationsEnabled?: boolean
   ) => Promise<{ error?: AuthError; requiresEmailConfirmation?: boolean; email?: string }>
   signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
   signInWithGoogle: () => Promise<{ error?: AuthError }>
@@ -212,17 +213,18 @@ function useAuthState(): AuthContextValue {
   // Remove the old fetchProfile function - now using the service
 
   const signUp = async (
-    email: string, 
-    password: string, 
-    firstName: string, 
+    email: string,
+    password: string,
+    firstName: string,
     lastName: string,
-    phone?: string
+    phone?: string,
+    smsNotificationsEnabled: boolean = false
   ) => {
     try {
       // Add timeout to prevent hanging
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -231,6 +233,7 @@ function useAuthState(): AuthContextValue {
             first_name: firstName,
             last_name: lastName,
             phone: normalizePhoneInput(phone) || null,
+            sms_notifications_enabled: smsNotificationsEnabled,
           }
         }
       })

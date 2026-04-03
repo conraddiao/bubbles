@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-auth'
 import { TwoFactorVerification } from './two-factor-verification'
@@ -45,7 +46,10 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
 
   const signUpForm = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
+    defaultValues: { sms_notifications_enabled: false },
   })
+
+  const smsOptIn = signUpForm.watch('sms_notifications_enabled')
 
   const currentForm = isSignUp ? signUpForm : signInForm
 
@@ -62,7 +66,8 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
           signUpData.password,
           signUpData.first_name,
           signUpData.last_name,
-          signUpData.phone
+          signUpData.phone,
+          signUpData.sms_notifications_enabled
         )
         if (!result.error && result.requiresEmailConfirmation) {
           const encodedEmail = encodeURIComponent(signUpData.email)
@@ -267,24 +272,46 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
           </div>
 
           {isSignUp && (
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium">
-                Phone Number <span className="text-muted-foreground">(optional)</span>
-              </label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="Enter your phone number"
-                {...signUpForm.register('phone')}
-                className={signUpForm.formState.errors.phone ? 'border-red-500' : ''}
-              />
-              {signUpForm.formState.errors.phone && (
-                <p className="text-sm text-red-500">{signUpForm.formState.errors.phone.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Phone number is required for SMS notifications and 2FA
-              </p>
-            </div>
+            <>
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium">
+                  Phone Number <span className="text-muted-foreground">(optional)</span>
+                </label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  {...signUpForm.register('phone')}
+                  className={signUpForm.formState.errors.phone ? 'border-red-500' : ''}
+                />
+                {signUpForm.formState.errors.phone && (
+                  <p className="text-sm text-red-500">{signUpForm.formState.errors.phone.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Phone number is required for SMS notifications and 2FA
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <MessageSquare className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none">Receive group updates by text</p>
+                      <p className="text-xs text-muted-foreground">
+                        When you join a group, members can share contact info with you via MMS. You can change this anytime.
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="sms_notifications_enabled"
+                    checked={smsOptIn}
+                    onCheckedChange={(checked) => signUpForm.setValue('sms_notifications_enabled', checked)}
+                    aria-label="Opt in to MMS group updates"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <Button

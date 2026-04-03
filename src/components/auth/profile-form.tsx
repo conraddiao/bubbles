@@ -140,13 +140,13 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
             </h3>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <label htmlFor="sms_notifications" className="text-sm font-medium">
-                    SMS Notifications
+                    Receive group updates by text (MMS)
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Receive text messages for group updates and important notifications
+                    Members in your groups can share contact info with you via MMS when you opt in. Requires a phone number above.
                   </p>
                 </div>
                 <Switch
