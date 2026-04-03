@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.1.4] - 2026-04-03
+
+### Fixed
+- Google OAuth callback now handled client-side, fixing sign-in loop where users were redirected to `/auth?error=auth` despite successful authentication
+
 ## [0.2.1.3] - 2026-04-03
 
 ### Changed
