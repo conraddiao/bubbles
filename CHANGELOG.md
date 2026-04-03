@@ -2,6 +2,12 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.1.3] - 2026-04-03
+
+### Changed
+- Owners can no longer leave their own group — the Leave group button is hidden for group owners
+- Archive group is now available to all members (not just owners) from the group settings drawer (kebab menu)
+
 ## [0.2.1.2] - 2026-04-03
 
 ### Fixed
