@@ -30,6 +30,7 @@ export const signUpSchema = z.object({
     .string()
     .optional()
     .refine(isOptionalE164Phone, 'Invalid phone number format. Use +1234567890'),
+  sms_notifications_enabled: z.boolean(),
 })
 
 export const signInSchema = z.object({
