@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-auth'
 import { TwoFactorVerification } from './two-factor-verification'
@@ -277,12 +278,16 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
                 <label htmlFor="phone" className="text-sm font-medium">
                   Phone Number <span className="text-muted-foreground">(optional)</span>
                 </label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  {...signUpForm.register('phone')}
-                  className={signUpForm.formState.errors.phone ? 'border-red-500' : ''}
+                <Controller
+                  name="phone"
+                  control={signUpForm.control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      {...field}
+                      id="phone"
+                      className={signUpForm.formState.errors.phone ? '[&_input]:border-red-500' : ''}
+                    />
+                  )}
                 />
                 {signUpForm.formState.errors.phone && (
                   <p className="text-sm text-red-500">{signUpForm.formState.errors.phone.message}</p>
