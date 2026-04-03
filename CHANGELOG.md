@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.1.1] - 2026-04-02
+
+### Fixed
+- Updated contact email on `/terms` and `/privacy` pages from `hello@usebubbles.app` to `hello@bubbles.fyi`
+
 ## [0.2.1.0] - 2026-04-02
 
 ### Added
