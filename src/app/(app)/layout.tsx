@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { isProfileComplete } from '@/lib/auth-service'
 import { AppHeader } from '@/components/app-header'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         router.push('/auth')
         return
       }
-      if (!profile && pathname !== '/profile/setup') {
+      if (!isProfileComplete(profile) && pathname !== '/profile/setup') {
         router.push('/profile/setup')
       }
     }
@@ -35,8 +36,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  // Allow profile setup page without a profile
-  if (!profile && pathname !== '/profile/setup') {
+  // Allow profile setup page when profile is incomplete
+  if (!isProfileComplete(profile) && pathname !== '/profile/setup') {
     return null
   }
 

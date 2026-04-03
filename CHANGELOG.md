@@ -2,6 +2,13 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.1.2] - 2026-04-03
+
+### Fixed
+- Google OAuth login now correctly captures first and last name from Google's `given_name`/`family_name` metadata fields (previously stored empty strings because the code looked for `first_name`/`last_name` which Google doesn't provide)
+- Google OAuth login now correctly captures the user's avatar from Google's `picture` field
+- New Google users with incomplete profiles are now redirected to profile setup instead of landing on the dashboard with empty names
+
 ## [0.2.1.1] - 2026-04-02
 
 ### Fixed
