@@ -2,6 +2,20 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.2.0] - 2026-04-03
+
+### Added
+- Export options dropdown on the "Export Contacts" header — "Text Me" is the primary action; "Export All" (desktop) or "Add All / Share All" (iOS) are tucked into a split-button dropdown
+- Pencil icon button in the top-right of the group QR hero for quick access to group settings (removes the need for a separate header bar)
+
+### Changed
+- App header is now sticky on all authenticated pages — stays visible while scrolling
+- "Bubbles" wordmark is centered on mobile; a back arrow replaces it on the left for non-dashboard pages so you can always get home without hunting for a link
+- Group page no longer shows a redundant subheader bar — the QR hero carries the group name and the pencil opens settings
+- "New Group" on the dashboard instantly creates a group named "{First Name}'s Group" and drops you straight onto its QR page
+- Dashboard is simplified: removed the "Shared Contact Groups" section label, the welcome greeting, and the join-by-invite-code form; "New Group" is now full-width and taller
+- Export Contacts header no longer shows the vCard subtitle or the "About vCard Export" info block
+
 ## [0.2.1.3] - 2026-04-03
 
 ### Changed
