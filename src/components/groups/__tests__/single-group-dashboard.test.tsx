@@ -53,6 +53,7 @@ vi.mock('@/lib/database', () => ({
   removeGroupMember: vi.fn(),
   updateGroupDetails: vi.fn(),
   leaveGroup: vi.fn(),
+  archiveContactGroup: vi.fn(),
   unarchiveContactGroup: vi.fn(),
   subscribeToGroupMembers: vi.fn(() => ({
     unsubscribe: vi.fn(),
@@ -191,7 +192,9 @@ describe('SingleGroupDashboard', () => {
     expect(screen.queryByText('Save changes')).not.toBeInTheDocument()
   })
 
-  it('leave group button triggers confirmation', async () => {
+  it('leave group button triggers confirmation (non-owner)', async () => {
+    setupSupabaseMock({ ...mockGroup, owner_id: 'other-user-id' })
+
     const user = userEvent.setup()
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     mockLeaveGroup.mockResolvedValue({ data: null, error: null })
