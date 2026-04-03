@@ -291,9 +291,6 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
     <div className="flex items-center justify-between">
       <div>
         <h3 className="text-lg font-semibold leading-tight">Export Contacts</h3>
-        <p className="text-sm text-muted-foreground">
-          Download contact information in vCard format (.vcf)
-        </p>
       </div>
       <div className="flex gap-2">
         {isIOS ? (
@@ -534,16 +531,6 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
         ))}
       </div>
 
-      {/* Export Info */}
-      <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-        <h4 className="text-sm font-medium mb-2">About vCard Export</h4>
-        <ul className="text-xs text-muted-foreground space-y-1">
-          <li>• vCard (.vcf) files can be imported into most contact apps</li>
-          <li>• Individual exports create one contact per file</li>
-          <li>• Bulk exports combine all contacts into a single file</li>
-          <li>• Files include name, email, phone, and group information</li>
-        </ul>
-      </div>
     </div>
   )
 

@@ -4,11 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { KeyRound, Loader2, Plus, Users } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { getUserGroups, getGroupByToken, getArchivedGroups } from '@/lib/database'
+import { getUserGroups, getGroupByToken, getArchivedGroups, createContactGroup } from '@/lib/database'
 import { useAuth } from '@/hooks/use-auth'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +24,21 @@ interface DashboardGroup {
 export default function DashboardPage() {
   const router = useRouter()
   const { user, profile } = useAuth()
+  const queryClient = useQueryClient()
+
+  const createGroupMutation = useMutation({
+    mutationFn: async () => {
+      const result = await createContactGroup('New Group')
+      if (result.error) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+      if (data?.group_id) {
+        router.push(`/groups/${data.group_id}?created=true`)
+      }
+    },
+  })
   const { data: groups, isLoading: groupsLoading, error: groupsError } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => {
@@ -96,12 +111,19 @@ export default function DashboardPage() {
           <h1 className="font-display text-2xl font-bold leading-tight sm:text-3xl">
             Welcome back, {greetingName}!
           </h1>
-          <Link href="/groups/create">
-            <Button size="sm" className="shrink-0 gap-1.5">
+          <Button
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={() => createGroupMutation.mutate()}
+            disabled={createGroupMutation.isPending}
+          >
+            {createGroupMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
               <Plus className="size-4" />
-              New Group
-            </Button>
-          </Link>
+            )}
+            New Group
+          </Button>
         </div>
       </header>
 
@@ -149,12 +171,20 @@ export default function DashboardPage() {
             <p className="text-sm text-muted-foreground">
               No groups yet. Create one or join with an invite code.
             </p>
-            <Link href="/groups/create" className="mt-3 inline-block">
-              <Button variant="outline" size="sm" className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 gap-1.5"
+              onClick={() => createGroupMutation.mutate()}
+              disabled={createGroupMutation.isPending}
+            >
+              {createGroupMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
                 <Plus className="size-4" />
-                Create your first group
-              </Button>
-            </Link>
+              )}
+              Create your first group
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">
