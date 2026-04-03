@@ -85,8 +85,8 @@ export default function TermsPage() {
                 <strong className="text-foreground">For help:</strong> Reply{' '}
                 <strong className="text-foreground">HELP</strong> to any message or contact us
                 at{' '}
-                <a href="mailto:hello@usebubbles.app" className="text-primary hover:underline">
-                  hello@usebubbles.app
+                <a href="mailto:hello@bubbles.fyi" className="text-primary hover:underline">
+                  hello@bubbles.fyi
                 </a>
                 .
               </li>
@@ -221,8 +221,8 @@ export default function TermsPage() {
             </h2>
             <p>
               Questions about these Terms? Contact us at:{' '}
-              <a href="mailto:hello@usebubbles.app" className="text-primary hover:underline">
-                hello@usebubbles.app
+              <a href="mailto:hello@bubbles.fyi" className="text-primary hover:underline">
+                hello@bubbles.fyi
               </a>
             </p>
           </section>
