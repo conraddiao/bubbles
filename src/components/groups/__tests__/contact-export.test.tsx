@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, waitFor, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { render } from '@/test/utils'
 import { ContactExport } from '../contact-export'
 import * as database from '@/lib/database'
@@ -70,6 +71,7 @@ afterEach(() => {
 
 describe('generateBulkVCard', () => {
   it('joins two vCards with \\r\\n\\r\\n separator', async () => {
+    const user = userEvent.setup()
     // Capture blob parts by intercepting the Blob constructor
     let capturedContent = ''
     const OrigBlob = global.Blob
@@ -87,6 +89,8 @@ describe('generateBulkVCard', () => {
     render(<ContactExport groupId="group-1" groupName="Test Group" />)
     await waitForMembers()
 
+    await user.click(screen.getByRole('button', { name: 'Export options' }))
+    await screen.findByText(/Export All/)
     fireEvent.click(screen.getByText(/Export All/))
 
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled())
@@ -102,6 +106,7 @@ describe('generateBulkVCard', () => {
 
 describe('downloadViaBlob', () => {
   it('creates a blob URL, triggers <a> click, and revokes the URL', async () => {
+    const user = userEvent.setup()
     URL.createObjectURL = vi.fn(() => 'blob:mock')
     URL.revokeObjectURL = vi.fn()
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
@@ -109,6 +114,8 @@ describe('downloadViaBlob', () => {
     render(<ContactExport groupId="group-1" groupName="Test Group" />)
     await waitForMembers()
 
+    await user.click(screen.getByRole('button', { name: 'Export options' }))
+    await screen.findByText(/Export All/)
     fireEvent.click(screen.getByText(/Export All/))
 
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled())
@@ -258,12 +265,17 @@ describe('UI rendering', () => {
     expect(shareBtns.length).toBeGreaterThanOrEqual(mockMembers.length)
   })
 
-  it('shows single Export All button on desktop', async () => {
+  it('shows Export All option in dropdown on desktop', async () => {
+    const user = userEvent.setup()
     render(<ContactExport groupId="group-1" groupName="Test Group" />)
     await waitForMembers()
 
+    // Per-member iOS buttons should not be present on desktop
     expect(screen.queryByTitle('Open in Contacts app')).not.toBeInTheDocument()
     expect(screen.queryByTitle('Share via iOS share sheet')).not.toBeInTheDocument()
-    expect(screen.getByText(/Export All/)).toBeInTheDocument()
+
+    // Export All is in the dropdown; open it first
+    await user.click(screen.getByRole('button', { name: 'Export options' }))
+    expect(await screen.findByText(/Export All/)).toBeInTheDocument()
   })
 })

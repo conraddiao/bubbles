@@ -125,11 +125,11 @@ describe('SingleGroupDashboard', () => {
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
-  it('renders group name in header and QR hero', async () => {
+  it('renders group name in QR hero', async () => {
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
       const names = screen.getAllByText('Wedding Party')
-      expect(names.length).toBeGreaterThanOrEqual(2) // header bar + QR hero
+      expect(names.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -144,13 +144,6 @@ describe('SingleGroupDashboard', () => {
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
       expect(screen.getByTestId('qr-code')).toBeInTheDocument()
-    })
-  })
-
-  it('renders back button with correct aria-label', async () => {
-    render(<SingleGroupDashboard groupId="g1" />)
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Back to dashboard' })).toBeInTheDocument()
     })
   })
 
@@ -226,12 +219,12 @@ describe('SingleGroupDashboard', () => {
     })
   })
 
-  it('shows Archived badge when group has archived_at set', async () => {
+  it('shows archived banner when group has archived_at set', async () => {
     setupSupabaseMock({ ...mockGroup, archived_at: '2026-03-01T00:00:00Z' })
 
     render(<SingleGroupDashboard groupId="g1" />)
     await waitFor(() => {
-      expect(screen.getByText('Archived')).toBeInTheDocument()
+      expect(screen.getByText('This group is archived')).toBeInTheDocument()
     })
   })
 
