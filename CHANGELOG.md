@@ -2,12 +2,32 @@
 
 All notable changes to Bubbles will be documented in this file.
 
-## [0.2.0.2] - 2026-04-03
+## [0.2.1.1] - 2026-04-03
 
 ### Fixed
 - Google OAuth login now correctly captures first and last name from Google's `given_name`/`family_name` metadata fields (previously stored empty strings because the code looked for `first_name`/`last_name` which Google doesn't provide)
 - Google OAuth login now correctly captures the user's avatar from Google's `picture` field
 - New Google users with incomplete profiles are now redirected to profile setup instead of landing on the dashboard with empty names
+
+## [0.2.1.0] - 2026-04-02
+
+### Added
+- Privacy Policy page (`/privacy`) covering data collection, SMS/MMS consent, opt-out instructions (STOP/HELP), data sharing policy, and deletion rights — required for Toll Free number registration
+- Terms of Service page (`/terms`) with SMS consent language, message frequency disclosure, acceptable use, and governing law — required for carrier compliance
+- Legal page links (Privacy Policy, Terms of Service) in the landing page footer
+
+## [0.2.0.2] - 2026-04-02
+
+### Added
+- A2P MMS vCard delivery: "Text Me" button sends group contacts to any phone number via Twilio MMS — on iOS, tapping the attachment opens the native "Add Contacts" UI
+- Server-side `.vcf` endpoint (`/api/groups/[groupId]/contacts.vcf`) with proper `Content-Type: text/x-vcard` headers
+- SMS send endpoint (`/api/sms/send-contacts`) for Twilio MMS integration
+- Two iOS-specific export buttons per contact and for bulk export: "Add to Contacts" (direct Safari preview via data URI) and "Share to Contacts" (native share sheet → pick Contacts app)
+- Full test suite for `ContactExport`: vCard generation, blob download, data URI path, share sheet path (including AbortError and canShare fallback), and iOS/desktop UI rendering
+
+### Fixed
+- iOS vCard export: tap "Share to Contacts" now opens the share sheet once and stops — dismissing it no longer triggers a second Safari contact preview popup
+- AbortError from `navigator.share()` is now handled correctly: user dismissal is treated as intentional, not a failure
 
 ## [0.2.0.1] - 2026-04-01
 

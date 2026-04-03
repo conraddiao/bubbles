@@ -73,6 +73,14 @@ export default function Home() {
           <p className="font-label text-xs uppercase tracking-widest text-muted-foreground">
             Made for real life, not the enterprise
           </p>
+          <div className="mt-3 flex justify-center gap-4 text-xs text-muted-foreground">
+            <Link href="/privacy" className="hover:text-foreground hover:underline">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground hover:underline">
+              Terms of Service
+            </Link>
+          </div>
         </footer>
       </main>
     </div>

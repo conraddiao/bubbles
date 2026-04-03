@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { CheckCircle, Users, Mail, Phone, Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -59,6 +60,7 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
     formState: { errors, isValid },
     setValue,
     watch,
+    control,
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
     mode: 'onChange',
@@ -281,12 +283,16 @@ export function ContactForm({ shareToken, onSuccess }: ContactFormProps) {
                 <Phone className="h-4 w-4" />
                 Phone Number (Optional)
               </label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="Enter your phone number"
-                {...register('phone')}
-                aria-invalid={!!errors.phone}
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    {...field}
+                    id="phone"
+                    aria-invalid={!!errors.phone}
+                  />
+                )}
               />
               {errors.phone && (
                 <p className="text-sm text-destructive">{errors.phone.message}</p>
