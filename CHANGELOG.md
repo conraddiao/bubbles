@@ -16,6 +16,11 @@ All notable changes to Bubbles will be documented in this file.
 - Dashboard is simplified: removed the "Shared Contact Groups" section label, the welcome greeting, and the join-by-invite-code form; "New Group" is now full-width and taller
 - Export Contacts header no longer shows the vCard subtitle or the "About vCard Export" info block
 
+## [0.2.1.4] - 2026-04-03
+
+### Fixed
+- Google OAuth callback now handled client-side, fixing sign-in loop where users were redirected to `/auth?error=auth` despite successful authentication
+
 ## [0.2.1.3] - 2026-04-03
 
 ### Changed
