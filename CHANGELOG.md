@@ -2,6 +2,19 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.0.2] - 2026-04-02
+
+### Added
+- A2P MMS vCard delivery: "Text Me" button sends group contacts to any phone number via Twilio MMS — on iOS, tapping the attachment opens the native "Add Contacts" UI
+- Server-side `.vcf` endpoint (`/api/groups/[groupId]/contacts.vcf`) with proper `Content-Type: text/x-vcard` headers
+- SMS send endpoint (`/api/sms/send-contacts`) for Twilio MMS integration
+- Two iOS-specific export buttons per contact and for bulk export: "Add to Contacts" (direct Safari preview via data URI) and "Share to Contacts" (native share sheet → pick Contacts app)
+- Full test suite for `ContactExport`: vCard generation, blob download, data URI path, share sheet path (including AbortError and canShare fallback), and iOS/desktop UI rendering
+
+### Fixed
+- iOS vCard export: tap "Share to Contacts" now opens the share sheet once and stops — dismissing it no longer triggers a second Safari contact preview popup
+- AbortError from `navigator.share()` is now handled correctly: user dismissal is treated as intentional, not a failure
+
 ## [0.2.0.1] - 2026-04-01
 
 ### Added
