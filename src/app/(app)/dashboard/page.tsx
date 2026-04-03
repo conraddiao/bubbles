@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { KeyRound, Loader2, Plus, Users } from 'lucide-react'
+import { Loader2, Plus, Users } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { getUserGroups, getGroupByToken, getArchivedGroups, createContactGroup } from '@/lib/database'
+import { getUserGroups, getArchivedGroups, createContactGroup } from '@/lib/database'
 import { useAuth } from '@/hooks/use-auth'
 
 export const dynamic = 'force-dynamic'
@@ -28,7 +27,8 @@ export default function DashboardPage() {
 
   const createGroupMutation = useMutation({
     mutationFn: async () => {
-      const result = await createContactGroup('New Group')
+      const groupName = profile?.first_name ? `${profile.first_name}'s Group` : 'New Group'
+      const result = await createContactGroup(groupName)
       if (result.error) throw new Error(result.error)
       return result.data
     },
@@ -49,9 +49,6 @@ export default function DashboardPage() {
     enabled: Boolean(user),
   })
 
-  const [codeValue, setCodeValue] = useState('')
-  const [codeError, setCodeError] = useState<string | null>(null)
-  const [isCheckingCode, setIsCheckingCode] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
 
   const { data: archivedGroups } = useQuery({
@@ -64,92 +61,23 @@ export default function DashboardPage() {
     enabled: Boolean(user),
   })
 
-  const displayName = [
-    profile?.first_name ?? user?.user_metadata?.first_name,
-    profile?.last_name ?? user?.user_metadata?.last_name,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .trim()
-
-  const greetingName = displayName || user?.email || 'there'
-
-  const handleCodeSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setCodeError(null)
-
-    const normalizedCode = codeValue.trim()
-    if (!normalizedCode) {
-      setCodeError('Enter a group code to continue.')
-      return
-    }
-
-    setIsCheckingCode(true)
-    try {
-      const { data, error } = await getGroupByToken(normalizedCode)
-      if (error || !data) {
-        setCodeError('We couldn\u2019t find a group with that code.')
-        return
-      }
-      router.push(`/join/${normalizedCode}`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to check that code right now.'
-      setCodeError(message)
-    } finally {
-      setIsCheckingCode(false)
-    }
-  }
-
   return (
-    <div className="animate-fade-up-in mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12">
-      {/* Header with greeting and create button */}
-      <header className="mb-8">
-        <p className="font-label text-sm font-semibold uppercase tracking-wide text-primary">
-          Shared Contact Groups
-        </p>
-        <div className="mt-2 flex items-start justify-between gap-4">
-          <h1 className="font-display text-2xl font-bold leading-tight sm:text-3xl">
-            Welcome back, {greetingName}!
-          </h1>
-          <Button
-            size="sm"
-            className="shrink-0 gap-1.5"
-            onClick={() => createGroupMutation.mutate()}
-            disabled={createGroupMutation.isPending}
-          >
-            {createGroupMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-4" />
-            )}
-            New Group
-          </Button>
-        </div>
-      </header>
-
-      {/* Join group — inline input */}
-      <form onSubmit={handleCodeSubmit} className="mb-8">
-        <label htmlFor="join-code" className="mb-1.5 block text-sm font-medium">
-          Join a group
-        </label>
-        <div className="flex gap-2">
-          <Input
-            id="join-code"
-            value={codeValue}
-            onChange={(e) => setCodeValue(e.target.value)}
-            placeholder="Enter invite code"
-            className="flex-1"
-            autoComplete="off"
-            inputMode="text"
-            aria-invalid={Boolean(codeError)}
-          />
-          <Button type="submit" variant="secondary" className="shrink-0 gap-1.5" disabled={isCheckingCode}>
-            <KeyRound className="size-4" />
-            {isCheckingCode ? 'Checking\u2026' : 'Join'}
-          </Button>
-        </div>
-        {codeError && <p className="mt-1.5 text-sm text-destructive">{codeError}</p>}
-      </form>
+    <div className="animate-fade-up-in mx-auto max-w-lg px-4 py-6 sm:px-6 sm:py-10">
+      {/* New Group — primary action */}
+      <div className="mb-6">
+        <Button
+          className="h-14 w-full gap-2 text-base"
+          onClick={() => createGroupMutation.mutate()}
+          disabled={createGroupMutation.isPending}
+        >
+          {createGroupMutation.isPending ? (
+            <Loader2 className="size-5 animate-spin" />
+          ) : (
+            <Plus className="size-5" />
+          )}
+          New Group
+        </Button>
+      </div>
 
       {/* Groups list — primary content */}
       <section aria-label="Your groups">
@@ -169,22 +97,8 @@ export default function DashboardPage() {
         ) : !groups || groups.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border py-12 text-center">
             <p className="text-sm text-muted-foreground">
-              No groups yet. Create one or join with an invite code.
+              No groups yet. Tap New Group to get started.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 gap-1.5"
-              onClick={() => createGroupMutation.mutate()}
-              disabled={createGroupMutation.isPending}
-            >
-              {createGroupMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-              Create your first group
-            </Button>
           </div>
         ) : (
           <div className="space-y-2">
