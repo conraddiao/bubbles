@@ -2,6 +2,13 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.1.0] - 2026-04-02
+
+### Added
+- Privacy Policy page (`/privacy`) covering data collection, SMS/MMS consent, opt-out instructions (STOP/HELP), data sharing policy, and deletion rights — required for Toll Free number registration
+- Terms of Service page (`/terms`) with SMS consent language, message frequency disclosure, acceptable use, and governing law — required for carrier compliance
+- Legal page links (Privacy Policy, Terms of Service) in the landing page footer
+
 ## [0.2.0.2] - 2026-04-02
 
 ### Added
