@@ -95,10 +95,10 @@ export default function PrivacyPage() {
               <strong className="text-foreground">For help:</strong> Reply{' '}
               <strong className="text-foreground">HELP</strong> to any message or email us at{' '}
               <a
-                href="mailto:hello@usebubbles.app"
+                href="mailto:hello@bubbles.fyi"
                 className="text-primary hover:underline"
               >
-                hello@usebubbles.app
+                hello@bubbles.fyi
               </a>
               .
             </p>
@@ -202,8 +202,8 @@ export default function PrivacyPage() {
             <p>
               For privacy questions, requests to access or delete your data, or to opt out of
               messaging, contact us at:{' '}
-              <a href="mailto:hello@usebubbles.app" className="text-primary hover:underline">
-                hello@usebubbles.app
+              <a href="mailto:hello@bubbles.fyi" className="text-primary hover:underline">
+                hello@bubbles.fyi
               </a>
             </p>
           </section>
