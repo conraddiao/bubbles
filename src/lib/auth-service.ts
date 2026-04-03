@@ -52,10 +52,10 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
     const profileData: ProfileInsert = {
       id: userId,
       email: user.email || '',
-      first_name: user.user_metadata?.first_name || '',
-      last_name: user.user_metadata?.last_name || '',
+      first_name: user.user_metadata?.first_name || user.user_metadata?.given_name || '',
+      last_name: user.user_metadata?.last_name || user.user_metadata?.family_name || '',
       phone: normalizePhoneInput(user.user_metadata?.phone),
-      avatar_url: user.user_metadata?.avatar_url || null,
+      avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
       phone_verified: false,
       two_factor_enabled: false,
       sms_notifications_enabled: true
