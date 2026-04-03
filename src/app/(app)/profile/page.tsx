@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Image, Loader2, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Switch } from '@/components/ui/switch'
 import { contactCardSchema, type ContactCardFormData } from '@/lib/validations'
 import { useAuth } from '@/hooks/use-auth'
@@ -201,11 +202,15 @@ export default function ProfileSettingsPage() {
                   <label htmlFor="phone" className="text-sm font-medium">
                     Phone number
                   </label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    {...contactForm.register('phone')}
-                    placeholder="(555) 555-0101"
+                  <Controller
+                    name="phone"
+                    control={contactForm.control}
+                    render={({ field }) => (
+                      <PhoneInput
+                        {...field}
+                        id="phone"
+                      />
+                    )}
                   />
                   {contactForm.formState.errors.phone && (
                     <p className="text-sm text-destructive">

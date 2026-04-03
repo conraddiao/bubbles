@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Phone, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { phoneVerificationSchema, PhoneVerificationFormData } from '@/lib/validations'
 import { useAuth } from '@/hooks/use-auth'
@@ -28,6 +29,7 @@ export function PhoneVerification({ onSuccess, onCancel }: PhoneVerificationProp
     formState: { errors },
     setValue,
     watch,
+    control,
   } = useForm<PhoneVerificationFormData>({
     resolver: zodResolver(phoneVerificationSchema),
     defaultValues: {
@@ -119,12 +121,16 @@ export function PhoneVerification({ onSuccess, onCancel }: PhoneVerificationProp
               <label htmlFor="phone" className="text-sm font-medium">
                 Phone Number
               </label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+1 (555) 123-4567"
-                {...register('phone')}
-                className={errors.phone ? 'border-red-500' : ''}
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    {...field}
+                    id="phone"
+                    className={errors.phone ? '[&_input]:border-red-500' : ''}
+                  />
+                )}
               />
               {errors.phone && (
                 <p className="text-sm text-red-500">{errors.phone.message}</p>
