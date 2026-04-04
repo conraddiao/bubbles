@@ -14,9 +14,11 @@ interface AuthState {
   profile: Profile | null
   session: Session | null
   loading: boolean
+  profileFetchFailed: boolean
 }
 
 interface AuthActions {
+  retryProfile: () => Promise<void>
   signUp: (
     email: string,
     password: string,
@@ -63,6 +65,7 @@ function useAuthState(): AuthContextValue {
     profile: null,
     session: null,
     loading: true,
+    profileFetchFailed: false,
   })
 
   const fetchProfileWithTimeout = async (userId: string, timeoutMs: number) => {
@@ -128,6 +131,7 @@ function useAuthState(): AuthContextValue {
                 profile: null,
                 session,
                 loading: false,
+                profileFetchFailed: true,
               })
               toast.error('Failed to load profile. Please refresh the page.')
             }
@@ -371,6 +375,24 @@ function useAuthState(): AuthContextValue {
     }
   }
 
+  const retryProfile = async () => {
+    if (!state.user) return
+
+    setState(prev => ({ ...prev, loading: true, profileFetchFailed: false }))
+    try {
+      const profile = await retryOperation(
+        () => fetchProfileWithTimeout(state.user!.id, 6000),
+        2,
+        1000
+      )
+      setState(prev => ({ ...prev, profile, loading: false, profileFetchFailed: false }))
+    } catch (error) {
+      console.error('Retry profile fetch failed:', error)
+      setState(prev => ({ ...prev, loading: false, profileFetchFailed: true }))
+      toast.error('Still unable to load profile. Please check your connection.')
+    }
+  }
+
   return {
     ...state,
     signUp,
@@ -379,6 +401,7 @@ function useAuthState(): AuthContextValue {
     signOut,
     updateProfile,
     refreshProfile,
+    retryProfile,
   }
 }
 

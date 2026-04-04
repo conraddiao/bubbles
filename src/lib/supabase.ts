@@ -139,6 +139,33 @@ console.log('Supabase config:', {
   isProductionWithoutConfig
 })
 
+// Promise-queue-based auth lock to prevent Web Locks API contention.
+// Supabase's default behavior uses navigator.locks with steal semantics,
+// which causes "lock was released because another request stole it" errors
+// when getInitialSession() and onAuthStateChange() fire concurrently.
+const lockQueues = new Map<string, Promise<void>>()
+
+function customAuthLock<T>(name: string, acquireTimeout: number, fn: () => Promise<T>): Promise<T> {
+  const existing = lockQueues.get(name) ?? Promise.resolve()
+
+  let releaseLock!: () => void
+  const hold = new Promise<void>((res) => { releaseLock = res })
+  lockQueues.set(name, existing.then(() => hold))
+
+  const acquire = acquireTimeout >= 0
+    ? Promise.race([
+        existing,
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error(`Auth lock timed out: ${name}`)), acquireTimeout)
+        ),
+      ])
+    : existing
+
+  return acquire
+    .then(() => fn())
+    .finally(() => releaseLock())
+}
+
 const getSupabaseClient = (): TypedSupabaseClient => {
   if (!globalForSupabase.__supabaseClient) {
     globalForSupabase.__supabaseClient = shouldUseMockClient
@@ -148,7 +175,8 @@ const getSupabaseClient = (): TypedSupabaseClient => {
             autoRefreshToken: true,
             persistSession: true,
             detectSessionInUrl: true,
-            storageKey: 'shared-contact-groups-auth'
+            storageKey: 'shared-contact-groups-auth',
+            lock: customAuthLock,
           }
         })
   }
