@@ -35,16 +35,18 @@ type GroupMember = {
 export function SingleGroupDashboard({ token, showSuccessToast, showQrCode = true, showCube = true }: SingleGroupDashboardProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const [isOwner, setIsOwner] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null)
+    })
+  }, [])
 
   const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroupRow | null, Error>({
     queryKey: ['group', token],
     queryFn: async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      if (userError) throw userError
-      if (!user) throw new Error('Not authenticated')
-
       const { data, error } = await supabase
         .from('contact_groups')
         .select('*')
@@ -52,11 +54,11 @@ export function SingleGroupDashboard({ token, showSuccessToast, showQrCode = tru
         .single<ContactGroupRow>()
 
       if (error) throw error
-
-      setIsOwner(data.owner_id === user.id)
       return data
     },
   })
+
+  const isOwner = !!group && !!currentUserId && group.owner_id === currentUserId
 
   const groupId = group?.id ?? ''
 
