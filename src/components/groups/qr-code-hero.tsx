@@ -44,7 +44,7 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, 
       {onSettingsClick && (
         <button
           onClick={onSettingsClick}
-          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-[#FEFAF4]/80 transition-colors hover:bg-[#FEFAF4]/10"
+          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full text-[#FEFAF4]/80 transition-colors hover:bg-[#FEFAF4]/10 active-scale"
           aria-label="Group settings"
         >
           <Pencil className="h-5 w-5" aria-hidden="true" />
@@ -82,14 +82,14 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, 
       <div className="flex w-full max-w-xs gap-3">
         <button
           onClick={handleCopyLink}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
         >
           <Copy className="h-4 w-4" aria-hidden="true" />
           Copy link
         </button>
         <button
           onClick={handleShare}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
         >
           <Share className="h-4 w-4" aria-hidden="true" />
           Share

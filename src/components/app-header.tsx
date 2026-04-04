@@ -46,7 +46,7 @@ export function AppHeader() {
           ) : (
             <Link href="/dashboard">
               <button
-                className="flex h-11 w-11 items-center justify-center rounded-full text-[#7A6E63] transition-colors hover:bg-[#F0E8D9]"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-[#7A6E63] transition-colors hover:bg-[#F0E8D9] active-scale"
                 aria-label="Back to dashboard"
               >
                 <ArrowLeft className="h-5 w-5" aria-hidden="true" />
@@ -65,7 +65,7 @@ export function AppHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active-scale"
               aria-label="Open user menu"
             >
               <Avatar className="size-9">

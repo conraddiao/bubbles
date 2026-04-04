@@ -139,7 +139,7 @@ export function SingleGroupDashboard({ token, showSuccessToast, showQrCode = tru
           <button
             onClick={() => unarchiveMutation.mutate()}
             disabled={unarchiveMutation.isPending}
-            className="flex items-center gap-1.5 text-sm font-semibold text-[#E8622A] disabled:opacity-50"
+            className="flex items-center gap-1.5 text-sm font-semibold text-[#E8622A] disabled:opacity-50 active-scale"
           >
             <ArchiveRestore className="h-4 w-4" aria-hidden="true" />
             {unarchiveMutation.isPending ? 'Restoring…' : 'Unarchive'}

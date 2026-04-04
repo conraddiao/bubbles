@@ -181,7 +181,7 @@ export function GroupSettingsDrawer({
                     type="button"
                     onClick={() => setFormState((prev) => ({ ...prev, access_type: 'open' }))}
                     disabled={updateGroupMutation.isPending}
-                    className={`rounded-full px-4 py-1.5 text-sm font-semibold font-label transition-colors ${
+                    className={`rounded-full px-4 py-1.5 text-sm font-semibold font-label transition-colors active-scale ${
                       formState.access_type === 'open'
                         ? 'bg-[#E8622A] text-[#FEFAF4]'
                         : 'border border-[#E0D5C5] text-[#7A6E63]'
@@ -193,7 +193,7 @@ export function GroupSettingsDrawer({
                     type="button"
                     onClick={() => setFormState((prev) => ({ ...prev, access_type: 'password' }))}
                     disabled={updateGroupMutation.isPending}
-                    className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold font-label transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold font-label transition-colors active-scale ${
                       formState.access_type === 'password'
                         ? 'bg-[#E8622A] text-[#FEFAF4]'
                         : 'border border-[#E0D5C5] text-[#7A6E63]'
@@ -241,7 +241,7 @@ export function GroupSettingsDrawer({
               <button
                 onClick={() => updateGroupMutation.mutate()}
                 disabled={updateGroupMutation.isPending}
-                className="w-full rounded-xl bg-[#E8622A] py-3 text-sm font-semibold text-[#FEFAF4] font-label transition-colors hover:bg-[#B84A1A] disabled:opacity-50"
+                className="w-full rounded-xl bg-[#E8622A] py-3 text-sm font-semibold text-[#FEFAF4] font-label transition-colors hover:bg-[#B84A1A] disabled:opacity-50 active-scale"
               >
                 {updateGroupMutation.isPending ? 'Saving...' : 'Save changes'}
               </button>
@@ -250,7 +250,7 @@ export function GroupSettingsDrawer({
                 <button
                   onClick={handleArchive}
                   disabled={archiveGroupMutation.isPending}
-                  className="w-full rounded-xl border border-[#7A6E63] py-3 text-sm font-semibold text-[#7A6E63] font-label transition-colors hover:bg-[#F0E8D9] disabled:opacity-50"
+                  className="w-full rounded-xl border border-[#7A6E63] py-3 text-sm font-semibold text-[#7A6E63] font-label transition-colors hover:bg-[#F0E8D9] disabled:opacity-50 active-scale"
                 >
                   {archiveGroupMutation.isPending ? 'Archiving...' : 'Archive group'}
                 </button>
@@ -261,7 +261,7 @@ export function GroupSettingsDrawer({
               <button
                 onClick={handleLeave}
                 disabled={leaveGroupMutation.isPending}
-                className="w-full rounded-xl border border-[#C53030] py-3 text-sm font-semibold text-[#C53030] font-label transition-colors hover:bg-[#FEE2E2] disabled:opacity-50"
+                className="w-full rounded-xl border border-[#C53030] py-3 text-sm font-semibold text-[#C53030] font-label transition-colors hover:bg-[#FEE2E2] disabled:opacity-50 active-scale"
               >
                 {leaveGroupMutation.isPending ? 'Leaving...' : 'Leave group'}
               </button>
