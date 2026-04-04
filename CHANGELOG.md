@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.5.3] - 2026-04-04
+
+### Changed
+- All buttons now show a brief scale-down (97%) on tap/click, making the UI feel responsive on mobile and desktop. The `Button` component gains this automatically; all custom `<button>` elements throughout the app (header, QR hero, settings drawer, auth form, dashboard) are updated to match.
+
 ## [0.2.5.2] - 2026-04-04
 
 ### Added
