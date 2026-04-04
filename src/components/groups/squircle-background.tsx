@@ -12,7 +12,7 @@ function easeOut(t: number)   { return 1 - (1 - t) * (1 - t) }
 function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
 
 function buildSquircle() {
-  const geometry = new THREE.SphereGeometry(1, 48, 48)
+  const geometry = new THREE.SphereGeometry(1, 96, 96)
   const p = geometry.attributes.position
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i), z = p.getZ(i), e
@@ -61,11 +61,12 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
-      wireframe: true,
       vertexShader: `
         uniform float uTopAngle;
         uniform float uBotAngle;
         uniform float uAxis;
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
 
         vec3 rotateY(vec3 p, float a) {
           float c = cos(a), s = sin(a);
@@ -103,12 +104,22 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
           }
 
           vec4 viewPos = modelViewMatrix * vec4(pos, 1.0);
+          vViewDir = normalize(-viewPos.xyz);
+          vNormal  = normalize(normalMatrix * norm);
           gl_Position = projectionMatrix * viewPos;
         }
       `,
       fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+
         void main() {
-          gl_FragColor = vec4(1.0, 1.0, 1.0, 0.85);
+          if (!gl_FrontFacing) discard;
+
+          float fresnel = 1.0 - abs(dot(vNormal, vViewDir));
+          fresnel = pow(fresnel, 2.5);
+
+          gl_FragColor = vec4(1.0, 1.0, 1.0, fresnel * 0.85);
         }
       `,
     })
