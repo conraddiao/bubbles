@@ -2,6 +2,12 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.3.2] - 2026-04-03
+
+### Fixed
+- Horizontal rubber-band overscroll on iOS Safari is now blocked at all levels: `overscroll-behavior-x: none` added to `:root` and `html` (was previously only on `body`)
+- Header converted from `position: sticky` to `position: fixed` so it is completely outside the scroll stack and immune to iOS bounce/movement during overscroll
+
 ## [0.2.3.1] - 2026-04-04
 
 ### Added

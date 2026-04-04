@@ -46,6 +46,7 @@
 }
 
 :root {
+  overscroll-behavior-x: none;
   --radius: 0.75rem;
   --font-geist-sans: "Geist Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-geist-mono: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
@@ -145,6 +146,9 @@
 }
 
 @layer base {
+  html {
+    overscroll-behavior-x: none;
+  }
   * {
     @apply border-border outline-ring/50;
   }
