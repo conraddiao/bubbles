@@ -6,6 +6,7 @@ import { Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { isProfileComplete } from '@/lib/auth-service'
 import { AppHeader } from '@/components/app-header'
+import { Button } from '@/components/ui/button'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, profileFetchFailed, retryProfile } = useAuth()
@@ -40,15 +41,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Show retry UI when profile failed to load rather than silently redirecting to setup
   if (profileFetchFailed) {
     return (
-      <div className="flex min-h-screen items-center justify-center flex-col gap-4">
+      <div className="flex min-h-screen bg-background items-center justify-center flex-col gap-4">
         <p className="text-muted-foreground">Unable to load your profile. Please try again.</p>
-        <button
-          onClick={retryProfile}
-          className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
-        >
+        <Button onClick={retryProfile}>
           <RefreshCw className="h-4 w-4" />
           Retry
-        </button>
+        </Button>
       </div>
     )
   }
