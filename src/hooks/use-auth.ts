@@ -114,13 +114,14 @@ function useAuthState(): AuthContextValue {
               1000
             )
             console.log(`Profile fetch duration (initial): ${Math.round(performance.now() - start)}ms`)
-            
+
             if (mounted) {
               setState({
                 user: session.user,
                 profile,
                 session,
                 loading: false,
+                profileFetchFailed: false,
               })
             }
           } catch (profileError) {
@@ -175,13 +176,14 @@ function useAuthState(): AuthContextValue {
             const start = performance.now()
             const profile = await fetchProfileWithTimeout(session.user.id, 6000)
             console.log(`Profile fetch duration (auth change): ${Math.round(performance.now() - start)}ms`)
-            
+
             if (mounted) {
               setState({
                 user: session.user,
                 profile,
                 session,
                 loading: false,
+                profileFetchFailed: false,
               })
             }
           } catch (error) {
