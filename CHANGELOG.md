@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.5.1] - 2026-04-04
+
+### Fixed
+- Non-owners could see and click "Archive group" in the mobile settings drawer — button is now hidden for non-owners (owners only)
+
 ## [0.2.5.0] - 2026-04-04
 
 ### Added
