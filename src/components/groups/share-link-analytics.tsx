@@ -25,7 +25,7 @@ export function ShareLinkAnalytics({ groupId }: ShareLinkAnalyticsProps) {
     queryFn: async () => {
       const result = await getShareLinkAnalytics(groupId)
       if (result.error) throw new Error(result.error)
-      return result.data as AnalyticsData
+      return result.data as unknown as AnalyticsData
     },
     enabled: !!groupId,
   })
