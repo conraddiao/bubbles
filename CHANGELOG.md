@@ -8,6 +8,9 @@ All notable changes to Bubbles will be documented in this file.
 - `sitemap.xml` at `/sitemap.xml` — covers the landing page, privacy policy, and terms of service for search engine indexing
 - `robots.txt` at `/robots.txt` — tells crawlers to allow public pages and `/join/` share links (for OG previews), and block `/auth/`, `/dashboard/`, `/profile/`, `/groups/`, and `/api/`
 
+### Fixed
+- Group owners could not archive their group after the v0.2.5.1 non-owner fix — root cause was `isOwner` being derived as React state inside a React Query `queryFn`. With a 5-minute stale time, the query cache served data without re-running `queryFn`, leaving `isOwner` stuck at `false`. Replaced with a derived value computed reactively from `group.owner_id` and a separately-loaded `currentUserId`, matching the pattern already used in `GroupSettings`
+
 ## [0.2.5.1] - 2026-04-04
 
 ### Fixed
