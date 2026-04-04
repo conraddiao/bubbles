@@ -2,6 +2,16 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.3.0] - 2026-04-03
+
+### Changed
+- Sticky header now has a background so it stays readable when scrolling over the orange QR hero
+- Share button on the group QR hero now matches the Copy Link style (same border, no fill) and uses the iOS-style share icon
+- Export Contacts section removed — redundant with the member list; Text Me button and export dropdown moved to the Group Members header
+- Group member cards simplified: contact info shows as icons only (no email/phone text), joined timestamp and notification status removed
+- Desktop member table: Notifications and Joined columns removed, contact column shows icons only
+- `overscroll-behavior-x: none` on body to prevent horizontal overscroll bounce on mobile
+
 ## [0.2.2.0] - 2026-04-03
 
 ### Added
