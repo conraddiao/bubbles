@@ -45,7 +45,7 @@ export default function ProfileSetupPage() {
           </p>
         </div>
 
-        <ProfileForm onSuccess={() => router.push('/dashboard')} />
+        <ProfileForm onSuccess={() => router.push('/dashboard')} alwaysAllowSubmit />
       </div>
     </div>
   )
