@@ -2,6 +2,15 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.5.3] - 2026-04-04
+
+### Changed
+- Removed QR code texture from 3D squircle background — the cube now renders as a clean fresnel-glow shape without projected QR codes
+- Increased squircle geometry resolution from 48x48 to 96x96 segments for smoother twisting animation
+
+### Added
+- `npm run init` script — runs `npm install` and pulls Vercel env vars in one command for faster project setup
+
 ## [0.2.5.2] - 2026-04-04
 
 ### Added
