@@ -2,6 +2,17 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.4.0] - 2026-04-04
+
+### Changed
+- Group pages now route by share_token instead of UUID, producing cleaner URLs (`/groups/abc...` instead of `/groups/550e8400-...`)
+- New groups generate lowercase a-z share tokens (32 characters) instead of hex UUIDs
+- Share link view logging now captures referrer URL and UTM parameters (source, medium, campaign)
+
+### Added
+- Share link analytics section on group page (owner-only): total views, member conversion rate, 30-day sparkline chart, and top traffic sources
+- `get_share_link_analytics` database function for aggregated share link metrics
+
 ## [0.2.3.3] - 2026-04-03
 
 ### Fixed

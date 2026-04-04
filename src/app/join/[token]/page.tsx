@@ -86,7 +86,13 @@ export default function JoinPage({ params }: JoinPageProps) {
   // Log share link view — fire-and-forget, non-blocking
   useEffect(() => {
     if (!group?.id) return
-    logShareLinkView(token)
+    const params = new URLSearchParams(window.location.search)
+    logShareLinkView(token, {
+      referrer: document.referrer || undefined,
+      utm_source: params.get('utm_source') || undefined,
+      utm_medium: params.get('utm_medium') || undefined,
+      utm_campaign: params.get('utm_campaign') || undefined,
+    })
   }, [group?.id, token])
 
   // Join group mutation

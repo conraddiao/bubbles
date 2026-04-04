@@ -35,7 +35,7 @@ export default function DashboardPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['user-groups'] })
       if (data?.group_id) {
-        router.push(`/groups/${data.group_id}?created=true`)
+        router.push(`/groups/${data.share_token}?created=true`)
       }
     },
   })
@@ -105,7 +105,7 @@ export default function DashboardPage() {
             {groups.map((group: DashboardGroup) => (
               <Link
                 key={group.id}
-                href={`/groups/${group.id}`}
+                href={`/groups/${group.share_token}`}
                 className="active-scale flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 transition hover:border-[var(--accent-light)] hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <div className="min-w-0 flex-1">
@@ -147,7 +147,7 @@ export default function DashboardPage() {
               {archivedGroups.map((group: DashboardGroup) => (
                 <Link
                   key={group.id}
-                  href={`/groups/${group.id}`}
+                  href={`/groups/${group.share_token}`}
                   className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card/50 px-4 py-3 opacity-60 transition hover:opacity-100 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                   <div className="min-w-0 flex-1">

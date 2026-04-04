@@ -8,15 +8,15 @@ export const dynamic = 'force-dynamic'
 
 interface GroupPageProps {
   params: Promise<{
-    id: string
+    token: string
   }>
 }
 
 export default function GroupPage({ params }: GroupPageProps) {
   const searchParams = useSearchParams()
   const resolvedParams = use(params)
-  const groupId = resolvedParams.id
+  const token = resolvedParams.token
   const showSuccessToast = searchParams.get('created') === 'true'
 
-  return <SingleGroupDashboard groupId={groupId} showSuccessToast={showSuccessToast} />
+  return <SingleGroupDashboard token={token} showSuccessToast={showSuccessToast} />
 }

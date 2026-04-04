@@ -8,12 +8,13 @@ import { toast } from 'sonner'
 import { MemberList } from './member-list'
 import { QrCodeHero } from './qr-code-hero'
 import { GroupSettingsDrawer } from './group-settings-drawer'
+import { ShareLinkAnalytics } from './share-link-analytics'
 import type { Database } from '@/types'
 import { getGroupMembers, unarchiveContactGroup } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 
 interface SingleGroupDashboardProps {
-  groupId: string
+  token: string
   showSuccessToast?: boolean
 }
 
@@ -29,14 +30,14 @@ type GroupMember = {
   is_owner: boolean
 }
 
-export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupDashboardProps) {
+export function SingleGroupDashboard({ token, showSuccessToast }: SingleGroupDashboardProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [isOwner, setIsOwner] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroupRow | null, Error>({
-    queryKey: ['group', groupId],
+    queryKey: ['group', token],
     queryFn: async () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (userError) throw userError
@@ -45,7 +46,7 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
       const { data, error } = await supabase
         .from('contact_groups')
         .select('*')
-        .eq('id', groupId)
+        .eq('share_token', token)
         .single<ContactGroupRow>()
 
       if (error) throw error
@@ -54,6 +55,8 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
       return data
     },
   })
+
+  const groupId = group?.id ?? ''
 
   const { data: members } = useQuery<GroupMember[], Error>({
     queryKey: ['group-members', groupId],
@@ -86,7 +89,7 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
     },
     onSuccess: () => {
       toast.success('Group unarchived and restored to your dashboard.')
-      queryClient.invalidateQueries({ queryKey: ['group', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['group', token] })
       queryClient.invalidateQueries({ queryKey: ['user-groups'] })
       queryClient.invalidateQueries({ queryKey: ['archived-groups'] })
     },
@@ -147,6 +150,13 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
         memberCount={totalMembers}
         onSettingsClick={() => setDrawerOpen(true)}
       />
+
+      {/* Share link analytics — owner only */}
+      {isOwner && groupId && (
+        <div className="px-4 pt-6">
+          <ShareLinkAnalytics groupId={groupId} />
+        </div>
+      )}
 
       {/* Members */}
       <div className="px-4 py-6">

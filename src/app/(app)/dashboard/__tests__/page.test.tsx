@@ -45,7 +45,7 @@ describe('DashboardPage', () => {
     )
     mockGetUserGroups.mockResolvedValue({ data: mockGroups, error: null })
     mockGetArchivedGroups.mockResolvedValue({ data: [], error: null })
-    mockCreateContactGroup.mockResolvedValue({ data: { group_id: 'new-id' }, error: null } as any)
+    mockCreateContactGroup.mockResolvedValue({ data: { group_id: 'new-id', share_token: 'newtoken123' }, error: null } as any)
   })
 
   it('renders empty state when no groups', async () => {
@@ -70,9 +70,9 @@ describe('DashboardPage', () => {
     render(<DashboardPage />)
     await waitFor(() => {
       const weddingLink = screen.getByText('Wedding Party').closest('a')
-      expect(weddingLink).toHaveAttribute('href', '/groups/g1')
+      expect(weddingLink).toHaveAttribute('href', '/groups/abc123')
       const parkLink = screen.getByText('Park Hangout').closest('a')
-      expect(parkLink).toHaveAttribute('href', '/groups/g2')
+      expect(parkLink).toHaveAttribute('href', '/groups/def456')
     })
   })
 
@@ -96,7 +96,7 @@ describe('DashboardPage', () => {
       expect(mockCreateContactGroup).toHaveBeenCalled()
     })
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/groups/new-id?created=true')
+      expect(mockPush).toHaveBeenCalledWith('/groups/newtoken123?created=true')
     })
   })
 
