@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { ArrowLeft, LogOut, Settings } from 'lucide-react'
@@ -7,6 +8,7 @@ import { ArrowLeft, LogOut, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -31,9 +33,24 @@ export function AppHeader() {
 
   const avatarInitial = (displayName?.charAt(0) ?? user?.email?.charAt(0) ?? '?').toUpperCase()
 
+  const [classicCards, setClassicCards] = useState(() => {
+    if (typeof document === 'undefined') return false
+    return document.cookie.includes('classic-cards=true')
+  })
+
   const handleSignOut = async () => {
     await signOut()
     router.push('/')
+  }
+
+  const handleClassicCardsToggle = (checked: boolean) => {
+    setClassicCards(checked)
+    if (checked) {
+      document.cookie = 'classic-cards=true; path=/; max-age=31536000'
+    } else {
+      document.cookie = 'classic-cards=; path=/; max-age=0'
+    }
+    router.refresh()
   }
 
   return (
@@ -87,6 +104,14 @@ export function AppHeader() {
               <Settings className="size-4" />
               Settings
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuCheckboxItem
+              checked={classicCards}
+              onCheckedChange={handleClassicCardsToggle}
+            >
+              Classic Cards
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut className="size-4" />
               Sign Out
