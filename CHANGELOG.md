@@ -2,6 +2,14 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.5.1] - 2026-04-04
+
+### Changed
+- QR code on squircle cube now renders as fully opaque white instead of 30% alpha
+- QR code scaled down to 65% of each face with clean margins
+- QR code no longer bleeds onto adjacent cube faces — face-mask shader prevents edge spill
+- Back-facing cube geometry discarded in fragment shader to prevent seeing through to the opposite face's QR code
+
 ## [0.2.5.0] - 2026-04-04
 
 ### Added
