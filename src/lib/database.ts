@@ -43,6 +43,8 @@ const rpc = (client: typeof supabase) => ({
     client.rpc('update_profile_across_groups' as any, args as any),
   regenerateGroupToken: (args: { group_uuid: string }) =>
     client.rpc('regenerate_group_token' as any, args as any),
+  logShareLinkView: (args: { group_token: string }) =>
+    client.rpc('log_share_link_view' as any, args as any),
 })
 
 async function hashPasscode(passcode: string) {
@@ -731,4 +733,16 @@ export function subscribeToNotificationEvents(groupId: string, callback: (payloa
       callback
     )
     .subscribe()
+}
+
+export async function logShareLinkView(shareToken: string) {
+  try {
+    const { error } = await rpc(supabase).logShareLinkView({ group_token: shareToken })
+    if (error) throw error
+    return { data: true, error: null }
+  } catch (error) {
+    // Swallow silently — view logging is best-effort and must never surface to the user
+    console.warn('logShareLinkView failed (non-critical):', error)
+    return { data: null, error: null }
+  }
 }

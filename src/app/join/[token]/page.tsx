@@ -5,7 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { ContactGroup, Database } from '@/types'
-import { getGroupByToken, joinContactGroup, joinContactGroupAnonymous } from '@/lib/database'
+import { getGroupByToken, joinContactGroup, joinContactGroupAnonymous, logShareLinkView } from '@/lib/database'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -82,6 +82,12 @@ export default function JoinPage({ params }: JoinPageProps) {
       return result.data
     },
   })
+
+  // Log share link view — fire-and-forget, non-blocking
+  useEffect(() => {
+    if (!group?.id) return
+    logShareLinkView(token)
+  }, [group?.id, token])
 
   // Join group mutation
   const requiresPassword = group?.access_type === 'password'
