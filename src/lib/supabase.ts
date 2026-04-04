@@ -139,6 +139,47 @@ console.log('Supabase config:', {
   isProductionWithoutConfig
 })
 
+// Promise-queue-based auth lock to prevent Web Locks API contention.
+// Supabase's default behavior uses navigator.locks with steal semantics,
+// which causes "lock was released because another request stole it" errors
+// when getInitialSession() and onAuthStateChange() fire concurrently.
+const lockQueues = new Map<string, Promise<void>>()
+
+function customAuthLock<T>(name: string, acquireTimeout: number, fn: () => Promise<T>): Promise<T> {
+  const existing = lockQueues.get(name) ?? Promise.resolve()
+
+  let releaseLock!: () => void
+  const hold = new Promise<void>((res) => { releaseLock = res })
+  lockQueues.set(name, existing.then(() => hold))
+
+  // Clean up resolved entries to prevent unbounded map growth
+  hold.then(() => {
+    if (lockQueues.get(name) === hold) lockQueues.delete(name)
+  })
+
+  const acquire = acquireTimeout >= 0
+    ? Promise.race([
+        existing,
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error(`Auth lock timed out: ${name}`)), acquireTimeout)
+        ),
+      ])
+    : existing
+
+  return acquire
+    .then(() => {
+      // Also apply acquireTimeout to fn() execution to prevent indefinite lock hold
+      if (acquireTimeout < 0) return fn()
+      return Promise.race([
+        fn(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Auth operation timed out: ${name}`)), acquireTimeout * 4)
+        ),
+      ])
+    })
+    .finally(() => releaseLock())
+}
+
 const getSupabaseClient = (): TypedSupabaseClient => {
   if (!globalForSupabase.__supabaseClient) {
     globalForSupabase.__supabaseClient = shouldUseMockClient
@@ -148,7 +189,8 @@ const getSupabaseClient = (): TypedSupabaseClient => {
             autoRefreshToken: true,
             persistSession: true,
             detectSessionInUrl: true,
-            storageKey: 'shared-contact-groups-auth'
+            storageKey: 'shared-contact-groups-auth',
+            lock: customAuthLock,
           }
         })
   }

@@ -74,6 +74,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         varying vec3 vNormal;
         varying vec3 vViewDir;
         varying vec2 vQRuv;
+        varying float vFaceMask;
 
         vec3 rotateY(vec3 p, float a) {
           float c = cos(a), s = sin(a);
@@ -91,13 +92,22 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         void main() {
           // --- Cubic UV from pre-twist position ---
           vec3 absPos = abs(position);
+          float maxAxis = max(absPos.x, max(absPos.y, absPos.z));
+          float secondAxis;
           if (absPos.y >= absPos.x && absPos.y >= absPos.z) {
             vQRuv = (position.xz + 1.0) * 0.5;
+            secondAxis = max(absPos.x, absPos.z);
           } else if (absPos.x >= absPos.y && absPos.x >= absPos.z) {
             vQRuv = (position.zy + 1.0) * 0.5;
+            secondAxis = max(absPos.y, absPos.z);
           } else {
             vQRuv = (position.xy + 1.0) * 0.5;
+            secondAxis = max(absPos.x, absPos.y);
           }
+          // Ratio of dominant axis vs second — near edges/corners this approaches 1, on flat faces it's low
+          // Tight cutoff: only show QR on clearly flat faces, not rounded edges
+          float ratio = secondAxis / maxAxis;
+          vFaceMask = 1.0 - smoothstep(0.6, 0.75, ratio);
 
           // --- Twist deformation ---
           float t, angle;
@@ -132,16 +142,22 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         varying vec3 vNormal;
         varying vec3 vViewDir;
         varying vec2 vQRuv;
+        varying float vFaceMask;
 
         void main() {
+          if (!gl_FrontFacing) discard;
+
           float fresnel = 1.0 - abs(dot(vNormal, vViewDir));
           fresnel = pow(fresnel, 2.5);
 
           float qrAlpha = 0.0;
           if (uHasQR > 0.5) {
-            float luma = texture2D(uQRTexture, vQRuv).r;
-            float isDark = 1.0 - step(0.5, luma);
-            qrAlpha = isDark * 0.3;
+            vec2 scaledUV = (vQRuv - 0.5) / 0.65 + 0.5;
+            float inBounds = step(0.0, scaledUV.x) * step(scaledUV.x, 1.0)
+                           * step(0.0, scaledUV.y) * step(scaledUV.y, 1.0);
+            float luma = texture2D(uQRTexture, scaledUV).r;
+            float isDark = (1.0 - step(0.5, luma)) * inBounds;
+            qrAlpha = isDark * vFaceMask;
           }
 
           gl_FragColor = vec4(1.0, 1.0, 1.0, max(fresnel * 0.85, qrAlpha));

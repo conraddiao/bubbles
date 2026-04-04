@@ -25,6 +25,14 @@ All notable changes to Bubbles will be documented in this file.
 - Share link analytics section on group page (owner-only): total views, member conversion rate, 30-day sparkline chart, and top traffic sources
 - `get_share_link_analytics` database function for aggregated share link metrics
 
+## [0.2.3.3] - 2026-04-03
+
+### Fixed
+- Users with complete profiles are no longer incorrectly redirected to `/profile/setup` when the initial profile fetch fails due to a network error. The app now shows a retry button instead.
+- Supabase auth lock contention on page load has been eliminated. Concurrent `getInitialSession()` and `onAuthStateChange()` calls previously competed for the same Web Locks API lock, causing one to fail silently — triggering profile fetch failures, false setup redirects, and broken form submissions. A custom promise-queue lock now serializes auth operations without stealing.
+- Profile setup form "Save Changes" button is now enabled when Google OAuth pre-fills your name — previously always disabled due to the form's `isDirty` tracking not counting programmatically set values.
+- Auth lock now enforces a timeout on the operation itself (not just lock acquisition), preventing a hung auth call from blocking all future auth operations.
+
 ## [0.2.3.2] - 2026-04-03
 
 ### Fixed

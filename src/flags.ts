@@ -8,7 +8,7 @@ export const showQrCode = flag<boolean>({
     { value: true, label: 'Visible' },
     { value: false, label: 'Hidden' },
   ],
-  decide: () => true,
+  decide: async () => true,
 })
 
 export const showCube = flag<boolean>({
@@ -19,5 +19,5 @@ export const showCube = flag<boolean>({
     { value: true, label: 'Visible' },
     { value: false, label: 'Hidden' },
   ],
-  decide: () => true,
+  decide: async () => true,
 })

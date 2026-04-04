@@ -2,13 +2,14 @@
 
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { isProfileComplete } from '@/lib/auth-service'
 import { AppHeader } from '@/components/app-header'
+import { Button } from '@/components/ui/button'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, profileFetchFailed, retryProfile } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -18,11 +19,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         router.push('/auth')
         return
       }
-      if (!isProfileComplete(profile) && pathname !== '/profile/setup') {
+      // Only redirect to setup if profile is genuinely incomplete — not if the fetch failed
+      if (!profileFetchFailed && !isProfileComplete(profile) && pathname !== '/profile/setup') {
         router.push('/profile/setup')
       }
     }
-  }, [user, profile, loading, router, pathname])
+  }, [user, profile, loading, profileFetchFailed, router, pathname])
 
   if (loading) {
     return (
@@ -34,6 +36,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return null
+  }
+
+  // Show retry UI when profile failed to load rather than silently redirecting to setup
+  if (profileFetchFailed) {
+    return (
+      <div className="flex min-h-screen bg-background items-center justify-center flex-col gap-4">
+        <p className="text-muted-foreground">Unable to load your profile. Please try again.</p>
+        <Button onClick={retryProfile}>
+          <RefreshCw className="h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    )
   }
 
   // Allow profile setup page when profile is incomplete

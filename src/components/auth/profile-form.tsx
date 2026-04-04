@@ -13,9 +13,10 @@ import { profileUpdateSchema, ProfileUpdateFormData } from '@/lib/validations'
 
 interface ProfileFormProps {
   onSuccess?: () => void
+  alwaysAllowSubmit?: boolean
 }
 
-export function ProfileForm({ onSuccess }: ProfileFormProps) {
+export function ProfileForm({ onSuccess, alwaysAllowSubmit }: ProfileFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { user, profile, updateProfile } = useAuth()
 
@@ -161,7 +162,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
           <div className="flex gap-3 pt-6 border-t">
             <Button
               type="submit"
-              disabled={isLoading || !isDirty}
+              disabled={isLoading || (!isDirty && !alwaysAllowSubmit)}
               className="flex-1"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
