@@ -133,7 +133,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setShowArchived((prev) => !prev)}
-            className="mb-3 flex w-full items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors"
+            className="mb-3 flex w-full items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors active-scale"
           >
             <Users className="size-4" />
             Archived groups ({archivedGroups.length})

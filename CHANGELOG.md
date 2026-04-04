@@ -5,6 +5,7 @@ All notable changes to Bubbles will be documented in this file.
 ## [0.2.5.3] - 2026-04-04
 
 ### Changed
+- All buttons now show a brief scale-down (97%) on tap/click, making the UI feel responsive on mobile and desktop. The `Button` component gains this automatically; all custom `<button>` elements throughout the app (header, QR hero, settings drawer, auth form, dashboard) are updated to match.
 - Removed QR code texture from 3D squircle background — the cube now renders as a clean fresnel-glow shape without projected QR codes
 - Increased squircle geometry resolution from 48x48 to 96x96 segments for smoother twisting animation
 
