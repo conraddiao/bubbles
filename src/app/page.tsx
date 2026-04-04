@@ -40,19 +40,18 @@ export default function Home() {
             Bubbles
           </h1>
           <p className="mt-4 text-xl leading-relaxed text-muted-foreground sm:text-2xl">
-            The easiest way to swap contacts<br className="hidden sm:inline" /> at your next gathering.
+            The easiest way to swap contacts in a group.
           </p>
         </header>
 
         <div className="mb-10 space-y-4 text-center text-base text-foreground/80">
           <p>
-            Weddings, park hangs, house parties, that friend-of-a-friend dinner
+            New group chats w/ randoms, park hangs, weddings, that friend-of-a-friend dinner
             where everyone clicked. <strong className="text-foreground">Bubbles</strong> lets
             the whole group share contact info in seconds.
           </p>
           <p className="text-sm text-muted-foreground">
-            Flash a QR code. Everyone joins. No app downloads, no awkward
-            &ldquo;what&rsquo;s your number?&rdquo; one by one.
+            Flash a QR code or share a link. Everyone joins and can download everyone&rsquo;s contact info.
           </p>
         </div>
 
@@ -71,7 +70,7 @@ export default function Home() {
 
         <footer className="mt-10 text-center">
           <p className="font-label text-xs uppercase tracking-widest text-muted-foreground">
-            Made for real life, not the enterprise
+            Not another network
           </p>
           <div className="mt-3 flex justify-center gap-4 text-xs text-muted-foreground">
             <Link href="/privacy" className="hover:text-foreground hover:underline">
