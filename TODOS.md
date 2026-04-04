@@ -20,6 +20,7 @@
 - `src/components/auth/__tests__/phone-verification.test.tsx` (5 failures — phone format mismatch)
 - `src/components/auth/__tests__/two-factor-setup.test.tsx` (5 failures)
 - `src/components/groups/__tests__/member-list.test.tsx` (5 failures)
+- `src/components/auth/__tests__/two-factor-verification.test.tsx` (1 failure)
 - `src/components/groups/__tests__/contact-form.test.tsx` (1 failure)
 
 **Previously failing, now fixed (v0.2.4.0):**

@@ -2,6 +2,12 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.5.2] - 2026-04-04
+
+### Added
+- `sitemap.xml` at `/sitemap.xml` — covers the landing page, privacy policy, and terms of service for search engine indexing
+- `robots.txt` at `/robots.txt` — tells crawlers to allow public pages and `/join/` share links (for OG previews), and block `/auth/`, `/dashboard/`, `/profile/`, `/groups/`, and `/api/`
+
 ## [0.2.5.1] - 2026-04-04
 
 ### Fixed
