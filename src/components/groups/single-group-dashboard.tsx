@@ -16,6 +16,8 @@ import { useRouter } from 'next/navigation'
 interface SingleGroupDashboardProps {
   token: string
   showSuccessToast?: boolean
+  showQrCode?: boolean
+  showCube?: boolean
 }
 
 type ContactGroupRow = Database['public']['Tables']['contact_groups']['Row']
@@ -30,7 +32,7 @@ type GroupMember = {
   is_owner: boolean
 }
 
-export function SingleGroupDashboard({ token, showSuccessToast }: SingleGroupDashboardProps) {
+export function SingleGroupDashboard({ token, showSuccessToast, showQrCode = true, showCube = true }: SingleGroupDashboardProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [isOwner, setIsOwner] = useState(false)
@@ -149,6 +151,8 @@ export function SingleGroupDashboard({ token, showSuccessToast }: SingleGroupDas
         shareUrl={shareUrl}
         memberCount={totalMembers}
         onSettingsClick={() => setDrawerOpen(true)}
+        showQrCode={showQrCode}
+        showCube={showCube}
       />
 
       {/* Share link analytics — owner only */}

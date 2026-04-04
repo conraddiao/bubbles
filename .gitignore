@@ -45,3 +45,4 @@ next-env.d.ts
 
 # Supabase CLI runtime artifacts
 supabase/.temp/
+.env*.local
