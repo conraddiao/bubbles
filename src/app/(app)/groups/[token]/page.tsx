@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
-import { showQrCode, showCube } from '@/flags'
+import { cookies } from 'next/headers'
+import { showQRCard, showQRCube } from '@/flags'
 import { GroupPageClient } from './group-page-client'
 
 export const dynamic = 'force-dynamic'
@@ -9,14 +10,16 @@ interface GroupPageProps {
 }
 
 export default async function GroupPage({ params }: GroupPageProps) {
-  const [qrCodeVisible, cubeVisible] = await Promise.all([showQrCode(), showCube()])
+  const [qrCardVisible, qrCubeVisible] = await Promise.all([showQRCard(), showQRCube()])
+  const cookieStore = await cookies()
+  const classicCards = cookieStore.get('classic-cards')?.value === 'true'
 
   return (
     <Suspense>
       <GroupPageClient
         params={params}
-        showQrCode={qrCodeVisible}
-        showCube={cubeVisible}
+        showQrCode={classicCards ? true : qrCardVisible}
+        showCube={classicCards ? false : qrCubeVisible}
       />
     </Suspense>
   )

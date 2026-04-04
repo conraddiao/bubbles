@@ -21,9 +21,11 @@
     "db:stop": "npx supabase stop",
     "db:status": "npx supabase status",
     "db:reset": "npx supabase db reset",
-    "test:integration": "vitest --run --config vitest.integration.config.ts"
+    "test:integration": "vitest --run --config vitest.integration.config.ts",
+    "init": "npm install && npx vercel env pull .env.local --yes"
   },
   "dependencies": {
+    "@flags-sdk/vercel": "^1.2.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.3",

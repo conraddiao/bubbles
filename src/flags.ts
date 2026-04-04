@@ -1,23 +1,14 @@
 import { flag } from 'flags/next'
+import { vercelAdapter } from '@flags-sdk/vercel'
 
-export const showQrCode = flag<boolean>({
-  key: 'show-qr-code',
-  defaultValue: true,
-  description: 'Show the QR code card in the group hero section',
-  options: [
-    { value: true, label: 'Visible' },
-    { value: false, label: 'Hidden' },
-  ],
-  decide: async () => true,
+export const showQRCard = flag<boolean>({
+  key: 'showQRCard',
+  adapter: vercelAdapter(),
+  defaultValue: false,
 })
 
-export const showCube = flag<boolean>({
-  key: 'show-cube',
+export const showQRCube = flag<boolean>({
+  key: 'showQRCube',
+  adapter: vercelAdapter(),
   defaultValue: true,
-  description: 'Show the 3D squircle background in the group hero section',
-  options: [
-    { value: true, label: 'Visible' },
-    { value: false, label: 'Hidden' },
-  ],
-  decide: async () => true,
 })
