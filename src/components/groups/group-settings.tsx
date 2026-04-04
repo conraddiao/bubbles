@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Archive, ArchiveRestore, Copy, ExternalLink, Trash2, UserMinus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,6 +30,7 @@ interface GroupSettingsProps {
 }
 
 export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'members' | 'settings'>('members')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const queryClient = useQueryClient()
@@ -142,9 +144,12 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
       if (result.error) throw new Error(result.error)
       return result.data
     },
-    onSuccess: () => {
+    onSuccess: (newToken) => {
       toast.success('Share link regenerated successfully')
       queryClient.invalidateQueries({ queryKey: ['user-groups'] })
+      if (newToken) {
+        router.replace(`/groups/${newToken}`)
+      }
     },
     onError: (err) => {
       toast.error(err.message || 'Failed to regenerate share link')

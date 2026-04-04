@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { SingleGroupDashboard } from '@/components/groups/single-group-dashboard'
 
 interface GroupPageClientProps {
-  params: Promise<{ id: string }>
+  params: Promise<{ token: string }>
   showQrCode: boolean
   showCube: boolean
 }
@@ -17,7 +17,7 @@ export function GroupPageClient({ params, showQrCode, showCube }: GroupPageClien
 
   return (
     <SingleGroupDashboard
-      groupId={resolvedParams.id}
+      token={resolvedParams.token}
       showSuccessToast={showSuccessToast}
       showQrCode={showQrCode}
       showCube={showCube}

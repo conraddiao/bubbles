@@ -2,6 +2,28 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.4.0] - 2026-04-04
+
+### Changed
+- Group pages now route by share_token instead of UUID, producing cleaner URLs (`/groups/abc...` instead of `/groups/550e8400-...`)
+- New groups generate lowercase a-z share tokens (32 characters) instead of hex UUIDs
+- Share link view logging now captures referrer URL and UTM parameters (source, medium, campaign)
+
+### Added
+- Share link analytics section on group page (owner-only): total views, member conversion rate, 30-day sparkline chart, and top traffic sources
+- `get_share_link_analytics` database function for aggregated share link metrics
+
+## [0.2.3.2] - 2026-04-03
+
+### Fixed
+- Horizontal rubber-band overscroll on iOS Safari is now blocked at all levels: `overscroll-behavior-x: none` added to `:root` and `html` (was previously only on `body`)
+- Header converted from `position: sticky` to `position: fixed` so it is completely outside the scroll stack and immune to iOS bounce/movement during overscroll
+
+## [0.2.3.1] - 2026-04-04
+
+### Added
+- Share link visits are now logged to the database when someone navigates to a group's `/join/[token]` page via a share link or QR code. Each view records the group, timestamp, and viewer ID (null for anonymous visitors). Group owners can query `share_link_views` for time-series analytics on their link traffic.
+
 ## [0.2.3.0] - 2026-04-03
 
 ### Changed

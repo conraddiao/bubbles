@@ -5,7 +5,7 @@ import { GroupPageClient } from './group-page-client'
 export const dynamic = 'force-dynamic'
 
 interface GroupPageProps {
-  params: Promise<{ id: string }>
+  params: Promise<{ token: string }>
 }
 
 export default async function GroupPage({ params }: GroupPageProps) {
