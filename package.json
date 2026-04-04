@@ -21,7 +21,8 @@
     "db:stop": "npx supabase stop",
     "db:status": "npx supabase status",
     "db:reset": "npx supabase db reset",
-    "test:integration": "vitest --run --config vitest.integration.config.ts"
+    "test:integration": "vitest --run --config vitest.integration.config.ts",
+    "init": "npm install && npx vercel env pull .env.local --yes"
   },
   "dependencies": {
     "@flags-sdk/vercel": "^1.2.1",

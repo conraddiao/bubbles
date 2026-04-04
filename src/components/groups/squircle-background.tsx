@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import QRCode from 'qrcode'
 
 const PHASE1_DURATION = 450  // ms — top alone goes 45°
 const PHASE2_DURATION = 1100 // ms — top 135° + bottom 180° simultaneously
@@ -13,7 +12,7 @@ function easeOut(t: number)   { return 1 - (1 - t) * (1 - t) }
 function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
 
 function buildSquircle() {
-  const geometry = new THREE.SphereGeometry(1, 48, 48)
+  const geometry = new THREE.SphereGeometry(1, 96, 96)
   const p = geometry.attributes.position
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i), z = p.getZ(i), e
@@ -31,13 +30,10 @@ function buildSquircle() {
 
 export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  // Stable ref so the texture effect can update uniforms after Three.js is set up
   const uniformsRef = useRef<{
     uTopAngle: { value: number }
     uBotAngle: { value: number }
     uAxis:     { value: number }
-    uQRTexture: { value: THREE.CanvasTexture | null }
-    uHasQR:    { value: number }
   } | null>(null)
 
   // Main Three.js scene — runs once
@@ -57,8 +53,6 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
       uTopAngle:  { value: 0 },
       uBotAngle:  { value: 0 },
       uAxis:      { value: 0 },
-      uQRTexture: { value: null as THREE.CanvasTexture | null },
-      uHasQR:     { value: 0 },
     }
     uniformsRef.current = uniforms
 
@@ -73,8 +67,6 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         uniform float uAxis;
         varying vec3 vNormal;
         varying vec3 vViewDir;
-        varying vec2 vQRuv;
-        varying float vFaceMask;
 
         vec3 rotateY(vec3 p, float a) {
           float c = cos(a), s = sin(a);
@@ -90,25 +82,6 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         }
 
         void main() {
-          // --- Cubic UV from pre-twist position ---
-          vec3 absPos = abs(position);
-          float maxAxis = max(absPos.x, max(absPos.y, absPos.z));
-          float secondAxis;
-          if (absPos.y >= absPos.x && absPos.y >= absPos.z) {
-            vQRuv = (position.xz + 1.0) * 0.5;
-            secondAxis = max(absPos.x, absPos.z);
-          } else if (absPos.x >= absPos.y && absPos.x >= absPos.z) {
-            vQRuv = (position.zy + 1.0) * 0.5;
-            secondAxis = max(absPos.y, absPos.z);
-          } else {
-            vQRuv = (position.xy + 1.0) * 0.5;
-            secondAxis = max(absPos.x, absPos.y);
-          }
-          // Ratio of dominant axis vs second — near edges/corners this approaches 1, on flat faces it's low
-          // Tight cutoff: only show QR on clearly flat faces, not rounded edges
-          float ratio = secondAxis / maxAxis;
-          vFaceMask = 1.0 - smoothstep(0.6, 0.75, ratio);
-
           // --- Twist deformation ---
           float t, angle;
           vec3 pos, norm;
@@ -137,12 +110,8 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         }
       `,
       fragmentShader: `
-        uniform sampler2D uQRTexture;
-        uniform float uHasQR;
         varying vec3 vNormal;
         varying vec3 vViewDir;
-        varying vec2 vQRuv;
-        varying float vFaceMask;
 
         void main() {
           if (!gl_FrontFacing) discard;
@@ -150,17 +119,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
           float fresnel = 1.0 - abs(dot(vNormal, vViewDir));
           fresnel = pow(fresnel, 2.5);
 
-          float qrAlpha = 0.0;
-          if (uHasQR > 0.5) {
-            vec2 scaledUV = (vQRuv - 0.5) / 0.65 + 0.5;
-            float inBounds = step(0.0, scaledUV.x) * step(scaledUV.x, 1.0)
-                           * step(0.0, scaledUV.y) * step(scaledUV.y, 1.0);
-            float luma = texture2D(uQRTexture, scaledUV).r;
-            float isDark = (1.0 - step(0.5, luma)) * inBounds;
-            qrAlpha = isDark * vFaceMask;
-          }
-
-          gl_FragColor = vec4(1.0, 1.0, 1.0, max(fresnel * 0.85, qrAlpha));
+          gl_FragColor = vec4(1.0, 1.0, 1.0, fresnel * 0.85);
         }
       `,
     })
@@ -234,29 +193,6 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
       material.dispose()
     }
   }, [])
-
-  // QR texture — runs when shareUrl changes, updates uniforms without restarting scene
-  useEffect(() => {
-    if (!shareUrl || !uniformsRef.current) return
-
-    const offscreen = document.createElement('canvas')
-    QRCode.toCanvas(offscreen, shareUrl, {
-      margin: 2,
-      width: 256,
-      color: { dark: '#000000ff', light: '#ffffffff' },
-    }).then(() => {
-      if (!uniformsRef.current) return
-      const prev = uniformsRef.current.uQRTexture.value
-      prev?.dispose()
-      const texture = new THREE.CanvasTexture(offscreen)
-      uniformsRef.current.uQRTexture.value = texture
-      uniformsRef.current.uHasQR.value = 1
-    })
-
-    return () => {
-      uniformsRef.current?.uQRTexture.value?.dispose()
-    }
-  }, [shareUrl])
 
   return (
     <canvas
