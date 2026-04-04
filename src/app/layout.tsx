@@ -5,6 +5,7 @@ import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { VercelAnalytics } from "@/components/vercel-analytics";
+import { VercelToolbar } from '@vercel/toolbar/next';
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -36,6 +37,7 @@ export default function RootLayout({
             {children}
             <Toaster />
             <VercelAnalytics />
+            {process.env.NODE_ENV === 'development' && <VercelToolbar />}
           </AuthProvider>
         </QueryProvider>
       </body>

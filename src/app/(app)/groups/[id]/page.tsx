@@ -1,22 +1,23 @@
-'use client'
-
-import { use } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { SingleGroupDashboard } from '@/components/groups/single-group-dashboard'
+import { Suspense } from 'react'
+import { showQrCode, showCube } from '@/flags'
+import { GroupPageClient } from './group-page-client'
 
 export const dynamic = 'force-dynamic'
 
 interface GroupPageProps {
-  params: Promise<{
-    id: string
-  }>
+  params: Promise<{ id: string }>
 }
 
-export default function GroupPage({ params }: GroupPageProps) {
-  const searchParams = useSearchParams()
-  const resolvedParams = use(params)
-  const groupId = resolvedParams.id
-  const showSuccessToast = searchParams.get('created') === 'true'
+export default async function GroupPage({ params }: GroupPageProps) {
+  const [qrCodeVisible, cubeVisible] = await Promise.all([showQrCode(), showCube()])
 
-  return <SingleGroupDashboard groupId={groupId} showSuccessToast={showSuccessToast} />
+  return (
+    <Suspense>
+      <GroupPageClient
+        params={params}
+        showQrCode={qrCodeVisible}
+        showCube={cubeVisible}
+      />
+    </Suspense>
+  )
 }

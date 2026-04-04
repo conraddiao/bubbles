@@ -3,15 +3,18 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { Copy, Pencil, Share } from 'lucide-react'
 import { toast } from 'sonner'
+import { SquircleBackground } from './squircle-background'
 
 interface QrCodeHeroProps {
   groupName: string
   shareUrl: string
   memberCount: number
   onSettingsClick?: () => void
+  showQrCode?: boolean
+  showCube?: boolean
 }
 
-export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick }: QrCodeHeroProps) {
+export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, showQrCode = true, showCube = true }: QrCodeHeroProps) {
   const handleCopyLink = async () => {
     if (!shareUrl) return
     try {
@@ -36,7 +39,8 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick }
   }
 
   return (
-    <div className="relative flex flex-col items-center gap-5 bg-[#E8622A] px-6 py-10">
+    <div className="relative flex h-[520px] flex-col items-center justify-between overflow-hidden bg-[#E8622A] px-6 py-10">
+      {showCube && <SquircleBackground shareUrl={shareUrl} />}
       {onSettingsClick && (
         <button
           onClick={onSettingsClick}
@@ -57,7 +61,7 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick }
         </p>
       </div>
 
-      {shareUrl ? (
+      {showQrCode && (shareUrl ? (
         <div
           className="animate-fade-up-in rounded-2xl bg-white p-4 shadow-lg"
           role="img"
@@ -73,7 +77,7 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick }
         </div>
       ) : (
         <div className="h-[232px] w-[232px] animate-pulse rounded-2xl bg-[#FEFAF4]/20" />
-      )}
+      ))}
 
       <div className="flex w-full max-w-xs gap-3">
         <button
