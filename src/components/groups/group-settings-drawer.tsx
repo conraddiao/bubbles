@@ -265,13 +265,6 @@ export function GroupSettingsDrawer({
               >
                 {leaveGroupMutation.isPending ? 'Leaving...' : 'Leave group'}
               </button>
-              <button
-                onClick={handleArchive}
-                disabled={archiveGroupMutation.isPending}
-                className="w-full rounded-xl border border-[#7A6E63] py-3 text-sm font-semibold text-[#7A6E63] font-label transition-colors hover:bg-[#F0E8D9] disabled:opacity-50"
-              >
-                {archiveGroupMutation.isPending ? 'Archiving...' : 'Archive group'}
-              </button>
             </div>
           )}
         </Dialog.Content>
