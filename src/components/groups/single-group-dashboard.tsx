@@ -6,7 +6,6 @@ import { ArchiveRestore } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { MemberList } from './member-list'
-import { ContactExport } from './contact-export'
 import { QrCodeHero } from './qr-code-hero'
 import { GroupSettingsDrawer } from './group-settings-drawer'
 import type { Database } from '@/types'
@@ -149,17 +148,12 @@ export function SingleGroupDashboard({ groupId, showSuccessToast }: SingleGroupD
         onSettingsClick={() => setDrawerOpen(true)}
       />
 
-      {/* Members + export */}
-      <div className="px-4 py-6 space-y-6">
+      {/* Members */}
+      <div className="px-4 py-6">
         <MemberList
           groupId={groupId}
           groupName={group.name}
           isOwner={isOwner}
-          layout="embedded"
-        />
-        <ContactExport
-          groupId={groupId}
-          groupName={group.name}
           layout="embedded"
         />
       </div>

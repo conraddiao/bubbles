@@ -1,7 +1,7 @@
 'use client'
 
 import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Pencil, Share2 } from 'lucide-react'
+import { Copy, Pencil, Share } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface QrCodeHeroProps {
@@ -85,9 +85,9 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick }
         </button>
         <button
           onClick={handleShare}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4] bg-[#FEFAF4]/20 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/30 font-label"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label"
         >
-          <Share2 className="h-4 w-4" aria-hidden="true" />
+          <Share className="h-4 w-4" aria-hidden="true" />
           Share
         </button>
       </div>

@@ -43,7 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-50">
+      <div className="sticky top-0 z-50 bg-background">
         <AppHeader />
       </div>
       <main>{children}</main>
