@@ -192,7 +192,7 @@ function GroupCard({ group, onViewGroup }: GroupCardProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onViewGroup?.(group.id)}
+            onClick={() => onViewGroup?.(group.share_token)}
             className="flex-1"
           >
             <Users className="h-4 w-4" />

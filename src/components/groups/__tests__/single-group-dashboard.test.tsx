@@ -55,6 +55,7 @@ vi.mock('@/lib/database', () => ({
   leaveGroup: vi.fn(),
   archiveContactGroup: vi.fn(),
   unarchiveContactGroup: vi.fn(),
+  getShareLinkAnalytics: vi.fn().mockResolvedValue({ data: null, error: null }),
   subscribeToGroupMembers: vi.fn(() => ({
     unsubscribe: vi.fn(),
   })),
@@ -121,12 +122,12 @@ describe('SingleGroupDashboard', () => {
   it('renders loading skeleton initially', () => {
     mockSingle.mockReturnValue(new Promise(() => {}))
 
-    const { container } = render(<SingleGroupDashboard groupId="g1" />)
+    const { container } = render(<SingleGroupDashboard token="abc123" />)
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   it('renders group name in QR hero', async () => {
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       const names = screen.getAllByText('Wedding Party')
       expect(names.length).toBeGreaterThanOrEqual(1)
@@ -134,21 +135,21 @@ describe('SingleGroupDashboard', () => {
   })
 
   it('shows live member count in QR hero', async () => {
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByText('1 joined so far')).toBeInTheDocument()
     })
   })
 
   it('shows QR code when share URL is available', async () => {
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByTestId('qr-code')).toBeInTheDocument()
     })
   })
 
   it('renders settings menu button', async () => {
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
     })
@@ -156,7 +157,7 @@ describe('SingleGroupDashboard', () => {
 
   it('owner opens drawer and sees save button', async () => {
     const user = userEvent.setup()
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
     })
@@ -172,7 +173,7 @@ describe('SingleGroupDashboard', () => {
     setupSupabaseMock({ ...mockGroup, owner_id: 'other-user-id' })
 
     const user = userEvent.setup()
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
     })
@@ -192,7 +193,7 @@ describe('SingleGroupDashboard', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     mockLeaveGroup.mockResolvedValue({ data: null, error: null })
 
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Group settings' })).toBeInTheDocument()
     })
@@ -213,7 +214,7 @@ describe('SingleGroupDashboard', () => {
   it('shows error state when group is not found', async () => {
     mockSingle.mockResolvedValue({ data: null, error: { message: 'Not found' } })
 
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByText('Group not found')).toBeInTheDocument()
     })
@@ -222,14 +223,14 @@ describe('SingleGroupDashboard', () => {
   it('shows archived banner when group has archived_at set', async () => {
     setupSupabaseMock({ ...mockGroup, archived_at: '2026-03-01T00:00:00Z' })
 
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByText('This group is archived')).toBeInTheDocument()
     })
   })
 
   it('does not show Archived badge for non-archived group', async () => {
-    render(<SingleGroupDashboard groupId="g1" />)
+    render(<SingleGroupDashboard token="abc123" />)
     await waitFor(() => {
       expect(screen.getByText('Wedding Party')).toBeInTheDocument()
     })

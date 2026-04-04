@@ -76,7 +76,7 @@ export function GroupSettingsDrawer({
     onSuccess: () => {
       toast.success('Group settings saved')
       setFormState((prev) => ({ ...prev, password: '' }))
-      queryClient.invalidateQueries({ queryKey: ['group', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['group', group.share_token] })
       queryClient.invalidateQueries({ queryKey: ['user-groups'] })
       onOpenChange(false)
     },
@@ -95,7 +95,7 @@ export function GroupSettingsDrawer({
     onSuccess: () => {
       toast.success('You left the group')
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
-      queryClient.invalidateQueries({ queryKey: ['group', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['group', group.share_token] })
       onLeaveSuccess()
     },
     onError: (error: unknown) => {
