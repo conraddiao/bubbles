@@ -11,8 +11,8 @@ export const dynamic = 'force-dynamic'
 export default function CreateGroupPage() {
   const router = useRouter()
 
-  const handleSuccess = (groupId: string) => {
-    router.push(`/groups/${groupId}?created=true`)
+  const handleSuccess = (_groupId: string, shareToken: string) => {
+    router.push(`/groups/${shareToken}?created=true`)
   }
 
   const handleCancel = () => {
