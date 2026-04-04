@@ -2,6 +2,13 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.5.0] - 2026-04-04
+
+### Added
+- 3D animated squircle vortex background in the group hero section: a WebGL shape (x⁴+y⁴+z⁴=1 superellipsoid) that twists and rotates through Y/X/Z axes with a Fresnel rim-glow effect and the group's QR code projected on each face
+- Vercel feature flags (`show-qr-code`, `show-cube`) to independently toggle the QR code card and 3D background in the group hero — controllable from the Vercel dashboard without a deploy
+- Vercel toolbar in development mode for live flag overrides
+
 ## [0.2.4.0] - 2026-04-04
 
 ### Changed
