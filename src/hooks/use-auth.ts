@@ -204,6 +204,7 @@ function useAuthState(): AuthContextValue {
             profile: null,
             session: null,
             loading: false,
+            profileFetchFailed: false,
           })
         }
       }
@@ -326,6 +327,7 @@ function useAuthState(): AuthContextValue {
         profile: null,
         session: null,
         loading: false,
+        profileFetchFailed: false,
       })
       
       const { error } = await supabase.auth.signOut()
