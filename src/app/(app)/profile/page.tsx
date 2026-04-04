@@ -1,17 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Image, Loader2, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
+import { Loader2, LockKeyhole, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { PhoneInput } from '@/components/ui/phone-input'
-import { Switch } from '@/components/ui/switch'
-import { contactCardSchema, type ContactCardFormData } from '@/lib/validations'
+import { ProfileForm } from '@/components/auth/profile-form'
 import { useAuth } from '@/hooks/use-auth'
-import { updateProfileAcrossGroups } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -31,20 +28,8 @@ const passwordSchema = z
 type PasswordFormData = z.infer<typeof passwordSchema>
 
 export default function ProfileSettingsPage() {
-  const { user, profile, loading, updateProfile, refreshProfile } = useAuth()
-  const [savingContact, setSavingContact] = useState(false)
+  const { user, loading } = useAuth()
   const [savingPassword, setSavingPassword] = useState(false)
-
-  const contactForm = useForm<ContactCardFormData>({
-    resolver: zodResolver(contactCardSchema),
-    defaultValues: {
-      first_name: profile?.first_name || '',
-      last_name: profile?.last_name || '',
-      phone: profile?.phone || '',
-      avatar_url: profile?.avatar_url || '',
-      sms_notifications_enabled: profile?.sms_notifications_enabled ?? true,
-    },
-  })
 
   const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordSchema),
@@ -54,68 +39,12 @@ export default function ProfileSettingsPage() {
     },
   })
 
-  useEffect(() => {
-    if (profile) {
-      contactForm.reset({
-        first_name: profile.first_name || '',
-        last_name: profile.last_name || '',
-        phone: profile.phone || '',
-        avatar_url: profile.avatar_url || '',
-        sms_notifications_enabled: profile.sms_notifications_enabled ?? true,
-      })
-    }
-  }, [contactForm, profile])
-
-  if (loading || !user || !profile) {
+  if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     )
-  }
-
-  const handleContactSubmit = async (values: ContactCardFormData) => {
-    setSavingContact(true)
-    try {
-      const trimmedValues: ContactCardFormData = {
-        ...values,
-        first_name: values.first_name.trim(),
-        last_name: values.last_name.trim(),
-        phone: values.phone?.trim() || undefined,
-        avatar_url: values.avatar_url?.trim() || undefined,
-      }
-
-      const { error: updateError } = await updateProfile({
-        first_name: trimmedValues.first_name,
-        last_name: trimmedValues.last_name,
-        phone: trimmedValues.phone,
-        avatar_url: trimmedValues.avatar_url ?? null,
-        sms_notifications_enabled: trimmedValues.sms_notifications_enabled,
-      })
-
-      if (updateError) {
-        throw new Error(updateError)
-      }
-
-      const { error: propagateError } = await updateProfileAcrossGroups(
-        trimmedValues.first_name,
-        trimmedValues.last_name,
-        trimmedValues.phone,
-        trimmedValues.avatar_url ?? null
-      )
-
-      if (propagateError) {
-        throw new Error(propagateError)
-      }
-
-      await refreshProfile()
-      toast.success('Your contact card has been updated')
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update contact card'
-      toast.error(message)
-    } finally {
-      setSavingContact(false)
-    }
   }
 
   const handlePasswordSubmit = async (values: PasswordFormData) => {
@@ -151,131 +80,7 @@ export default function ProfileSettingsPage() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserRound className="h-5 w-5 text-primary" />
-              Contact card
-            </CardTitle>
-            <CardDescription>
-              These details appear in your shared contact card when members export the group
-              vCard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={contactForm.handleSubmit(handleContactSubmit)} className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label htmlFor="first_name" className="text-sm font-medium">
-                    First name
-                  </label>
-                  <Input
-                    id="first_name"
-                    {...contactForm.register('first_name')}
-                    placeholder="Jamie"
-                  />
-                  {contactForm.formState.errors.first_name && (
-                    <p className="text-sm text-destructive">
-                      {contactForm.formState.errors.first_name.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="last_name" className="text-sm font-medium">
-                    Last name
-                  </label>
-                  <Input
-                    id="last_name"
-                    {...contactForm.register('last_name')}
-                    placeholder="Rivera"
-                  />
-                  {contactForm.formState.errors.last_name && (
-                    <p className="text-sm text-destructive">
-                      {contactForm.formState.errors.last_name.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label htmlFor="phone" className="text-sm font-medium">
-                    Phone number
-                  </label>
-                  <Controller
-                    name="phone"
-                    control={contactForm.control}
-                    render={({ field }) => (
-                      <PhoneInput
-                        {...field}
-                        id="phone"
-                      />
-                    )}
-                  />
-                  {contactForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive">
-                      {contactForm.formState.errors.phone.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label
-                    htmlFor="avatar_url"
-                    className="flex items-center gap-2 text-sm font-medium"
-                  >
-                    <Image className="h-4 w-4 text-muted-foreground" />
-                    Contact photo URL
-                  </label>
-                  <Input
-                    id="avatar_url"
-                    type="url"
-                    {...contactForm.register('avatar_url')}
-                    placeholder="https://cdn.example.com/photo.jpg"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    iOS and Android contacts can render this image when the vCard is imported.
-                  </p>
-                  {contactForm.formState.errors.avatar_url && (
-                    <p className="text-sm text-destructive">
-                      {contactForm.formState.errors.avatar_url.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">SMS notifications</p>
-                  <p className="text-xs text-muted-foreground">
-                    Receive important updates and group changes via text message.
-                  </p>
-                </div>
-                <Switch
-                  checked={contactForm.watch('sms_notifications_enabled')}
-                  onCheckedChange={(checked) =>
-                    contactForm.setValue('sms_notifications_enabled', checked, {
-                      shouldDirty: true,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Button
-                  type="submit"
-                  disabled={savingContact || !contactForm.formState.isDirty}
-                  className="inline-flex items-center gap-2"
-                >
-                  {savingContact && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Save contact card
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  We also update your group memberships so exports use the latest details.
-                </p>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <ProfileForm mode="settings" />
 
         <Card>
           <CardHeader>

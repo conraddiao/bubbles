@@ -1,175 +1,251 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, User, Phone, Bell } from 'lucide-react'
+import { Image, Loader2, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-auth'
-import { profileUpdateSchema, ProfileUpdateFormData } from '@/lib/validations'
+import { contactCardSchema, type ContactCardFormData } from '@/lib/validations'
+import { updateProfileAcrossGroups } from '@/lib/database'
+import { toast } from 'sonner'
 
 interface ProfileFormProps {
+  mode: 'setup' | 'settings'
   onSuccess?: () => void
-  alwaysAllowSubmit?: boolean
 }
 
-export function ProfileForm({ onSuccess, alwaysAllowSubmit }: ProfileFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const { user, profile, updateProfile } = useAuth()
+export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
+  const [saving, setSaving] = useState(false)
+  const { user, profile, updateProfile, refreshProfile } = useAuth()
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isDirty },
-    setValue,
-    watch,
-  } = useForm<ProfileUpdateFormData>({
-    resolver: zodResolver(profileUpdateSchema),
+  const form = useForm<ContactCardFormData>({
+    resolver: zodResolver(contactCardSchema),
     defaultValues: {
       first_name: profile?.first_name || '',
       last_name: profile?.last_name || '',
       phone: profile?.phone || '',
+      avatar_url: profile?.avatar_url || '',
       sms_notifications_enabled: profile?.sms_notifications_enabled ?? true,
     },
   })
 
   useEffect(() => {
-    const firstName = profile?.first_name || user?.user_metadata?.first_name || ''
-    const lastName = profile?.last_name || user?.user_metadata?.last_name || ''
-    const phone = profile?.phone || user?.user_metadata?.phone || ''
-    const smsEnabled = profile?.sms_notifications_enabled ?? true
-
-    setValue('first_name', firstName, { shouldDirty: false })
-    setValue('last_name', lastName, { shouldDirty: false })
-    setValue('phone', phone, { shouldDirty: false })
-    setValue('sms_notifications_enabled', smsEnabled, { shouldDirty: false })
-  }, [profile, user, setValue])
-
-  const smsNotificationsEnabled = watch('sms_notifications_enabled')
-
-  const onSubmit = async (data: ProfileUpdateFormData) => {
-    setIsLoading(true)
-    
-    try {
-      const { error } = await updateProfile(data)
-      
-      if (!error) {
-        onSuccess?.()
-      }
-    } finally {
-      setIsLoading(false)
+    if (profile) {
+      form.reset({
+        first_name: profile.first_name || user?.user_metadata?.first_name || '',
+        last_name: profile.last_name || user?.user_metadata?.last_name || '',
+        phone: profile.phone || user?.user_metadata?.phone || '',
+        avatar_url: profile.avatar_url || '',
+        sms_notifications_enabled: profile.sms_notifications_enabled ?? true,
+      })
     }
+  }, [form, profile, user])
+
+  const onSubmit = async (values: ContactCardFormData) => {
+    setSaving(true)
+    try {
+      const trimmed: ContactCardFormData = {
+        ...values,
+        first_name: values.first_name.trim(),
+        last_name: values.last_name.trim(),
+        phone: values.phone?.trim() || undefined,
+        avatar_url: values.avatar_url?.trim() || undefined,
+      }
+
+      const { error: updateError } = await updateProfile({
+        first_name: trimmed.first_name,
+        last_name: trimmed.last_name,
+        phone: trimmed.phone,
+        avatar_url: trimmed.avatar_url ?? null,
+        sms_notifications_enabled: trimmed.sms_notifications_enabled,
+      })
+
+      if (updateError) {
+        throw new Error(updateError)
+      }
+
+      const { error: propagateError } = await updateProfileAcrossGroups(
+        trimmed.first_name,
+        trimmed.last_name,
+        trimmed.phone,
+        trimmed.avatar_url ?? null
+      )
+
+      if (propagateError) {
+        throw new Error(propagateError)
+      }
+
+      await refreshProfile()
+
+      if (mode === 'settings') {
+        toast.success('Your contact card has been updated')
+      }
+
+      onSuccess?.()
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update contact card'
+      toast.error(message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const isSubmitDisabled = mode === 'settings'
+    ? saving || !form.formState.isDirty
+    : saving
+
+  const formContent = (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label htmlFor="first_name" className="text-sm font-medium">
+            First name
+          </label>
+          <Input
+            id="first_name"
+            {...form.register('first_name')}
+            placeholder="Jamie"
+          />
+          {form.formState.errors.first_name && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.first_name.message}
+            </p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="last_name" className="text-sm font-medium">
+            Last name
+          </label>
+          <Input
+            id="last_name"
+            {...form.register('last_name')}
+            placeholder="Rivera"
+          />
+          {form.formState.errors.last_name && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.last_name.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label htmlFor="phone" className="text-sm font-medium">
+            Phone number
+          </label>
+          <Controller
+            name="phone"
+            control={form.control}
+            render={({ field }) => (
+              <PhoneInput
+                {...field}
+                id="phone"
+              />
+            )}
+          />
+          {form.formState.errors.phone && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.phone.message}
+            </p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <label
+            htmlFor="avatar_url"
+            className="flex items-center gap-2 text-sm font-medium"
+          >
+            <Image className="h-4 w-4 text-muted-foreground" />
+            Contact photo URL
+          </label>
+          <Input
+            id="avatar_url"
+            type="url"
+            {...form.register('avatar_url')}
+            placeholder="https://cdn.example.com/photo.jpg"
+          />
+          <p className="text-xs text-muted-foreground">
+            iOS and Android contacts can render this image when the vCard is imported.
+          </p>
+          {form.formState.errors.avatar_url && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.avatar_url.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border bg-card p-4">
+        <div className="space-y-1">
+          <p className="text-sm font-medium">SMS notifications</p>
+          <p className="text-xs text-muted-foreground">
+            Receive important updates and group changes via text message.
+          </p>
+        </div>
+        <Switch
+          checked={form.watch('sms_notifications_enabled')}
+          onCheckedChange={(checked) =>
+            form.setValue('sms_notifications_enabled', checked, {
+              shouldDirty: true,
+            })
+          }
+        />
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Button
+          type="submit"
+          disabled={isSubmitDisabled}
+          className="inline-flex items-center gap-2"
+        >
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {mode === 'setup' ? 'Complete Profile' : 'Save contact card'}
+        </Button>
+        {mode === 'settings' && (
+          <p className="text-xs text-muted-foreground">
+            We also update your group memberships so exports use the latest details.
+          </p>
+        )}
+      </div>
+    </form>
+  )
+
+  if (mode === 'settings') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserRound className="h-5 w-5 text-primary" />
+            Contact card
+          </CardTitle>
+          <CardDescription>
+            These details appear in your shared contact card when members export the group
+            vCard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>{formContent}</CardContent>
+      </Card>
+    )
   }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <User className="h-5 w-5" />
+          <UserRound className="h-5 w-5" />
           Profile Settings
         </CardTitle>
         <CardDescription>
           Update your profile information. Changes will be reflected across all your groups.
         </CardDescription>
       </CardHeader>
-      
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="first_name" className="text-sm font-medium">
-                  First Name
-                </label>
-                <Input
-                  id="first_name"
-                  type="text"
-                  placeholder="Enter your first name"
-                  {...register('first_name')}
-                  className={errors.first_name ? 'border-red-500' : ''}
-                />
-                {errors.first_name && (
-                  <p className="text-sm text-red-500">{errors.first_name.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="last_name" className="text-sm font-medium">
-                  Last Name
-                </label>
-                <Input
-                  id="last_name"
-                  type="text"
-                  placeholder="Enter your last name"
-                  {...register('last_name')}
-                  className={errors.last_name ? 'border-red-500' : ''}
-                />
-                {errors.last_name && (
-                  <p className="text-sm text-red-500">{errors.last_name.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Phone Number
-              </label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="(555) 123-4567"
-                {...register('phone')}
-                className={errors.phone ? 'border-red-500' : ''}
-              />
-              {errors.phone && (
-                <p className="text-sm text-red-500">{errors.phone.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                US numbers accepted in any format. Required for SMS notifications and two-factor authentication.
-              </p>
-            </div>
-          </div>
-
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notification Preferences
-            </h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                  <label htmlFor="sms_notifications" className="text-sm font-medium">
-                    Receive group updates by text (MMS)
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    Members in your groups can share contact info with you via MMS when you opt in. Requires a phone number above.
-                  </p>
-                </div>
-                <Switch
-                  id="sms_notifications"
-                  checked={smsNotificationsEnabled}
-                  onCheckedChange={(checked) => setValue('sms_notifications_enabled', checked)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-6 border-t">
-            <Button
-              type="submit"
-              disabled={isLoading || (!isDirty && !alwaysAllowSubmit)}
-              className="flex-1"
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </div>
-        </form>
+        {formContent}
 
         <div className="mt-6 p-4 bg-secondary rounded-lg">
           <h4 className="text-sm font-medium mb-2">Account Information</h4>
