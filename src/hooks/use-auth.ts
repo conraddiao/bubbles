@@ -133,7 +133,7 @@ function useAuthState(): AuthContextValue {
                 loading: false,
                 profileFetchFailed: true,
               })
-              toast.error('Failed to load profile. Please refresh the page.')
+              // No toast here — layout.tsx shows a retry button instead
             }
           }
         } else if (mounted) {
@@ -376,12 +376,19 @@ function useAuthState(): AuthContextValue {
   }
 
   const retryProfile = async () => {
-    if (!state.user) return
+    // Read user ID from state at call time to avoid stale closure
+    setState(prev => {
+      if (!prev.user) return prev
+      return { ...prev, loading: true, profileFetchFailed: false }
+    })
 
-    setState(prev => ({ ...prev, loading: true, profileFetchFailed: false }))
+    // Read current user from state after the update
+    const currentUser = state.user
+    if (!currentUser) return
+
     try {
       const profile = await retryOperation(
-        () => fetchProfileWithTimeout(state.user!.id, 6000),
+        () => fetchProfileWithTimeout(currentUser.id, 6000),
         2,
         1000
       )

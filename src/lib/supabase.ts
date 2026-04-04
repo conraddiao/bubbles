@@ -152,6 +152,11 @@ function customAuthLock<T>(name: string, acquireTimeout: number, fn: () => Promi
   const hold = new Promise<void>((res) => { releaseLock = res })
   lockQueues.set(name, existing.then(() => hold))
 
+  // Clean up resolved entries to prevent unbounded map growth
+  hold.then(() => {
+    if (lockQueues.get(name) === hold) lockQueues.delete(name)
+  })
+
   const acquire = acquireTimeout >= 0
     ? Promise.race([
         existing,
@@ -162,7 +167,16 @@ function customAuthLock<T>(name: string, acquireTimeout: number, fn: () => Promi
     : existing
 
   return acquire
-    .then(() => fn())
+    .then(() => {
+      // Also apply acquireTimeout to fn() execution to prevent indefinite lock hold
+      if (acquireTimeout < 0) return fn()
+      return Promise.race([
+        fn(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Auth operation timed out: ${name}`)), acquireTimeout * 4)
+        ),
+      ])
+    })
     .finally(() => releaseLock())
 }
 
