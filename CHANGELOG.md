@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.3.1] - 2026-04-04
+
+### Added
+- Share link visits are now logged to the database when someone navigates to a group's `/join/[token]` page via a share link or QR code. Each view records the group, timestamp, and viewer ID (null for anonymous visitors). Group owners can query `share_link_views` for time-series analytics on their link traffic.
+
 ## [0.2.3.0] - 2026-04-03
 
 ### Changed

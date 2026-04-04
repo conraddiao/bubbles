@@ -6,10 +6,10 @@
 
 **Priority:** P0
 **Status:** Open
-**Noticed on branch:** conraddiao/chicago (updated conraddiao/update-legal-emails)
-**Date noticed:** 2026-04-01 (updated 2026-04-02)
+**Noticed on branch:** conraddiao/chicago (updated conraddiao/log-group-share-link-visits)
+**Date noticed:** 2026-04-01 (updated 2026-04-04)
 
-**What:** 50 pre-existing test failures across 9 test suites — grew from 33 on 2026-04-01. Failures are independent of branch changes and include auth mocks, integration tests requiring a local DB, and component tests.
+**What:** 48 pre-existing test failures across 5 test suites (down from 50 on 2026-04-02). Failures are independent of branch changes and include auth mocks, integration tests requiring a local DB, and component tests.
 
 **Why:** These test failures exist in the codebase independent of feature work. They mask real regressions in auth and group member management flows.
 
