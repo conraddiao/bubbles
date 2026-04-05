@@ -8,8 +8,8 @@ export const contactFormSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z
     .string()
-    .optional()
-    .refine(isOptionalE164Phone, 'Invalid phone number format. Use +1234567890'),
+    .min(1, 'Phone number is required')
+    .refine(isRequiredE164Phone, 'Invalid phone number format. Use +1234567890'),
   notifications_enabled: z.boolean(),
   group_password: z.string().max(100, 'Password is too long').optional(),
 })

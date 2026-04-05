@@ -9,8 +9,10 @@ import { getGroupByToken, joinContactGroup, joinContactGroupAnonymous, logShareL
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PhoneInput } from '@/components/ui/phone-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, Users, CheckCircle, Lock } from 'lucide-react'
+import type { Value as PhoneValue } from 'react-phone-number-input'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -28,7 +30,14 @@ export default function JoinPage({ params }: JoinPageProps) {
   const token = resolvedParams.token
   type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    first_name: string
+    last_name: string
+    email: string
+    phone: PhoneValue | ''
+    notifications_enabled: boolean
+    group_password: string
+  }>({
     first_name: '',
     last_name: '',
     email: '',
@@ -134,8 +143,8 @@ export default function JoinPage({ params }: JoinPageProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim()) {
-      toast.error('First name, last name, and email are required')
+    if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim() || !formData.phone) {
+      toast.error('First name, last name, email, and phone number are required')
       return
     }
 
@@ -324,14 +333,12 @@ export default function JoinPage({ params }: JoinPageProps) {
 
             <div className="space-y-2">
               <label htmlFor="phone" className="text-sm font-medium">
-                Phone Number (Optional)
+                Phone Number *
               </label>
-              <Input
+              <PhoneInput
                 id="phone"
-                type="tel"
-                placeholder="Enter your phone number"
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={(value) => setFormData(prev => ({ ...prev, phone: value || '' }))}
               />
             </div>
 
