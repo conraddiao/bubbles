@@ -5,9 +5,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArchiveRestore } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import dynamic from 'next/dynamic'
 import { MemberList } from './member-list'
-import { QrCodeHero } from './qr-code-hero'
 import { GroupSettingsDrawer } from './group-settings-drawer'
+
+const QrCodeHero = dynamic(
+  () => import('./qr-code-hero').then(m => ({ default: m.QrCodeHero })),
+  { ssr: false, loading: () => <div className="h-[300px] rounded-3xl bg-accent/10" /> }
+)
 import { ShareLinkAnalytics } from './share-link-analytics'
 import type { Database } from '@/types'
 import { getGroupMembers, unarchiveContactGroup } from '@/lib/database'

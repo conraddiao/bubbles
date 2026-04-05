@@ -1,37 +1,9 @@
-'use client'
-
-import { useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/hooks/use-auth'
-
-export const dynamic = 'force-dynamic'
+import { AuthRedirect } from '@/components/auth-redirect'
 
 export default function Home() {
-  const { user, profile, loading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!loading && user) {
-      if (profile) {
-        router.push('/dashboard')
-      } else {
-        router.push('/profile/setup')
-      }
-    }
-  }, [loading, user, profile, router])
-
-  if (loading || user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12">
@@ -82,6 +54,7 @@ export default function Home() {
           </div>
         </footer>
       </main>
+      <AuthRedirect />
     </div>
   )
 }
