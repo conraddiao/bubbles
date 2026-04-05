@@ -22,7 +22,7 @@ function easeOut(t: number)   { return 1 - (1 - t) * (1 - t) }
 function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
 
 function buildSquircle() {
-  const geometry = new SphereGeometry(1, 48, 48)
+  const geometry = new SphereGeometry(1, 96, 96)
   const p = geometry.attributes.position
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i), z = p.getZ(i), e
