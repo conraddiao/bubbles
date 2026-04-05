@@ -1,7 +1,16 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import * as THREE from 'three'
+import {
+  CanvasTexture,
+  DoubleSide,
+  Mesh,
+  PerspectiveCamera,
+  Scene,
+  ShaderMaterial,
+  SphereGeometry,
+  WebGLRenderer,
+} from 'three'
 import QRCode from 'qrcode'
 
 const PHASE1_DURATION = 450  // ms — top alone goes 45°
@@ -13,7 +22,7 @@ function easeOut(t: number)   { return 1 - (1 - t) * (1 - t) }
 function easeInOut(t: number) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t }
 
 function buildSquircle() {
-  const geometry = new THREE.SphereGeometry(1, 96, 96)
+  const geometry = new SphereGeometry(1, 48, 48)
   const p = geometry.attributes.position
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i), z = p.getZ(i), e
@@ -36,7 +45,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
     uTopAngle: { value: number }
     uBotAngle: { value: number }
     uAxis:     { value: number }
-    uQRTexture: { value: THREE.CanvasTexture | null }
+    uQRTexture: { value: CanvasTexture | null }
     uHasQR:    { value: number }
   } | null>(null)
 
@@ -47,26 +56,26 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    const camera = new THREE.PerspectiveCamera(70, 1, 0.01, 10)
+    const camera = new PerspectiveCamera(70, 1, 0.01, 10)
     camera.position.z = 3
 
-    const scene = new THREE.Scene()
+    const scene = new Scene()
     const geometry = buildSquircle()
 
     const uniforms = {
       uTopAngle:  { value: 0 },
       uBotAngle:  { value: 0 },
       uAxis:      { value: 0 },
-      uQRTexture: { value: null as THREE.CanvasTexture | null },
+      uQRTexture: { value: null as CanvasTexture | null },
       uHasQR:     { value: 0 },
     }
     uniformsRef.current = uniforms
 
-    const material = new THREE.ShaderMaterial({
+    const material = new ShaderMaterial({
       uniforms,
       transparent: true,
       depthWrite: false,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       vertexShader: `
         uniform float uTopAngle;
         uniform float uBotAngle;
@@ -165,10 +174,10 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
       `,
     })
 
-    const mesh = new THREE.Mesh(geometry, material)
+    const mesh = new Mesh(geometry, material)
     scene.add(mesh)
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
+    const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setClearColor(0x000000, 0)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
@@ -248,7 +257,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
       if (!uniformsRef.current) return
       const prev = uniformsRef.current.uQRTexture.value
       prev?.dispose()
-      const texture = new THREE.CanvasTexture(offscreen)
+      const texture = new CanvasTexture(offscreen)
       uniformsRef.current.uQRTexture.value = texture
       uniformsRef.current.uHasQR.value = 1
     })

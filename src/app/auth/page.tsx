@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { AuthForm } from '@/components/auth/auth-form'
 import { useAuth } from '@/hooks/use-auth'
 
-export const dynamic = 'force-dynamic'
-
 function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
