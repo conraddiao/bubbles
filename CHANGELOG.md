@@ -2,6 +2,12 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.6.1] - 2026-04-04
+
+### Fixed
+- Group name now correctly appears on the QR join success screen ("You've been added to [Group Name]"). The Supabase RPC returns a table (array), and the group name lookup was treating that array as a single row — making `group.name` undefined everywhere on the join page, including the heading and success message.
+- Phone number is now required on the QR join form, matching the sign-up flow. The field now uses the `PhoneInput` component (country flag picker, E.164 formatting) instead of a plain text input, consistent with the rest of the app.
+
 ## [0.2.6.0] - 2026-04-04
 
 ### Changed
