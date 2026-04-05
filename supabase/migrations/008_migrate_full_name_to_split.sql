@@ -131,6 +131,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Drop functions whose return type or parameter signature changed from 003
+DROP FUNCTION IF EXISTS public.create_contact_group(TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.join_contact_group_anonymous(TEXT, TEXT, TEXT, TEXT, BOOLEAN);
+DROP FUNCTION IF EXISTS public.update_profile_across_groups(TEXT, TEXT);
+
 -- Function to create a new contact group and return identifiers
 CREATE OR REPLACE FUNCTION public.create_contact_group(
   group_name TEXT,
@@ -140,14 +145,11 @@ RETURNS JSONB AS $$
 DECLARE
   new_group public.contact_groups%ROWTYPE;
   user_profile public.profiles%ROWTYPE;
-  owner_full_name TEXT;
 BEGIN
   SELECT * INTO user_profile FROM public.profiles WHERE id = auth.uid();
   IF NOT FOUND THEN
     RAISE EXCEPTION 'User profile not found. Please complete your profile first.';
   END IF;
-
-  owner_full_name := build_full_name(user_profile.first_name, user_profile.last_name, user_profile.email);
 
   INSERT INTO public.contact_groups (name, description, owner_id)
   VALUES (group_name, group_description, auth.uid())
@@ -395,7 +397,7 @@ RETURNS TABLE (
 DECLARE
   target_group public.contact_groups%ROWTYPE;
 BEGIN
-  SELECT * INTO target_group FROM public.contact_groups WHERE id = group_uuid;
+  SELECT cg.* INTO target_group FROM public.contact_groups cg WHERE cg.id = group_uuid;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Group not found.';
   END IF;
@@ -432,11 +434,8 @@ CREATE OR REPLACE FUNCTION public.update_profile_across_groups(
   new_avatar_url TEXT DEFAULT NULL
 )
 RETURNS BOOLEAN AS $$
-DECLARE
-  user_profile public.profiles%ROWTYPE;
 BEGIN
-  SELECT * INTO user_profile FROM public.profiles WHERE id = auth.uid();
-  IF NOT FOUND THEN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid()) THEN
     RAISE EXCEPTION 'User profile not found.';
   END IF;
 

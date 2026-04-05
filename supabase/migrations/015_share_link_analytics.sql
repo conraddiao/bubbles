@@ -4,7 +4,6 @@ RETURNS TEXT AS $$
 DECLARE
   alphabet TEXT := 'abcdefghijklmnopqrstuvwxyz';
   token TEXT := '';
-  i INT;
 BEGIN
   FOR i IN 1..32 LOOP
     token := token || substr(alphabet, floor(random() * 26 + 1)::int, 1);
