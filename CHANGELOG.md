@@ -2,11 +2,21 @@
 
 All notable changes to Bubbles will be documented in this file.
 
-## [0.2.5.4] - 2026-04-04
+## [0.2.6.1] - 2026-04-04
 
 ### Fixed
 - Group name now correctly appears on the QR join success screen ("You've been added to [Group Name]"). The Supabase RPC returns a table (array), and the group name lookup was treating that array as a single row — making `group.name` undefined everywhere on the join page, including the heading and success message.
 - Phone number is now required on the QR join form, matching the sign-up flow. The field now uses the `PhoneInput` component (country flag picker, E.164 formatting) instead of a plain text input, consistent with the rest of the app.
+
+## [0.2.6.0] - 2026-04-04
+
+### Changed
+- Contact photo field replaced with a native OS photo picker. Clicking "Select photo" opens the system file picker (Photo Library on iOS, Finder on macOS) — no more pasting image URLs. Selected photos upload directly to Supabase Storage and the resulting URL is stored with the contact card.
+
+### Added
+- Avatar photo upload to Supabase Storage (`avatars` bucket, path `{userId}/{uuid}.{ext}`, 5 MB limit). Photos are scoped per-user with RLS policies.
+- Circular photo preview in the profile/settings form — shows the selected photo immediately as a local blob URL, then swaps to the permanent Supabase URL after upload.
+- "Remove photo" button clears the contact photo from the card.
 
 ## [0.2.5.3] - 2026-04-04
 

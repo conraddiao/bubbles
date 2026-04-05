@@ -81,7 +81,11 @@ major_version = 17
 [storage]
 enabled = true
 file_size_limit = "50MiB"
-buckets = []
+
+[storage.buckets.avatars]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
 [analytics]
 enabled = false
