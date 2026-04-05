@@ -2,6 +2,16 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.6.0] - 2026-04-04
+
+### Changed
+- Contact photo field replaced with a native OS photo picker. Clicking "Select photo" opens the system file picker (Photo Library on iOS, Finder on macOS) — no more pasting image URLs. Selected photos upload directly to Supabase Storage and the resulting URL is stored with the contact card.
+
+### Added
+- Avatar photo upload to Supabase Storage (`avatars` bucket, path `{userId}/{uuid}.{ext}`, 5 MB limit). Photos are scoped per-user with RLS policies.
+- Circular photo preview in the profile/settings form — shows the selected photo immediately as a local blob URL, then swaps to the permanent Supabase URL after upload.
+- "Remove photo" button clears the contact photo from the card.
+
 ## [0.2.5.3] - 2026-04-04
 
 ### Changed
