@@ -101,60 +101,64 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
 
   const formContent = (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="first_name" className="text-sm font-medium">
-            First name
-          </label>
-          <Input
-            id="first_name"
-            {...form.register('first_name')}
-            placeholder="Jamie"
-          />
-          {form.formState.errors.first_name && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.first_name.message}
-            </p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="last_name" className="text-sm font-medium">
-            Last name
-          </label>
-          <Input
-            id="last_name"
-            {...form.register('last_name')}
-            placeholder="Rivera"
-          />
-          {form.formState.errors.last_name && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.last_name.message}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="phone" className="text-sm font-medium">
-            Phone number
-          </label>
-          <Controller
-            name="phone"
-            control={form.control}
-            render={({ field }) => (
-              <PhoneInput
-                {...field}
-                id="phone"
-              />
+      {mode !== 'setup' && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="first_name" className="text-sm font-medium">
+              First name
+            </label>
+            <Input
+              id="first_name"
+              {...form.register('first_name')}
+              placeholder="Jamie"
+            />
+            {form.formState.errors.first_name && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.first_name.message}
+              </p>
             )}
-          />
-          {form.formState.errors.phone && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.phone.message}
-            </p>
-          )}
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="last_name" className="text-sm font-medium">
+              Last name
+            </label>
+            <Input
+              id="last_name"
+              {...form.register('last_name')}
+              placeholder="Rivera"
+            />
+            {form.formState.errors.last_name && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.last_name.message}
+              </p>
+            )}
+          </div>
         </div>
+      )}
+
+      <div className={mode === 'setup' ? undefined : 'grid gap-4 md:grid-cols-2'}>
+        {mode !== 'setup' && (
+          <div className="space-y-2">
+            <label htmlFor="phone" className="text-sm font-medium">
+              Phone number
+            </label>
+            <Controller
+              name="phone"
+              control={form.control}
+              render={({ field }) => (
+                <PhoneInput
+                  {...field}
+                  id="phone"
+                />
+              )}
+            />
+            {form.formState.errors.phone && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.phone.message}
+              </p>
+            )}
+          </div>
+        )}
         <div className="space-y-2">
           <label
             htmlFor="avatar_url"

@@ -38,10 +38,10 @@ export default function ProfileSetupPage() {
       <div className="w-full max-w-2xl">
         <div className="mb-8 text-center">
           <h1 className="font-display text-3xl font-bold mb-2">
-            Complete Your Profile
+            Add a Contact Photo
           </h1>
           <p className="text-muted-foreground">
-            Please provide your information to get started with Bubbles
+            Add a photo so your contacts can recognize you when they import your vCard.
           </p>
         </div>
 
