@@ -14,12 +14,12 @@ import {
 import { toast } from 'sonner'
 import type { ContactGroup } from '@/types'
 
-interface GroupDashboardProps {
+interface GroupListProps {
   onCreateGroup?: () => void
   onViewGroup?: (groupId: string) => void
 }
 
-export function GroupDashboard({ onCreateGroup, onViewGroup }: GroupDashboardProps) {
+export function GroupList({ onCreateGroup, onViewGroup }: GroupListProps) {
   const { data: groups, isLoading } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => {

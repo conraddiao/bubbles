@@ -2,7 +2,7 @@
 
 import { use } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { SingleGroupDashboard } from '@/components/groups/single-group-dashboard'
+import { GroupDetail } from '@/components/groups/group-detail'
 
 interface GroupPageClientProps {
   params: Promise<{ token: string }>
@@ -16,7 +16,7 @@ export function GroupPageClient({ params, showQrCode, showCube }: GroupPageClien
   const showSuccessToast = searchParams.get('created') === 'true'
 
   return (
-    <SingleGroupDashboard
+    <GroupDetail
       token={resolvedParams.token}
       showSuccessToast={showSuccessToast}
       showQrCode={showQrCode}
