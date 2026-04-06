@@ -2,6 +2,14 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.7.1] - 2026-04-06
+
+### Changed
+- Dashboard and group pages make far fewer network requests. Replaced N+1 member-count queries (one HEAD request per group) with a single batched query, cutting ~60 Supabase requests down to 1 on every dashboard load.
+- Share link analytics component now fails silently when the database function hasn't been deployed yet, instead of producing 13 failed 404 requests per session.
+- Group settings component accepts group data as a prop instead of re-fetching all groups independently, eliminating redundant `getUserGroups` and `getArchivedGroups` calls.
+- Group detail page reads the current user from React auth context instead of making a separate `getUser()` API call on every mount.
+
 ## [0.2.7.0] - 2026-04-05
 
 ### Changed
