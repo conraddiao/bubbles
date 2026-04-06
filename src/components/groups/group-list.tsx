@@ -56,8 +56,6 @@ export function GroupList({ onCreateGroup, onViewGroup }: GroupListProps) {
     )
   }
 
-
-
   if (!groups || groups.length === 0) {
     return (
       <div className="text-center py-12">

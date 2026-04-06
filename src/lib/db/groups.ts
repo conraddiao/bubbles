@@ -72,7 +72,6 @@ export async function joinContactGroup(
   groupPassword?: string
 ) {
   try {
-    console.log('Authenticated user joining group:', { shareToken, enableNotifications })
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Not authenticated')
 
@@ -134,7 +133,6 @@ export async function joinContactGroupAnonymous(
   groupPassword?: string
 ) {
   try {
-    console.log('Anonymous user joining group:', { shareToken, firstName, lastName, email })
     const normalizedEmail = email.toLowerCase().trim()
     const group = await getGroupForJoin(shareToken)
 
@@ -381,6 +379,7 @@ export async function getUserGroups() {
           .from('group_memberships')
           .select('*', { count: 'exact', head: true })
           .eq('group_id', group.id)
+          .is('departed_at', null)
 
         return {
           ...group,
@@ -420,6 +419,7 @@ export async function getArchivedGroups() {
           .from('group_memberships')
           .select('*', { count: 'exact', head: true })
           .eq('group_id', group.id)
+          .is('departed_at', null)
 
         return {
           ...group,
@@ -437,8 +437,6 @@ export async function getArchivedGroups() {
 
 export async function getGroupByToken(shareToken: string) {
   try {
-    console.log('Fetching group by token:', shareToken)
-
     const { data, error } = await rpc(supabaseClient).getGroupByShareToken({ group_token: shareToken })
     if (error) throw error
 
@@ -463,7 +461,6 @@ export async function getGroupByToken(shareToken: string) {
       owner
     }
 
-    console.log('Group data fetched:', normalizedGroup)
     return { data: normalizedGroup, error: null }
   } catch (error: unknown) {
     console.error('getGroupByToken error:', error)
