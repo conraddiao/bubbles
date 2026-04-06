@@ -45,36 +45,39 @@ export async function leaveGroup(groupId: string) {
   }
 }
 
-export async function getGroupMembers(groupId: string) {
+export async function getGroupMembers(groupId: string, ownerId?: string) {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
+    const [membershipsResult, ownerIdResult] = await Promise.all([
+      supabase
+        .from('group_memberships')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          avatar_url,
+          notifications_enabled,
+          joined_at,
+          user_id,
+          departed_at
+        `)
+        .eq('group_id', groupId)
+        .is('departed_at', null)
+        .order('joined_at', { ascending: true }),
+      ownerId
+        ? Promise.resolve({ data: { owner_id: ownerId } as ContactGroupRow, error: null })
+        : supabase
+            .from('contact_groups')
+            .select('owner_id')
+            .eq('id', groupId)
+            .single(),
+    ])
 
-    const { data: memberships, error: memberError } = await supabase
-      .from('group_memberships')
-      .select(`
-        id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        avatar_url,
-        notifications_enabled,
-        joined_at,
-        user_id,
-        departed_at
-      `)
-      .eq('group_id', groupId)
-      .is('departed_at', null)
-      .order('joined_at', { ascending: true })
-
+    const { data: memberships, error: memberError } = membershipsResult
     if (memberError) throw memberError
 
-    const { data: groupData, error: groupError } = await supabase
-      .from('contact_groups')
-      .select('owner_id')
-      .eq('id', groupId)
-      .single()
-
+    const { data: groupData, error: groupError } = ownerIdResult
     const group = groupData as ContactGroupRow | null
 
     if (groupError) throw groupError
