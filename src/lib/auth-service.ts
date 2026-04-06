@@ -135,43 +135,6 @@ export function isProfileComplete(profile: Profile | null): boolean {
   )
 }
 
-// Get user's authentication status with profile
-export async function getAuthenticatedUser(): Promise<{
-  user: unknown | null
-  profile: Profile | null
-  isAuthenticated: boolean
-  profileComplete: boolean
-}> {
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    if (error || !user) {
-      return {
-        user: null,
-        profile: null,
-        isAuthenticated: false,
-        profileComplete: false
-      }
-    }
-    
-    const profile = await fetchUserProfile(user.id)
-    
-    return {
-      user,
-      profile,
-      isAuthenticated: true,
-      profileComplete: isProfileComplete(profile)
-    }
-  } catch (error) {
-    console.error('Error getting authenticated user:', error)
-    return {
-      user: null,
-      profile: null,
-      isAuthenticated: false,
-      profileComplete: false
-    }
-  }
-}
 
 // Retry mechanism for failed operations
 export async function retryOperation<T>(
