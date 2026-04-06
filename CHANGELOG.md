@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.7.0] - 2026-04-05
+
+### Changed
+- Group pages load faster after joining via invite. Eliminated two unnecessary database round trips that were happening on every `/groups/[token]` page load: a dead `auth.getUser()` call inside `getGroupMembers()` that fetched the user but never used it, and a redundant `contact_groups` query that re-fetched owner data the page had already loaded. The member list and member count now resolve with fewer sequential requests.
+
 ## [0.2.6.1] - 2026-04-04
 
 ### Fixed

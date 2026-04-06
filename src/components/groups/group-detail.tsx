@@ -70,7 +70,7 @@ export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCu
   const { data: members } = useQuery<GroupMember[], Error>({
     queryKey: ['group-members', groupId],
     queryFn: async () => {
-      const result = await getGroupMembers(groupId)
+      const result = await getGroupMembers(groupId, group?.owner_id ?? undefined)
       if (result.error) throw new Error(result.error)
       return (result.data || []) as GroupMember[]
     },
