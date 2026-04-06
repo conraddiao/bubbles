@@ -1,4 +1,4 @@
-import { forwardRef, useRef, useState, type ComponentProps, type ElementRef, type ForwardRefExoticComponent } from "react";
+import { forwardRef, useRef, useState, type ComponentProps, type ElementRef } from "react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
@@ -29,7 +29,7 @@ type PhoneInputProps = Omit<
     onChange?: (value: RPNInput.Value) => void;
   };
 
-const PhoneInput: ForwardRefExoticComponent<PhoneInputProps> =
+const PhoneInput =
   forwardRef<ElementRef<typeof RPNInput.default>, PhoneInputProps>(
     ({ className, onChange, value, ...props }, ref) => {
       return (
