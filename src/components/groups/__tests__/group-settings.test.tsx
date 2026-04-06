@@ -5,17 +5,6 @@ import { render } from '@/test/utils'
 import { GroupSettings } from '../group-settings'
 import * as database from '@/lib/database'
 
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: 'test-user-id' } },
-        error: null,
-      }),
-    },
-  },
-}))
-
 vi.mock('@/lib/database', () => ({
   getGroupMembers: vi.fn(),
   removeGroupMember: vi.fn(),
@@ -23,8 +12,6 @@ vi.mock('@/lib/database', () => ({
   archiveContactGroup: vi.fn(),
   unarchiveContactGroup: vi.fn(),
   regenerateGroupToken: vi.fn(),
-  getUserGroups: vi.fn(),
-  getArchivedGroups: vi.fn(),
 }))
 
 vi.mock('sonner', () => ({
@@ -35,8 +22,6 @@ vi.mock('sonner', () => ({
 }))
 
 const mockGetGroupMembers = vi.mocked(database.getGroupMembers)
-const mockGetUserGroups = vi.mocked(database.getUserGroups)
-const mockGetArchivedGroups = vi.mocked(database.getArchivedGroups)
 const mockArchiveContactGroup = vi.mocked(database.archiveContactGroup)
 const mockUnarchiveContactGroup = vi.mocked(database.unarchiveContactGroup)
 
@@ -59,10 +44,7 @@ const mockArchivedGroup = {
   archived_at: '2026-03-01T00:00:00Z',
 }
 
-function setup(group = mockActiveGroup) {
-  const isArchived = !!group.archived_at
-  mockGetUserGroups.mockResolvedValue({ data: isArchived ? [] : [group], error: null })
-  mockGetArchivedGroups.mockResolvedValue({ data: isArchived ? [group] : [], error: null })
+function setup() {
   mockGetGroupMembers.mockResolvedValue({ data: [], error: null })
 }
 
@@ -72,9 +54,9 @@ describe('GroupSettings — archive feature', () => {
   })
 
   it('shows Archive button for owner of active group', async () => {
-    setup(mockActiveGroup)
+    setup()
 
-    render(<GroupSettings groupId="g1" />)
+    render(<GroupSettings groupId="g1" group={mockActiveGroup} isOwner={true} />)
 
     // Switch to settings tab
     await waitFor(() => {
@@ -90,9 +72,9 @@ describe('GroupSettings — archive feature', () => {
   })
 
   it('shows Unarchive button for owner of archived group', async () => {
-    setup(mockArchivedGroup)
+    setup()
 
-    render(<GroupSettings groupId="g1" />)
+    render(<GroupSettings groupId="g1" group={mockArchivedGroup} isOwner={true} />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Group')).toBeInTheDocument()
@@ -108,9 +90,9 @@ describe('GroupSettings — archive feature', () => {
   })
 
   it('does not show Close Group button for archived group', async () => {
-    setup(mockArchivedGroup)
+    setup()
 
-    render(<GroupSettings groupId="g1" />)
+    render(<GroupSettings groupId="g1" group={mockArchivedGroup} isOwner={true} />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Group')).toBeInTheDocument()
@@ -126,11 +108,11 @@ describe('GroupSettings — archive feature', () => {
   })
 
   it('calls archiveContactGroup on confirm', async () => {
-    setup(mockActiveGroup)
+    setup()
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     mockArchiveContactGroup.mockResolvedValue({ data: true, error: null })
 
-    render(<GroupSettings groupId="g1" />)
+    render(<GroupSettings groupId="g1" group={mockActiveGroup} isOwner={true} />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Group')).toBeInTheDocument()
@@ -152,10 +134,10 @@ describe('GroupSettings — archive feature', () => {
   })
 
   it('does NOT call archiveContactGroup when confirm is cancelled', async () => {
-    setup(mockActiveGroup)
+    setup()
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
 
-    render(<GroupSettings groupId="g1" />)
+    render(<GroupSettings groupId="g1" group={mockActiveGroup} isOwner={true} />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Group')).toBeInTheDocument()
@@ -176,10 +158,10 @@ describe('GroupSettings — archive feature', () => {
   })
 
   it('calls unarchiveContactGroup directly without confirm', async () => {
-    setup(mockArchivedGroup)
+    setup()
     mockUnarchiveContactGroup.mockResolvedValue({ data: true, error: null })
 
-    render(<GroupSettings groupId="g1" />)
+    render(<GroupSettings groupId="g1" group={mockArchivedGroup} isOwner={true} />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Group')).toBeInTheDocument()
