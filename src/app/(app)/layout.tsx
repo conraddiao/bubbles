@@ -19,8 +19,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         router.push('/auth')
         return
       }
-      // Only redirect to setup if profile is genuinely incomplete — not if the fetch failed
-      if (!profileFetchFailed && !isProfileComplete(profile) && pathname !== '/profile/setup') {
+      // Only redirect to setup once profile has loaded and is confirmed incomplete.
+      // While profile is null (still fetching in background), don't redirect.
+      if (!profileFetchFailed && profile !== null && !isProfileComplete(profile) && pathname !== '/profile/setup') {
         router.push('/profile/setup')
       }
     }
@@ -51,8 +52,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Allow profile setup page when profile is incomplete
-  if (!isProfileComplete(profile) && pathname !== '/profile/setup') {
+  // Allow profile setup page when profile is loaded and incomplete.
+  // If profile is null, it's still loading in the background — render children.
+  if (profile !== null && !isProfileComplete(profile) && pathname !== '/profile/setup') {
     return null
   }
 
