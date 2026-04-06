@@ -296,15 +296,22 @@ export async function updateGroupDetails(
   }
 }
 
-export async function getUserGroups() {
+export async function getUserGroups(userId?: string, userEmail?: string) {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+    let resolvedId = userId
+    let resolvedEmail = userEmail
 
-    const membershipFilters = [`user_id.eq.${user.id}`]
+    if (!resolvedId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+      resolvedId = user.id
+      resolvedEmail = user.email ?? undefined
+    }
 
-    if (typeof user.email === 'string' && user.email.length > 0) {
-      membershipFilters.push(`email.eq.${user.email}`)
+    const membershipFilters = [`user_id.eq.${resolvedId}`]
+
+    if (typeof resolvedEmail === 'string' && resolvedEmail.length > 0) {
+      membershipFilters.push(`email.eq.${resolvedEmail}`)
     }
 
     type MembershipGroupRef = Pick<Database['public']['Tables']['group_memberships']['Row'], 'group_id'>
@@ -354,7 +361,7 @@ export async function getUserGroups() {
     const { data: ownedGroups, error: ownedGroupsError } = await supabase
       .from('contact_groups')
       .select(baseSelect)
-      .eq('owner_id', user.id)
+      .eq('owner_id', resolvedId)
       .is('archived_at', null)
       .order('created_at', { ascending: false })
       .returns<GroupWithOwner[]>()
@@ -384,7 +391,7 @@ export async function getUserGroups() {
         return {
           ...group,
           member_count: count || 0,
-          is_owner: group.owner_id === user.id
+          is_owner: group.owner_id === resolvedId
         }
       })
     )
@@ -395,10 +402,15 @@ export async function getUserGroups() {
   }
 }
 
-export async function getArchivedGroups() {
+export async function getArchivedGroups(userId?: string) {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Not authenticated')
+    let resolvedId = userId
+
+    if (!resolvedId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+      resolvedId = user.id
+    }
 
     const baseSelect = '*, owner:profiles!owner_id(first_name, last_name)'
     type GroupWithOwner = ContactGroupRow & { owner?: Profile }
@@ -406,7 +418,7 @@ export async function getArchivedGroups() {
     const { data: archivedGroups, error } = await supabase
       .from('contact_groups')
       .select(baseSelect)
-      .eq('owner_id', user.id)
+      .eq('owner_id', resolvedId)
       .not('archived_at', 'is', null)
       .order('archived_at', { ascending: false })
       .returns<GroupWithOwner[]>()
@@ -424,7 +436,7 @@ export async function getArchivedGroups() {
         return {
           ...group,
           member_count: count || 0,
-          is_owner: group.owner_id === user.id
+          is_owner: group.owner_id === resolvedId
         }
       })
     )

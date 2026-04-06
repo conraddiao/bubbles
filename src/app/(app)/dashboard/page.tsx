@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { getUserGroups, getArchivedGroups, createContactGroup } from '@/lib/database'
 import { useAuth } from '@/hooks/use-auth'
 
-export const dynamic = 'force-dynamic'
 
 interface DashboardGroup {
   id: string
@@ -42,11 +41,12 @@ export default function DashboardPage() {
   const { data: groups, isLoading: groupsLoading, error: groupsError } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => {
-      const result = await getUserGroups()
+      const result = await getUserGroups(user!.id, user?.email ?? undefined)
       if (result.error) throw new Error(result.error)
       return result.data || []
     },
     enabled: Boolean(user),
+    staleTime: 30_000,
   })
 
   const [showArchived, setShowArchived] = useState(false)
@@ -54,11 +54,12 @@ export default function DashboardPage() {
   const { data: archivedGroups } = useQuery({
     queryKey: ['archived-groups'],
     queryFn: async () => {
-      const result = await getArchivedGroups()
+      const result = await getArchivedGroups(user!.id)
       if (result.error) throw new Error(result.error)
       return result.data || []
     },
     enabled: Boolean(user),
+    staleTime: 30_000,
   })
 
   return (

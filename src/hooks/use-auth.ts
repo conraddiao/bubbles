@@ -87,15 +87,34 @@ function useAuthState(): AuthContextValue {
 
   useEffect(() => {
     let mounted = true
-    const loadingTimeoutMs = process.env.NODE_ENV === 'production' ? null : 7000
+    // Failsafe: if session check or Supabase hangs, unblock the UI after 8s in all envs
+    const loadingTimeoutMs = 8000
     let loadingTimeout: ReturnType<typeof setTimeout> | null = null
-    
+
+    const fetchProfileInBackground = (userId: string) => {
+      const start = performance.now()
+      retryOperation(
+        () => fetchProfileWithTimeout(userId, 6000),
+        2,
+        1000
+      )
+        .then(profile => {
+          console.log(`Profile fetch duration: ${Math.round(performance.now() - start)}ms`)
+          if (mounted) setState(prev => ({ ...prev, profile, profileFetchFailed: false }))
+        })
+        .catch(profileError => {
+          console.error('Failed to fetch profile after retries:', profileError)
+          if (mounted) setState(prev => ({ ...prev, profileFetchFailed: true }))
+          // No toast here — layout.tsx shows a retry button instead
+        })
+    }
+
     // Get initial session with improved error handling
     const getInitialSession = async () => {
       try {
         console.log('Getting initial session...')
         const { data: { session }, error } = await supabase.auth.getSession()
-        
+
         if (error) {
           console.error('Session error:', error)
           if (mounted) {
@@ -103,40 +122,17 @@ function useAuthState(): AuthContextValue {
           }
           return
         }
-        
-        if (session?.user && mounted) {
-          console.log('Session found, fetching profile...')
-          try {
-            const start = performance.now()
-            const profile = await retryOperation(
-              () => fetchProfileWithTimeout(session.user.id, 6000),
-              2, // Only 2 retries for initial load
-              1000
-            )
-            console.log(`Profile fetch duration (initial): ${Math.round(performance.now() - start)}ms`)
 
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile,
-                session,
-                loading: false,
-                profileFetchFailed: false,
-              })
-            }
-          } catch (profileError) {
-            console.error('Failed to fetch profile after retries:', profileError)
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile: null,
-                session,
-                loading: false,
-                profileFetchFailed: true,
-              })
-              // No toast here — layout.tsx shows a retry button instead
-            }
-          }
+        if (session?.user && mounted) {
+          // Unblock loading immediately — profile fetches in the background
+          setState({
+            user: session.user,
+            profile: null,
+            session,
+            loading: false,
+            profileFetchFailed: false,
+          })
+          fetchProfileInBackground(session.user.id)
         } else if (mounted) {
           setState(prev => ({ ...prev, loading: false }))
         }
@@ -152,52 +148,33 @@ function useAuthState(): AuthContextValue {
 
     getInitialSession()
 
-    // Failsafe timeout in dev only to avoid stale spinners
-    if (loadingTimeoutMs) {
-      loadingTimeout = setTimeout(() => {
-        if (mounted) {
-          console.log('Auth loading timeout - forcing loading to false')
-          setState(prev => ({ ...prev, loading: false }))
-        }
-      }, loadingTimeoutMs)
-    }
+    // Failsafe timeout — unblocks spinner if Supabase hangs in any environment
+    loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.log('Auth loading timeout - forcing loading to false')
+        setState(prev => ({ ...prev, loading: false }))
+      }
+    }, loadingTimeoutMs)
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
         if (!mounted) return
-        
+
         if (loadingTimeout) clearTimeout(loadingTimeout)
         console.log('Auth state change:', event, !!session)
-        
-        if (session?.user) {
-          // Always fetch fresh profile on auth state change
-          try {
-            const start = performance.now()
-            const profile = await fetchProfileWithTimeout(session.user.id, 6000)
-            console.log(`Profile fetch duration (auth change): ${Math.round(performance.now() - start)}ms`)
 
-            if (mounted) {
-              setState({
-                user: session.user,
-                profile,
-                session,
-                loading: false,
-                profileFetchFailed: false,
-              })
-            }
-          } catch (error) {
-            console.error('Profile fetch failed on auth change:', error)
-            if (mounted) {
-              // Preserve existing profile on fetch failure to avoid redirect loops
-              setState(prev => ({
-                ...prev,
-                user: session.user,
-                session,
-                loading: false,
-              }))
-            }
+        if (session?.user) {
+          // Unblock loading immediately — profile fetches in the background
+          if (mounted) {
+            setState(prev => ({
+              ...prev,
+              user: session.user,
+              session,
+              loading: false,
+            }))
           }
+          fetchProfileInBackground(session.user.id)
         } else if (mounted) {
           setState({
             user: null,
