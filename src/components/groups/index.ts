@@ -1,5 +1,6 @@
 export { GroupCreationForm } from './group-creation-form'
-export { GroupDashboard } from './group-dashboard'
+export { GroupList } from './group-list'
+export { GroupDetail } from './group-detail'
 export { GroupSettings } from './group-settings'
 export { ContactForm } from './contact-form'
 export { MemberList } from './member-list'

@@ -18,7 +18,7 @@ import type { Database } from '@/types'
 import { getGroupMembers, unarchiveContactGroup } from '@/lib/database'
 import { useRouter } from 'next/navigation'
 
-interface SingleGroupDashboardProps {
+interface GroupDetailProps {
   token: string
   showSuccessToast?: boolean
   showQrCode?: boolean
@@ -37,7 +37,7 @@ type GroupMember = {
   is_owner: boolean
 }
 
-export function SingleGroupDashboard({ token, showSuccessToast, showQrCode = true, showCube = true }: SingleGroupDashboardProps) {
+export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCube = true }: GroupDetailProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
