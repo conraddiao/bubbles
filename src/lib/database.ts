@@ -676,41 +676,6 @@ export async function getUserProfile() {
   }
 }
 
-export async function updateUserProfile(updates: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
-
-    const profileUpdates: Database['public']['Tables']['profiles']['Update'] = updates
-
-    const { data, error } = await supabaseClient
-      .from('profiles')
-      .update(profileUpdates as never)
-      .eq('id', user.id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error) {
-    return { data: null, error: handleDatabaseError(error) }
-  }
-}
-
-export async function getGroupStats() {
-  try {
-    const { data, error } = await supabase
-      .from('group_stats')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return { data, error: null }
-  } catch (error) {
-    return { data: null, error: handleDatabaseError(error) }
-  }
-}
-
 // Real-time subscriptions
 export function subscribeToGroupMembers(groupId: string, callback: (payload: unknown) => void) {
   return supabase
@@ -728,21 +693,6 @@ export function subscribeToGroupMembers(groupId: string, callback: (payload: unk
     .subscribe()
 }
 
-export function subscribeToNotificationEvents(groupId: string, callback: (payload: unknown) => void) {
-  return supabase
-    .channel(`notifications-${groupId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notification_events',
-        filter: `group_id=eq.${groupId}`
-      },
-      callback
-    )
-    .subscribe()
-}
 
 export async function logShareLinkView(
   shareToken: string,

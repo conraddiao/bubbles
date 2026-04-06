@@ -1,4 +1,4 @@
-import * as React from "react";
+import { forwardRef, useRef, useState, type ComponentProps, type ElementRef, type ForwardRefExoticComponent } from "react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
@@ -22,15 +22,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 type PhoneInputProps = Omit<
-  React.ComponentProps<"input">,
+  ComponentProps<"input">,
   "onChange" | "value" | "ref"
 > &
   Omit<RPNInput.Props<typeof RPNInput.default>, "onChange"> & {
     onChange?: (value: RPNInput.Value) => void;
   };
 
-const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
-  React.forwardRef<React.ElementRef<typeof RPNInput.default>, PhoneInputProps>(
+const PhoneInput: ForwardRefExoticComponent<PhoneInputProps> =
+  forwardRef<ElementRef<typeof RPNInput.default>, PhoneInputProps>(
     ({ className, onChange, value, ...props }, ref) => {
       return (
         <RPNInput.default
@@ -50,9 +50,9 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
   );
 PhoneInput.displayName = "PhoneInput";
 
-const InputComponent = React.forwardRef<
+const InputComponent = forwardRef<
   HTMLInputElement,
-  React.ComponentProps<"input">
+  ComponentProps<"input">
 >(({ className, ...props }, ref) => (
   <Input
     className={cn("rounded-e-lg rounded-s-none", className)}
@@ -77,9 +77,9 @@ const CountrySelect = ({
   options: countryList,
   onChange,
 }: CountrySelectProps) => {
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
-  const [searchValue, setSearchValue] = React.useState("");
-  const [isOpen, setIsOpen] = React.useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [searchValue, setSearchValue] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Popover
