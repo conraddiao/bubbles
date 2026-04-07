@@ -1,6 +1,8 @@
 'use client'
 
 import { use, useEffect, useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -12,9 +14,9 @@ import { Input } from '@/components/ui/input'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, Users, CheckCircle, Lock } from 'lucide-react'
-import type { Value as PhoneValue } from 'react-phone-number-input'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { contactFormSchema, type ContactFormData } from '@/lib/validations'
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic'
@@ -30,23 +32,20 @@ export default function JoinPage({ params }: JoinPageProps) {
   const token = resolvedParams.token
   type ProfileRow = Database['public']['Tables']['profiles']['Row']
 
-  const [formData, setFormData] = useState<{
-    first_name: string
-    last_name: string
-    email: string
-    phone: PhoneValue | ''
-    notifications_enabled: boolean
-    group_password: string
-  }>({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    notifications_enabled: false,
-    group_password: ''
-  })
   const [hasJoined, setHasJoined] = useState(false)
   const [user, setUser] = useState<User | null>(null)
+
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      notifications_enabled: false,
+      group_password: '',
+    },
+  })
 
   // Check if user is logged in (optional, don't block on this)
   useEffect(() => {
@@ -61,16 +60,16 @@ export default function JoinPage({ params }: JoinPageProps) {
             .select('first_name,last_name,email,phone,sms_notifications_enabled')
             .eq('id', user.id)
             .single<ProfileRow>()
-          
+
           if (profile) {
-            setFormData((prev) => ({
+            form.reset({
               first_name: profile.first_name || '',
               last_name: profile.last_name || '',
               email: profile.email || user.email || '',
-              phone: (profile.phone || '') as PhoneValue | '',
+              phone: profile.phone || '',
               notifications_enabled: profile.sms_notifications_enabled || false,
-              group_password: prev.group_password || ''
-            }))
+              group_password: '',
+            })
           }
         }
       } catch (error) {
@@ -78,9 +77,9 @@ export default function JoinPage({ params }: JoinPageProps) {
         // Continue without auth - this is fine for anonymous users
       }
     }
-    
+
     checkUser()
-  }, [])
+  }, [form])
 
   // Fetch group details
   const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroup | null>({
@@ -109,21 +108,22 @@ export default function JoinPage({ params }: JoinPageProps) {
 
   const joinMutation = useMutation({
     mutationFn: async () => {
-      const password = requiresPassword ? formData.group_password : undefined
+      const values = form.getValues()
+      const password = requiresPassword ? values.group_password : undefined
       if (user) {
         // Authenticated user
-        const result = await joinContactGroup(token, formData.notifications_enabled, password)
+        const result = await joinContactGroup(token, values.notifications_enabled, password)
         if (result.error) throw new Error(result.error)
         return result.data
       } else {
         // Anonymous user
         const result = await joinContactGroupAnonymous(
           token,
-          formData.first_name,
-          formData.last_name,
-          formData.email,
-          formData.phone,
-          formData.notifications_enabled,
+          values.first_name,
+          values.last_name,
+          values.email,
+          values.phone,
+          values.notifications_enabled,
           password
         )
         if (result.error) throw new Error(result.error)
@@ -140,21 +140,13 @@ export default function JoinPage({ params }: JoinPageProps) {
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim() || !formData.phone) {
-      toast.error('First name, last name, email, and phone number are required')
-      return
-    }
-
-    if (requiresPassword && !formData.group_password.trim()) {
+  const onSubmit = form.handleSubmit((values) => {
+    if (requiresPassword && !values.group_password?.trim()) {
       toast.error('A group password is required to join this group.')
       return
     }
-
     joinMutation.mutate()
-  }
+  })
 
   if (groupLoading) {
     return (
@@ -284,9 +276,9 @@ export default function JoinPage({ params }: JoinPageProps) {
             </p>
           )}
         </CardHeader>
-        
+
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="first_name" className="text-sm font-medium">
@@ -296,12 +288,13 @@ export default function JoinPage({ params }: JoinPageProps) {
                   id="first_name"
                   type="text"
                   placeholder="Enter your first name"
-                  value={formData.first_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
-                  required
+                  {...form.register('first_name')}
                 />
+                {form.formState.errors.first_name && (
+                  <p className="text-sm text-destructive">{form.formState.errors.first_name.message}</p>
+                )}
               </div>
-              
+
               <div className="space-y-2">
                 <label htmlFor="last_name" className="text-sm font-medium">
                   Last Name *
@@ -310,10 +303,11 @@ export default function JoinPage({ params }: JoinPageProps) {
                   id="last_name"
                   type="text"
                   placeholder="Enter your last name"
-                  value={formData.last_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
-                  required
+                  {...form.register('last_name')}
                 />
+                {form.formState.errors.last_name && (
+                  <p className="text-sm text-destructive">{form.formState.errors.last_name.message}</p>
+                )}
               </div>
             </div>
 
@@ -325,21 +319,31 @@ export default function JoinPage({ params }: JoinPageProps) {
                 id="email"
                 type="email"
                 placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                required
+                {...form.register('email')}
               />
+              {form.formState.errors.email && (
+                <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <label htmlFor="phone" className="text-sm font-medium">
                 Phone Number *
               </label>
-              <PhoneInput
-                id="phone"
-                value={formData.phone}
-                onChange={(value) => setFormData(prev => ({ ...prev, phone: value || '' }))}
+              <Controller
+                name="phone"
+                control={form.control}
+                render={({ field }) => (
+                  <PhoneInput
+                    {...field}
+                    id="phone"
+                    className={form.formState.errors.phone ? '[&_input]:border-red-500' : ''}
+                  />
+                )}
               />
+              {form.formState.errors.phone && (
+                <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>
+              )}
             </div>
 
             {group?.access_type === 'password' && (
@@ -352,9 +356,7 @@ export default function JoinPage({ params }: JoinPageProps) {
                   id="group_password"
                   type="password"
                   placeholder="Enter the group password"
-                  value={formData.group_password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, group_password: e.target.value }))}
-                  required
+                  {...form.register('group_password')}
                 />
                 <p className="text-xs text-muted-foreground">
                   A password is required before you can join this group.
@@ -363,12 +365,16 @@ export default function JoinPage({ params }: JoinPageProps) {
             )}
 
             <div className="flex items-center space-x-2">
-              <Checkbox
-                id="notifications"
-                checked={formData.notifications_enabled}
-                onCheckedChange={(checked) => 
-                  setFormData(prev => ({ ...prev, notifications_enabled: !!checked }))
-                }
+              <Controller
+                name="notifications_enabled"
+                control={form.control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="notifications"
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(!!checked)}
+                  />
+                )}
               />
               <label htmlFor="notifications" className="text-sm">
                 Notify me when members join or leave this group

@@ -98,7 +98,12 @@ const InputComponent = forwardRef<HTMLInputElement, ComponentProps<"input">>(
       [forwardedRef],
     );
 
-    const digits = String(value ?? "").replace(/\D/g, "").slice(0, 10);
+    let rawValue = String(value ?? "");
+    if (rawValue.startsWith('+')) {
+      const parsed = RPNInput.parsePhoneNumber(rawValue);
+      rawValue = parsed?.nationalNumber ?? '';
+    }
+    const digits = rawValue.replace(/\D/g, "").slice(0, 10);
 
     return (
       <Input
