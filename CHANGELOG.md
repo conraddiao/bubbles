@@ -2,6 +2,16 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.7.2] - 2026-04-07
+
+### Changed
+- Dashboard loading state is now a set of skeleton group cards matching the real card size — no height jump when groups load in.
+- Group page loading skeleton now fills the full page height (`h-[520px]` orange hero + member list placeholders), eliminating the layout shift on arrival.
+- The `dynamic()` loading fallback for `QrCodeHero` is now the same orange skeleton as the data-loading state, removing the second flash that happened between data arriving and the component bundle loading.
+- Share link analytics shows skeleton stat cards while loading instead of returning `null`, so the section doesn't pop in below the hero.
+- Contact export list uses skeleton rows while loading instead of a spinner, consistent with the rest of the app.
+- Standardized loading pattern: `Loader2` spinners are now only for button/action states; all section and page loading uses `animate-pulse` skeletons sized to match the real content.
+
 ## [0.2.7.1] - 2026-04-06
 
 ### Changed
