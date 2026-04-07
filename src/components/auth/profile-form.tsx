@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { AvatarCropDialog } from './avatar-crop-dialog'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Image, Loader2, Upload, UserRound, X } from 'lucide-react'
+import { Loader2, Pencil, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PhoneInput } from '@/components/ui/phone-input'
@@ -24,6 +25,8 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [cropDialogOpen, setCropDialogOpen] = useState(false)
+  const [pendingCropSrc, setPendingCropSrc] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, profile, updateProfile, refreshProfile } = useAuth()
 
@@ -100,51 +103,125 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
     }
   }
 
-  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    return () => { if (pendingCropSrc) URL.revokeObjectURL(pendingCropSrc) }
+  }, [pendingCropSrc])
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !user) return
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Photo must be under 5 MB')
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('Photo must be under 20 MB')
       return
     }
+    setPendingCropSrc(URL.createObjectURL(file))
+    setCropDialogOpen(true)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
-    const objectUrl = URL.createObjectURL(file)
-    setPhotoPreview(objectUrl)
+  const handleCropComplete = async (blob: Blob) => {
+    setCropDialogOpen(false)
+    if (pendingCropSrc) { URL.revokeObjectURL(pendingCropSrc); setPendingCropSrc(null) }
+    if (!user) return
+
+    const previewUrl = URL.createObjectURL(blob)
+    setPhotoPreview(previewUrl)
     setUploadingPhoto(true)
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-      const path = `${user.id}/${crypto.randomUUID()}.${ext}`
+      const path = `${user.id}/${crypto.randomUUID()}.jpg`
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type })
+        .upload(path, blob, { cacheControl: '3600', upsert: false, contentType: 'image/jpeg' })
       if (uploadError) throw uploadError
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       setPhotoPreview(publicUrl)
-      URL.revokeObjectURL(objectUrl)
+      URL.revokeObjectURL(previewUrl)
       form.setValue('avatar_url', publicUrl, { shouldDirty: true, shouldValidate: true })
       toast.success('Photo uploaded')
     } catch (err) {
       setPhotoPreview(form.getValues('avatar_url') || null)
-      URL.revokeObjectURL(objectUrl)
+      URL.revokeObjectURL(previewUrl)
       toast.error(err instanceof Error ? err.message : 'Photo upload failed')
     } finally {
       setUploadingPhoto(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
-  const handlePhotoClear = () => {
-    setPhotoPreview(null)
-    form.setValue('avatar_url', '', { shouldDirty: true, shouldValidate: true })
-    if (fileInputRef.current) fileInputRef.current.value = ''
+  const handleCropCancel = () => {
+    setCropDialogOpen(false)
+    if (pendingCropSrc) { URL.revokeObjectURL(pendingCropSrc); setPendingCropSrc(null) }
   }
 
-  const isSubmitDisabled = mode === 'settings'
-    ? saving || uploadingPhoto || !form.formState.isDirty
-    : saving || uploadingPhoto
+  const isSubmitDisabled = saving || uploadingPhoto
 
   const formContent = (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Profile photo — always at top */}
+      <div className="flex justify-center pb-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            aria-label={photoPreview ? 'Change photo' : 'Add photo'}
+            className="relative h-48 w-48 rounded-full overflow-hidden border-2 border-border bg-secondary hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors disabled:opacity-60"
+          >
+            {photoPreview ? (
+              <img
+                src={photoPreview}
+                alt="Contact photo preview"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center">
+                <UserRound className="h-20 w-20 text-muted-foreground" />
+              </span>
+            )}
+            {uploadingPhoto && (
+              <span className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </span>
+            )}
+          </button>
+
+          {!uploadingPhoto && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Edit photo"
+              className="absolute top-1 right-1 h-9 w-9 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="sr-only"
+        onChange={handlePhotoSelect}
+        disabled={uploadingPhoto}
+        aria-label="Select contact photo"
+      />
+
+      <input type="hidden" {...form.register('avatar_url')} />
+
+      <AvatarCropDialog
+        imageSrc={pendingCropSrc}
+        open={cropDialogOpen}
+        onClose={handleCropCancel}
+        onCropComplete={handleCropComplete}
+      />
+
+      {form.formState.errors.avatar_url && (
+        <p className="text-sm text-destructive">
+          {form.formState.errors.avatar_url.message}
+        </p>
+      )}
+
       {mode !== 'setup' && (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -180,116 +257,28 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
         </div>
       )}
 
-      <div className={mode === 'setup' ? undefined : 'grid gap-4 md:grid-cols-2'}>
-        {mode !== 'setup' && (
-          <div className="space-y-2">
-            <label htmlFor="phone" className="text-sm font-medium">
-              Phone number
-            </label>
-            <Controller
-              name="phone"
-              control={form.control}
-              render={({ field }) => (
-                <PhoneInput
-                  {...field}
-                  id="phone"
-                />
-              )}
-            />
-            {form.formState.errors.phone && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.phone.message}
-              </p>
-            )}
-          </div>
-        )}
+      {mode !== 'setup' && (
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Image className="h-4 w-4 text-muted-foreground" />
-            Contact photo
+          <label htmlFor="phone" className="text-sm font-medium">
+            Phone number
           </label>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="sr-only"
-            onChange={handlePhotoSelect}
-            disabled={uploadingPhoto}
-            aria-label="Select contact photo"
+          <Controller
+            name="phone"
+            control={form.control}
+            render={({ field }) => (
+              <PhoneInput
+                {...field}
+                id="phone"
+              />
+            )}
           />
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
-              aria-label={photoPreview ? 'Change photo' : 'Add photo'}
-              className="relative flex-shrink-0 h-16 w-16 rounded-full overflow-hidden border-2 border-border bg-secondary hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors disabled:opacity-60"
-            >
-              {photoPreview ? (
-                <img
-                  src={photoPreview}
-                  alt="Contact photo preview"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center">
-                  <UserRound className="h-7 w-7 text-muted-foreground" />
-                </span>
-              )}
-              {uploadingPhoto && (
-                <span className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </span>
-              )}
-            </button>
-
-            <div className="flex flex-col gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingPhoto}
-                className="gap-1.5"
-              >
-                {uploadingPhoto ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Upload className="h-3.5 w-3.5" />
-                )}
-                {uploadingPhoto ? 'Uploading…' : photoPreview ? 'Change photo' : 'Select photo'}
-              </Button>
-
-              {photoPreview && !uploadingPhoto && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePhotoClear}
-                  className="gap-1.5 text-muted-foreground hover:text-destructive"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  Remove photo
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            iOS and Android contacts render this image when the vCard is imported.
-          </p>
-
-          <input type="hidden" {...form.register('avatar_url')} />
-
-          {form.formState.errors.avatar_url && (
+          {form.formState.errors.phone && (
             <p className="text-sm text-destructive">
-              {form.formState.errors.avatar_url.message}
+              {form.formState.errors.phone.message}
             </p>
           )}
         </div>
-      </div>
+      )}
 
       <div className="flex items-center justify-between rounded-lg border bg-card p-4">
         <div className="space-y-1">
@@ -308,21 +297,29 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
         />
       </div>
 
-      <div className="flex items-center gap-3">
+      {mode === 'setup' && (
         <Button
           type="submit"
           disabled={isSubmitDisabled}
           className="inline-flex items-center gap-2"
         >
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-          {mode === 'setup' ? 'Complete Profile' : 'Save contact card'}
+          Complete Profile
         </Button>
-        {mode === 'settings' && (
-          <p className="text-xs text-muted-foreground">
-            We also update your group memberships so exports use the latest details.
-          </p>
-        )}
-      </div>
+      )}
+
+      {mode === 'settings' && form.formState.isDirty && (
+        <div className="fixed bottom-6 inset-x-0 px-4 z-40 pointer-events-none flex justify-center">
+          <Button
+            type="submit"
+            disabled={saving || uploadingPhoto}
+            className="pointer-events-auto h-14 w-full max-w-lg gap-2 text-base shadow-xl"
+          >
+            {saving && <Loader2 className="h-5 w-5 animate-spin" />}
+            Save contact card
+          </Button>
+        </div>
+      )}
     </form>
   )
 
