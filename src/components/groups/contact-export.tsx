@@ -415,8 +415,19 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
 
   if (isLoading) {
     const loadingContent = (
-      <div className="flex items-center justify-center py-6">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="space-y-2">
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            className="flex animate-pulse items-center gap-3 rounded-lg border p-3"
+          >
+            <div className="h-4 w-4 rounded bg-muted" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-1/3 rounded bg-muted" />
+              <div className="h-3 w-1/2 rounded bg-muted" />
+            </div>
+          </div>
+        ))}
       </div>
     )
     return layout === 'card' ? (
