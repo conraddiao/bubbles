@@ -2,6 +2,13 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.10.1] - 2026-04-07
+
+### Added
+- Drag to rotate the squircle cube on the group share page. Drag left/right or up/down to spin it freely.
+- Momentum: releasing with a flick carries the cube forward, decaying naturally over ~1 second.
+- Face snap: once momentum fades, the cube rolls and locks to the nearest 90° face. Auto-rotation resumes after settling.
+
 ## [0.2.10.0] - 2026-04-07
 
 ### Added
