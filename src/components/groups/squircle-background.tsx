@@ -193,15 +193,27 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
     const resizeObserver = new ResizeObserver(updateSize)
     resizeObserver.observe(canvas)
 
+    let pointerCleanup: (() => void) | undefined
+
     if (prefersReducedMotion) {
       uniforms.uTopAngle.value = Math.PI / 4
       uniforms.uBotAngle.value = 0
       renderer.render(scene, camera)
     } else {
       type Phase = 'phase1' | 'phase2' | 'pause'
+      type Mode = 'auto' | 'drag' | 'momentum' | 'snap'
+
       let phase: Phase = 'phase1'
       let phaseStart = -1
       let currentAxis = 0
+      let mode: Mode = 'auto'
+      let prevTime = -1
+
+      // Drag / momentum state
+      let isDragging = false
+      let lastX = 0, lastY = 0, lastMoveTime = 0
+      let vx = 0, vy = 0
+      const recentMoves: Array<{ dx: number; dy: number; dt: number }> = []
 
       function advanceAxis() {
         if (currentAxis === 0) mesh.rotation.y += Math.PI
@@ -213,29 +225,128 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         uniforms.uBotAngle.value = 0
       }
 
-      renderer.setAnimationLoop((time) => {
-        if (phaseStart < 0) phaseStart = time
-        const elapsed = time - phaseStart
+      function getSensitivity() {
+        return Math.PI / (Math.max(canvas!.clientHeight, 1) * 0.5)
+      }
 
-        if (phase === 'phase1') {
-          const t = Math.min(elapsed / PHASE1_DURATION, 1)
-          uniforms.uTopAngle.value = easeIn(t) * (Math.PI / 4)
-          uniforms.uBotAngle.value = 0
-          if (t >= 1) { phase = 'phase2'; phaseStart = time }
-        } else if (phase === 'phase2') {
-          const t = Math.min(elapsed / PHASE2_DURATION, 1)
-          uniforms.uTopAngle.value = Math.PI / 4 + easeOut(t) * (3 * Math.PI / 4)
-          uniforms.uBotAngle.value = easeInOut(t) * Math.PI
-          if (t >= 1) { advanceAxis(); phase = 'pause'; phaseStart = time }
-        } else {
-          if (elapsed >= PAUSE_DURATION) { phase = 'phase1'; phaseStart = time }
+      const onPointerDown = (e: PointerEvent) => {
+        isDragging = true
+        mode = 'drag'
+        vx = 0; vy = 0
+        recentMoves.length = 0
+        lastX = e.clientX
+        lastY = e.clientY
+        lastMoveTime = performance.now()
+        uniforms.uTopAngle.value = 0
+        uniforms.uBotAngle.value = 0
+        canvas.setPointerCapture(e.pointerId)
+        canvas.style.cursor = 'grabbing'
+      }
+
+      const onPointerMove = (e: PointerEvent) => {
+        if (!isDragging) return
+        const now = performance.now()
+        const dt = Math.max(now - lastMoveTime, 1)
+        const sensitivity = getSensitivity()
+        const dx = (e.clientX - lastX) * sensitivity
+        const dy = (e.clientY - lastY) * sensitivity
+        mesh.rotation.y += dx
+        mesh.rotation.x += dy
+        recentMoves.push({ dx, dy, dt })
+        // Keep only moves within the last 80ms window
+        let totalWindow = 0
+        for (const m of recentMoves) totalWindow += m.dt
+        while (recentMoves.length > 1 && totalWindow - recentMoves[0].dt >= 80) {
+          totalWindow -= recentMoves[0].dt
+          recentMoves.shift()
         }
+        lastX = e.clientX
+        lastY = e.clientY
+        lastMoveTime = now
+      }
+
+      const onPointerUp = () => {
+        if (!isDragging) return
+        isDragging = false
+        canvas.style.cursor = 'grab'
+        // Compute velocity from recent moves
+        let totalDt = 0, totalDx = 0, totalDy = 0
+        for (const m of recentMoves) { totalDt += m.dt; totalDx += m.dx; totalDy += m.dy }
+        totalDt = Math.max(totalDt, 1)
+        vx = totalDx / totalDt
+        vy = totalDy / totalDt
+        const speed = Math.sqrt(vx * vx + vy * vy)
+        mode = speed > 0.0003 ? 'momentum' : 'snap'
+      }
+
+      canvas.addEventListener('pointerdown', onPointerDown)
+      canvas.addEventListener('pointermove', onPointerMove)
+      canvas.addEventListener('pointerup', onPointerUp)
+      canvas.addEventListener('pointercancel', onPointerUp)
+      pointerCleanup = () => {
+        canvas.removeEventListener('pointerdown', onPointerDown)
+        canvas.removeEventListener('pointermove', onPointerMove)
+        canvas.removeEventListener('pointerup', onPointerUp)
+        canvas.removeEventListener('pointercancel', onPointerUp)
+      }
+
+      canvas.style.cursor = 'grab'
+
+      renderer.setAnimationLoop((time) => {
+        const dt = prevTime < 0 ? 16 : Math.min(time - prevTime, 64)
+        prevTime = time
+
+        if (mode === 'auto') {
+          if (phaseStart < 0) phaseStart = time
+          const elapsed = time - phaseStart
+
+          if (phase === 'phase1') {
+            const t = Math.min(elapsed / PHASE1_DURATION, 1)
+            uniforms.uTopAngle.value = easeIn(t) * (Math.PI / 4)
+            uniforms.uBotAngle.value = 0
+            if (t >= 1) { phase = 'phase2'; phaseStart = time }
+          } else if (phase === 'phase2') {
+            const t = Math.min(elapsed / PHASE2_DURATION, 1)
+            uniforms.uTopAngle.value = Math.PI / 4 + easeOut(t) * (3 * Math.PI / 4)
+            uniforms.uBotAngle.value = easeInOut(t) * Math.PI
+            if (t >= 1) { advanceAxis(); phase = 'pause'; phaseStart = time }
+          } else {
+            if (elapsed >= PAUSE_DURATION) { phase = 'phase1'; phaseStart = time }
+          }
+        } else if (mode === 'momentum') {
+          const DAMPING = Math.pow(0.88, dt / 16.667) // frame-rate independent
+          mesh.rotation.y += vx * dt
+          mesh.rotation.x += vy * dt
+          vx *= DAMPING
+          vy *= DAMPING
+          if (Math.sqrt(vx * vx + vy * vy) < 0.0003) {
+            vx = 0; vy = 0
+            mode = 'snap'
+          }
+        } else if (mode === 'snap') {
+          const HALF_PI = Math.PI / 2
+          const targetX = Math.round(mesh.rotation.x / HALF_PI) * HALF_PI
+          const targetY = Math.round(mesh.rotation.y / HALF_PI) * HALF_PI
+          mesh.rotation.x += (targetX - mesh.rotation.x) * 0.12
+          mesh.rotation.y += (targetY - mesh.rotation.y) * 0.12
+          if (Math.abs(targetX - mesh.rotation.x) < 0.001 && Math.abs(targetY - mesh.rotation.y) < 0.001) {
+            mesh.rotation.x = targetX
+            mesh.rotation.y = targetY
+            phase = 'phase1'; phaseStart = -1; currentAxis = 0
+            uniforms.uAxis.value = 0
+            uniforms.uTopAngle.value = 0
+            uniforms.uBotAngle.value = 0
+            mode = 'auto'
+          }
+        }
+        // mode === 'drag': pointer events drive mesh.rotation directly, just render
 
         renderer.render(scene, camera)
       })
     }
 
     return () => {
+      pointerCleanup?.()
       resizeObserver.disconnect()
       renderer.setAnimationLoop(null)
       renderer.dispose()
@@ -270,7 +381,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 h-full w-full pointer-events-none"
+      className="absolute inset-0 h-full w-full"
       aria-hidden="true"
     />
   )
