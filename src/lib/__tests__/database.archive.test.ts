@@ -145,7 +145,11 @@ describe('getArchivedGroups', () => {
 
     const countChain = {
       select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ count: 3, error: null }),
+        in: vi.fn().mockReturnValue({
+          is: vi.fn().mockReturnValue({
+            returns: vi.fn().mockResolvedValue({ data: [{ group_id: 'g-archived' }, { group_id: 'g-archived' }, { group_id: 'g-archived' }], error: null }),
+          }),
+        }),
       }),
     }
 

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
 
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Archive, ArchiveRestore, Copy, ExternalLink, Trash2, UserMinus, RefreshCw } from 'lucide-react'
@@ -17,8 +16,6 @@ import {
   archiveContactGroup,
   unarchiveContactGroup,
   regenerateGroupToken,
-  getUserGroups,
-  getArchivedGroups
 } from '@/lib/database'
 
 import { toast } from 'sonner'
@@ -26,42 +23,15 @@ import type { ContactGroup } from '@/types'
 
 interface GroupSettingsProps {
   groupId: string
+  group: ContactGroup
+  isOwner: boolean
   onBack?: () => void
 }
 
-export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
+export function GroupSettings({ groupId, group, isOwner, onBack }: GroupSettingsProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'members' | 'settings'>('members')
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const queryClient = useQueryClient()
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id ?? null)
-    })
-  }, [])
-
-  // Get group details from active groups, with fallback to archived groups
-  const { data: activeGroups } = useQuery({
-    queryKey: ['user-groups'],
-    queryFn: async () => {
-      const result = await getUserGroups()
-      if (result.error) throw new Error(result.error)
-      return result.data || []
-    },
-  })
-
-  const { data: archivedGroups } = useQuery({
-    queryKey: ['archived-groups'],
-    queryFn: async () => {
-      const result = await getArchivedGroups()
-      if (result.error) throw new Error(result.error)
-      return result.data || []
-    },
-  })
-
-  const group = activeGroups?.find((g: ContactGroup) => g?.id === groupId)
-    ?? archivedGroups?.find((g: ContactGroup) => g?.id === groupId)
 
   const { data: members, isLoading: membersLoading } = useQuery({
     queryKey: ['group-members', groupId],
@@ -249,7 +219,7 @@ export function GroupSettings({ groupId, onBack }: GroupSettingsProps) {
       {activeTab === 'settings' && (
         <SettingsTab
           group={group}
-          isOwner={currentUserId === group?.owner_id}
+          isOwner={isOwner}
           onCopyShareLink={handleCopyShareLink}
           onRegenerateToken={handleRegenerateToken}
           onCloseGroup={handleCloseGroup}

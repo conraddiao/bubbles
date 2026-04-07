@@ -22,6 +22,21 @@ async function ensureValidPasscode(group: ContactGroupRow, passcode?: string) {
   }
 }
 
+async function batchMemberCounts(groupIds: string[]): Promise<Map<string, number>> {
+  if (groupIds.length === 0) return new Map()
+  const { data } = await supabase
+    .from('group_memberships')
+    .select('group_id')
+    .in('group_id', groupIds)
+    .is('departed_at', null)
+    .returns<{ group_id: string }[]>()
+  const counts = new Map<string, number>()
+  for (const m of data ?? []) {
+    counts.set(m.group_id, (counts.get(m.group_id) || 0) + 1)
+  }
+  return counts
+}
+
 async function getGroupForJoin(shareToken: string) {
   const { data: groupData, error: groupError } = await supabase
     .from('contact_groups')
@@ -380,21 +395,12 @@ export async function getUserGroups(userId?: string, userEmail?: string) {
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
 
-    const groupsWithCounts = await Promise.all(
-      mergedGroups.map(async (group) => {
-        const { count } = await supabase
-          .from('group_memberships')
-          .select('*', { count: 'exact', head: true })
-          .eq('group_id', group.id)
-          .is('departed_at', null)
-
-        return {
-          ...group,
-          member_count: count || 0,
-          is_owner: group.owner_id === resolvedId
-        }
-      })
-    )
+    const countMap = await batchMemberCounts(mergedGroups.map(g => g.id))
+    const groupsWithCounts = mergedGroups.map(group => ({
+      ...group,
+      member_count: countMap.get(group.id) || 0,
+      is_owner: group.owner_id === resolvedId,
+    }))
 
     return { data: groupsWithCounts, error: null }
   } catch (error) {
@@ -425,21 +431,13 @@ export async function getArchivedGroups(userId?: string) {
 
     if (error) throw error
 
-    const groupsWithCounts = await Promise.all(
-      (archivedGroups ?? []).map(async (group) => {
-        const { count } = await supabase
-          .from('group_memberships')
-          .select('*', { count: 'exact', head: true })
-          .eq('group_id', group.id)
-          .is('departed_at', null)
-
-        return {
-          ...group,
-          member_count: count || 0,
-          is_owner: group.owner_id === resolvedId
-        }
-      })
-    )
+    const archivedList = archivedGroups ?? []
+    const countMap = await batchMemberCounts(archivedList.map(g => g.id))
+    const groupsWithCounts = archivedList.map(group => ({
+      ...group,
+      member_count: countMap.get(group.id) || 0,
+      is_owner: group.owner_id === resolvedId,
+    }))
 
     return { data: groupsWithCounts, error: null }
   } catch (error) {

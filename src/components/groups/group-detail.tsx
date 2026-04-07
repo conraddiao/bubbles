@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArchiveRestore } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import { MemberList } from './member-list'
@@ -40,14 +41,9 @@ type GroupMember = {
 export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCube = true }: GroupDetailProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const { user } = useAuth()
+  const currentUserId = user?.id ?? null
   const [drawerOpen, setDrawerOpen] = useState(false)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id ?? null)
-    })
-  }, [])
 
   const { data: group, isLoading: groupLoading, error: groupError } = useQuery<ContactGroupRow | null, Error>({
     queryKey: ['group', token],
