@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.10.1] - 2026-04-07
+
+### Added
+- Profile avatar photos now appear in the app header and in group member lists (both mobile card and desktop table views). Members without a photo continue to show initials as the fallback.
+
 ## [0.2.10.0] - 2026-04-07
 
 ### Added

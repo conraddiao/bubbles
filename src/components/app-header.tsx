@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { ArrowLeft, LogOut, Settings } from 'lucide-react'
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -32,6 +32,7 @@ export function AppHeader() {
     .trim()
 
   const avatarInitial = (displayName?.charAt(0) ?? user?.email?.charAt(0) ?? '?').toUpperCase()
+  const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture
 
   const [classicCards, setClassicCards] = useState(() => {
     if (typeof document === 'undefined') return false
@@ -86,6 +87,7 @@ export function AppHeader() {
               aria-label="Open user menu"
             >
               <Avatar className="size-9">
+                {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName || 'User avatar'} />}
                 <AvatarFallback className="bg-[var(--accent-light)] text-sm font-semibold text-primary">
                   {avatarInitial}
                 </AvatarFallback>

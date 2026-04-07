@@ -6,7 +6,7 @@ import { Trash2, Phone, Mail, Users, Smartphone, Share2, UserPlus, ChevronDown, 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Table,
   TableBody,
@@ -397,6 +397,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
         >
           <div className="flex items-center gap-3">
             <Avatar>
+              {member.avatar_url && <AvatarImage src={member.avatar_url} alt={getDisplayName(member)} />}
               <AvatarFallback>{getInitials(member)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -445,6 +446,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar>
+                    {member.avatar_url && <AvatarImage src={member.avatar_url} alt={getDisplayName(member)} />}
                     <AvatarFallback>{getInitials(member)}</AvatarFallback>
                   </Avatar>
                   <div className="flex items-center gap-2">
