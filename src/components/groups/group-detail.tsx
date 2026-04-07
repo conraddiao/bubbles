@@ -12,7 +12,22 @@ import { GroupSettingsDrawer } from './group-settings-drawer'
 
 const QrCodeHero = dynamic(
   () => import('./qr-code-hero').then(m => ({ default: m.QrCodeHero })),
-  { ssr: false, loading: () => <div className="h-[300px] rounded-3xl bg-accent/10" /> }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[520px] flex-col items-center justify-between bg-[#E8622A] px-6 py-10">
+        <div className="space-y-2 text-center">
+          <div className="mx-auto h-8 w-48 animate-pulse rounded bg-[#FEFAF4]/20" />
+          <div className="mx-auto h-4 w-28 animate-pulse rounded bg-[#FEFAF4]/20" />
+        </div>
+        <div className="h-[232px] w-[232px] animate-pulse rounded-2xl bg-[#FEFAF4]/20" />
+        <div className="flex w-full max-w-xs gap-3">
+          <div className="h-10 flex-1 animate-pulse rounded-full bg-[#FEFAF4]/20" />
+          <div className="h-10 flex-1 animate-pulse rounded-full bg-[#FEFAF4]/20" />
+        </div>
+      </div>
+    ),
+  }
 )
 import { ShareLinkAnalytics } from './share-link-analytics'
 import type { Database } from '@/types'
@@ -106,10 +121,30 @@ export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCu
 
   if (groupLoading) {
     return (
-      <div className="flex flex-col">
-        <div className="flex flex-col items-center gap-5 bg-[#E8622A] px-6 py-10">
-          <div className="h-8 w-48 animate-pulse rounded bg-[#FEFAF4]/20" />
+      <div className="flex min-h-screen flex-col">
+        {/* Orange hero skeleton — matches QrCodeHero h-[520px] exactly */}
+        <div className="flex h-[520px] flex-col items-center justify-between bg-[#E8622A] px-6 py-10">
+          <div className="space-y-2 text-center">
+            <div className="mx-auto h-8 w-48 animate-pulse rounded bg-[#FEFAF4]/20" />
+            <div className="mx-auto h-4 w-28 animate-pulse rounded bg-[#FEFAF4]/20" />
+          </div>
           <div className="h-[232px] w-[232px] animate-pulse rounded-2xl bg-[#FEFAF4]/20" />
+          <div className="flex w-full max-w-xs gap-3">
+            <div className="h-10 flex-1 animate-pulse rounded-full bg-[#FEFAF4]/20" />
+            <div className="h-10 flex-1 animate-pulse rounded-full bg-[#FEFAF4]/20" />
+          </div>
+        </div>
+        {/* Member list skeleton */}
+        <div className="space-y-4 px-4 py-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex animate-pulse items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-1/3 rounded bg-muted" />
+                <div className="h-3 w-1/2 rounded bg-muted" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     )

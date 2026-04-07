@@ -32,7 +32,23 @@ export function ShareLinkAnalytics({ groupId }: ShareLinkAnalyticsProps) {
     staleTime: 5 * 60 * 1000,
   })
 
-  if (isLoading || !analytics) return null
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+        <div className="grid grid-cols-3 gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="animate-pulse rounded-xl border border-[#E0D5C5] bg-[#FEFAF4] px-3 py-2">
+              <div className="mx-auto mb-1 h-3 w-12 rounded bg-muted" />
+              <div className="mx-auto h-6 w-8 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!analytics) return null
   if (analytics.total_views === 0) return null
 
   const conversionRate =
