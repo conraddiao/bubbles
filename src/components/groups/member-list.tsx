@@ -28,6 +28,7 @@ import {
 } from '@/lib/database'
 import { toast } from 'sonner'
 import { getDisplayName, getInitials, extractNames } from '@/lib/name-utils'
+import { useAuth } from '@/hooks/use-auth'
 
 interface GroupMember {
   id: string
@@ -61,16 +62,13 @@ const escapeVCardValue = (value?: string | null) => {
 
 export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: MemberListProps) {
   const queryClient = useQueryClient()
+  const { profile } = useAuth()
   const knownMemberIdsRef = useRef<Set<string>>(new Set())
   const isInitialLoadRef = useRef(true)
   const animationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [newMemberIds, setNewMemberIds] = useState<Set<string>>(new Set())
 
   const [isExporting, setIsExporting] = useState(false)
-
-  // SMS state
-  const [smsPhone, setSmsPhone] = useState('')
-  const [showSmsInput, setShowSmsInput] = useState(false)
   const [isSending, setIsSending] = useState(false)
 
   const { data: members, isLoading, error } = useQuery<GroupMember[]>({
@@ -232,19 +230,22 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   }
 
   const sendContactsViaSms = async () => {
-    if (!smsPhone.trim()) return toast.error('Enter a phone number')
+    if (!profile?.phone) {
+      toast.error('Add a phone number to your profile first', {
+        action: { label: 'Go to Profile', onClick: () => { window.location.href = '/profile' } },
+      })
+      return
+    }
     try {
       setIsSending(true)
       const res = await fetch('/api/sms/send-contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: smsPhone.trim(), groupId, groupName }),
+        body: JSON.stringify({ to: profile.phone, groupId, groupName }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send')
       toast.success('Contacts sent! Check your messages.')
-      setShowSmsInput(false)
-      setSmsPhone('')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to send contacts via SMS')
     } finally { setIsSending(false) }
@@ -266,12 +267,13 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
           <div className="flex shrink-0 items-center gap-1">
             <div className="flex">
               <Button
-                onClick={() => setShowSmsInput(!showSmsInput)}
+                onClick={sendContactsViaSms}
                 variant="outline"
                 size="sm"
+                disabled={isSending}
                 className="rounded-r-none border-r-0"
               >
-                <Smartphone className="h-4 w-4" />
+                {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
                 Text Me
               </Button>
               <DropdownMenu>
@@ -315,26 +317,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
         )}
       </div>
 
-      {/* SMS panel */}
-      {showSmsInput && (
-        <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3">
-          <Smartphone className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            type="tel"
-            placeholder="+1 (555) 123-4567"
-            value={smsPhone}
-            onChange={(e) => setSmsPhone(e.target.value)}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            onKeyDown={(e) => { if (e.key === 'Enter') sendContactsViaSms() }}
-          />
-          <Button onClick={sendContactsViaSms} disabled={isSending || !smsPhone.trim()} size="sm">
-            {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
-          </Button>
-          <Button onClick={() => { setShowSmsInput(false); setSmsPhone('') }} variant="ghost" size="sm">
-            Cancel
-          </Button>
-        </div>
-      )}
     </div>
   )
 

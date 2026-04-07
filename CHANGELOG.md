@@ -2,10 +2,21 @@
 
 All notable changes to Bubbles will be documented in this file.
 
-## [0.2.9.1] - 2026-04-07
+## [0.2.10.1] - 2026-04-07
 
 ### Added
 - Profile avatar photos now appear in the app header and in group member lists (both mobile card and desktop table views). Members without a photo continue to show initials as the fallback.
+
+## [0.2.10.0] - 2026-04-07
+
+### Added
+- One-tap "Text Me" button on group pages sends all group contacts as a .vcf file via MMS to the logged-in user's phone number. No more typing your number manually.
+- Bubbles contact card is included as the first entry in every .vcf, so users automatically save the sending number.
+- vCard files are uploaded to Supabase Storage (`vcards` bucket) so Twilio can fetch them from a public URL, fixing local dev and eliminating the localhost reachability problem.
+- Dev-mode SMS recipient override via `TWILIO_TEST_RECIPIENT_PHONE` env var, so local testing doesn't text real users.
+
+### Changed
+- "Text Me" button now sends immediately using the user's profile phone number instead of showing an SMS input panel. Users without a phone on their profile see a toast linking to profile settings.
 
 ## [0.2.9.0] - 2026-04-07
 
