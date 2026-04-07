@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Gabarito } from "next/font/google";
+import { Fraunces, Gabarito, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -19,6 +19,12 @@ const gabarito = Gabarito({
   display: "swap",
 });
 
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Bubbles — Shared Contact Groups",
   description: "Create and manage shared contact groups for events and gatherings",
@@ -31,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${fraunces.variable} ${gabarito.variable} antialiased`}>
+      <body className={`${fraunces.variable} ${gabarito.variable} ${geistMono.variable} antialiased`}>
         <QueryProvider>
           <AuthProvider>
             {children}

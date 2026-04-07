@@ -2,6 +2,12 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.8.0] - 2026-04-07
+
+### Changed
+- Phone number input now uses an auto-filling mask — as you type, `(___) ___-____` fills in with your digits, preserving parentheses, space, and dash. Cursor stays in the right place after each digit.
+- Phone input text now renders in Geist Mono for consistent character spacing across the mask. Geist Mono is now loaded at the app root alongside the other brand fonts.
+
 ## [0.2.7.2] - 2026-04-07
 
 ### Changed
