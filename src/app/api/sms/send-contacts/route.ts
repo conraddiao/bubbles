@@ -76,27 +76,29 @@ export async function POST(request: NextRequest) {
   }
 
   // Fetch group info
-  const { data: group, error: groupError } = await supabaseAdmin
+  const { data: groupData, error: groupError } = await supabaseAdmin
     .from('contact_groups')
     .select('name')
     .eq('id', groupId)
     .single()
 
-  if (groupError || !group) {
+  if (groupError || !groupData) {
     return NextResponse.json({ error: 'Group not found' }, { status: 404 })
   }
+  const fetchedGroupName = (groupData as { name: string }).name
 
   // Fetch active members
-  const { data: members, error: memberError } = await supabaseAdmin
+  const { data: memberData, error: memberError } = await supabaseAdmin
     .from('group_memberships')
     .select('id, first_name, last_name, email, phone, avatar_url')
     .eq('group_id', groupId)
     .is('departed_at', null)
     .order('joined_at', { ascending: true })
 
-  if (memberError || !members || members.length === 0) {
+  if (memberError || !memberData || memberData.length === 0) {
     return NextResponse.json({ error: 'No members found' }, { status: 404 })
   }
+  const members = memberData as unknown as GroupMember[]
 
   // Generate .vcf content — lead with a Bubbles contact card so users save the sending number
   const bubblesVCard = [
@@ -111,7 +113,7 @@ export async function POST(request: NextRequest) {
     'END:VCARD',
   ].join('\r\n')
 
-  const memberVCards = members.map((m) => generateVCard(m as GroupMember, group.name)).join('\r\n\r\n')
+  const memberVCards = members.map((m) => generateVCard(m, fetchedGroupName)).join('\r\n\r\n')
   const vcfContent = bubblesVCard + '\r\n\r\n' + memberVCards + '\r\n'
   const filename = `${groupId}/${Date.now()}.vcf`
 
