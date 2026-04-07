@@ -1,4 +1,4 @@
-import { forwardRef, useRef, useState, type ComponentProps, type ElementRef } from "react";
+import { forwardRef, useCallback, useLayoutEffect, useRef, useState, type ComponentProps, type ElementRef } from "react";
 import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import * as RPNInput from "react-phone-number-input";
 import flags from "react-phone-number-input/flags";
@@ -50,16 +50,76 @@ const PhoneInput =
   );
 PhoneInput.displayName = "PhoneInput";
 
-const InputComponent = forwardRef<
-  HTMLInputElement,
-  ComponentProps<"input">
->(({ className, ...props }, ref) => (
-  <Input
-    className={cn("rounded-e-lg rounded-s-none", className)}
-    {...props}
-    ref={ref}
-  />
-));
+const PHONE_MASK = "(###) ###-####";
+
+function formatDisplayValue(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 10);
+  if (!digits) return "";
+  let di = 0;
+  return PHONE_MASK.split("")
+    .map((c) => (c === "#" ? (di < digits.length ? digits[di++] : "_") : c))
+    .join("");
+}
+
+function getCursorPosition(digitCount: number): number {
+  if (digitCount === 0) return 0;
+  let di = 0;
+  for (let i = 0; i < PHONE_MASK.length; i++) {
+    if (PHONE_MASK[i] === "#") {
+      if (++di === digitCount) return i + 1;
+    }
+  }
+  return PHONE_MASK.length;
+}
+
+const InputComponent = forwardRef<HTMLInputElement, ComponentProps<"input">>(
+  ({ className, value, onChange, placeholder, ...props }, forwardedRef) => {
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const targetCursor = useRef<number | null>(null);
+
+    useLayoutEffect(() => {
+      if (
+        targetCursor.current !== null &&
+        inputRef.current &&
+        document.activeElement === inputRef.current
+      ) {
+        inputRef.current.setSelectionRange(targetCursor.current, targetCursor.current);
+        targetCursor.current = null;
+      }
+    });
+
+    const refCallback = useCallback(
+      (el: HTMLInputElement | null) => {
+        inputRef.current = el;
+        if (typeof forwardedRef === "function") forwardedRef(el);
+        else if (forwardedRef)
+          (forwardedRef as React.MutableRefObject<HTMLInputElement | null>).current = el;
+      },
+      [forwardedRef],
+    );
+
+    const digits = String(value ?? "").replace(/\D/g, "").slice(0, 10);
+
+    return (
+      <Input
+        className={cn("rounded-e-lg rounded-s-none font-mono", className)}
+        placeholder={placeholder ?? "(___) ___-____"}
+        {...props}
+        ref={refCallback}
+        value={formatDisplayValue(digits)}
+        onChange={(e) => {
+          const newDigits = e.target.value.replace(/\D/g, "").slice(0, 10);
+          targetCursor.current = getCursorPosition(newDigits.length);
+          onChange?.({
+            ...e,
+            target: { value: newDigits } as EventTarget & HTMLInputElement,
+            currentTarget: { value: newDigits } as EventTarget & HTMLInputElement,
+          });
+        }}
+      />
+    );
+  },
+);
 InputComponent.displayName = "InputComponent";
 
 type CountryEntry = { label: string; value: RPNInput.Country | undefined };
