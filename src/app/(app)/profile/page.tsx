@@ -69,17 +69,12 @@ export default function ProfileSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <header className="mb-8 space-y-2">
-        <p className="font-label text-sm font-semibold uppercase tracking-wide text-primary">Account</p>
-        <h1 className="font-display text-3xl font-bold sm:text-4xl">User settings</h1>
-        <p className="text-muted-foreground">
-          Update your password and the contact details that power the vCard downloads shared
-          with your groups.
-        </p>
+    <div className="mx-auto max-w-lg px-4 py-6 sm:px-6">
+      <header className="mb-4">
+        <p className="font-label text-sm font-semibold uppercase tracking-wide text-primary">Settings</p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+      <div className="flex flex-col gap-6">
         <ProfileForm mode="settings" />
 
         <Card>
