@@ -26,6 +26,20 @@ vi.mock('sonner', () => ({
   }
 }))
 
+// Mock useAuth
+vi.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({
+    profile: {
+      id: 'test-user-id',
+      email: 'test@example.com',
+      phone: '+1234567890',
+    },
+    user: { id: 'test-user-id', email: 'test@example.com' },
+    session: null,
+    loading: false,
+  })
+}))
+
 const mockMembers = [
   {
     id: '1',

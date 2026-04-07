@@ -1,5 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
+import { supabaseAdmin } from '@/lib/supabase'
+
+interface GroupMember {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string
+  avatar_url?: string | null
+}
+
+const escapeVCardValue = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .trim()
+}
+
+function generateVCard(member: GroupMember, groupName: string): string {
+  const firstName = member.first_name?.trim() || ''
+  const lastName = member.last_name?.trim() || ''
+  const fullName = [firstName, lastName].filter(Boolean).join(' ') || member.email || 'Bubbles Member'
+  const givenName = firstName || fullName
+
+  const vcard = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
+    `FN:${escapeVCardValue(fullName)}`,
+    `EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`,
+  ]
+
+  if (member.phone) {
+    vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
+  }
+
+  if (member.avatar_url) {
+    vcard.push(`PHOTO;VALUE=URI:${escapeVCardValue(member.avatar_url)}`)
+  }
+
+  vcard.push(`ORG:${escapeVCardValue(groupName)} | bubbles.fyi`)
+  vcard.push(`NOTE:${escapeVCardValue(`Member of ${groupName} group from bubbles.fyi`)}`)
+  vcard.push('END:VCARD')
+  return vcard.join('\r\n')
+}
 
 export async function POST(request: NextRequest) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
@@ -27,28 +75,85 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Build the public URL for the .vcf file
-  // Twilio fetches this URL to attach the file to the MMS
-  const origin = request.headers.get('origin')
-    || request.headers.get('x-forwarded-host')
-    || new URL(request.url).origin
-  const vcfUrl = `${origin.startsWith('http') ? origin : `https://${origin}`}/api/groups/${groupId}/contacts.vcf`
+  // Fetch group info
+  const { data: group, error: groupError } = await supabaseAdmin
+    .from('contact_groups')
+    .select('name')
+    .eq('id', groupId)
+    .single()
+
+  if (groupError || !group) {
+    return NextResponse.json({ error: 'Group not found' }, { status: 404 })
+  }
+
+  // Fetch active members
+  const { data: members, error: memberError } = await supabaseAdmin
+    .from('group_memberships')
+    .select('id, first_name, last_name, email, phone, avatar_url')
+    .eq('group_id', groupId)
+    .is('departed_at', null)
+    .order('joined_at', { ascending: true })
+
+  if (memberError || !members || members.length === 0) {
+    return NextResponse.json({ error: 'No members found' }, { status: 404 })
+  }
+
+  // Generate .vcf content — lead with a Bubbles contact card so users save the sending number
+  const bubblesVCard = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    'N:;Bubbles;;;',
+    'FN:Bubbles',
+    `TEL;TYPE=CELL:${fromNumber}`,
+    'URL:https://bubbles.fyi',
+    'ORG:bubbles.fyi',
+    'NOTE:Bubbles — shared contact groups. https://bubbles.fyi',
+    'END:VCARD',
+  ].join('\r\n')
+
+  const memberVCards = members.map((m) => generateVCard(m as GroupMember, group.name)).join('\r\n\r\n')
+  const vcfContent = bubblesVCard + '\r\n\r\n' + memberVCards + '\r\n'
+  const filename = `${groupId}/${Date.now()}.vcf`
+
+  // Upload to Supabase Storage
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from('vcards')
+    .upload(filename, vcfContent, {
+      contentType: 'text/vcard',
+      upsert: true,
+    })
+
+  if (uploadError) {
+    console.error('vCard upload error:', uploadError)
+    return NextResponse.json({ error: 'Failed to generate contact file' }, { status: 500 })
+  }
+
+  const { data: { publicUrl } } = supabaseAdmin.storage
+    .from('vcards')
+    .getPublicUrl(filename)
+
+  // In development, override the recipient to a test phone number
+  let recipient = to
+  if (process.env.NODE_ENV === 'development' && process.env.TWILIO_TEST_RECIPIENT_PHONE) {
+    console.warn(`[DEV] Overriding SMS recipient from ${to} to ${process.env.TWILIO_TEST_RECIPIENT_PHONE}`)
+    recipient = process.env.TWILIO_TEST_RECIPIENT_PHONE
+  }
 
   const client = twilio(accountSid, authToken)
 
   try {
     const message = await client.messages.create({
-      to,
+      to: recipient,
       from: fromNumber,
       body: `${groupName || 'Your group'} contacts from Bubbles — tap the attachment to add them to your phone.`,
-      mediaUrl: [vcfUrl],
+      mediaUrl: [publicUrl],
     })
 
     return NextResponse.json({
       success: true,
       messageSid: message.sid,
       status: message.status,
-      vcfUrl,
+      vcfUrl: publicUrl,
     })
   } catch (error) {
     console.error('Twilio MMS error:', error)
