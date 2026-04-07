@@ -2,6 +2,15 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.9.0] - 2026-04-07
+
+### Fixed
+- Phone numbers stored in E.164 format (e.g. `+14156567376`) now display correctly in the settings page — previously the country code was included in the digit count, causing `(141) 565-6737` instead of `(415) 656-7376`.
+- After fixing the display bug, editing and re-typing the same phone number correctly marks the settings form as unchanged (not dirty).
+
+### Changed
+- Join group page (`/join/[token]`) now uses react-hook-form with `contactFormSchema` validation, consistent with all other phone number forms in the app. Inline validation errors are shown per field instead of a single toast on submit.
+
 ## [0.2.8.0] - 2026-04-07
 
 ### Changed
