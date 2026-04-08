@@ -75,7 +75,7 @@ export default function ProfileSettingsPage() {
       </header>
 
       <div className="flex flex-col gap-6">
-        <ProfileForm mode="settings" />
+        <ProfileForm />
 
         <Card>
           <CardHeader>
