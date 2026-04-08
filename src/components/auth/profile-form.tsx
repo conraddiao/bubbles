@@ -35,8 +35,8 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
   const form = useForm<ContactCardFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      first_name: profile?.first_name || '',
-      last_name: profile?.last_name || '',
+      first_name: profile?.first_name || user?.user_metadata?.first_name || user?.user_metadata?.given_name || '',
+      last_name: profile?.last_name || user?.user_metadata?.last_name || user?.user_metadata?.family_name || '',
       phone: profile?.phone || '',
       avatar_url: profile?.avatar_url || '',
       sms_notifications_enabled: profile?.sms_notifications_enabled ?? true,
@@ -46,8 +46,8 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
   useEffect(() => {
     if (profile) {
       form.reset({
-        first_name: profile.first_name || user?.user_metadata?.first_name || '',
-        last_name: profile.last_name || user?.user_metadata?.last_name || '',
+        first_name: profile.first_name || user?.user_metadata?.first_name || user?.user_metadata?.given_name || '',
+        last_name: profile.last_name || user?.user_metadata?.last_name || user?.user_metadata?.family_name || '',
         phone: profile.phone || user?.user_metadata?.phone || '',
         avatar_url: profile.avatar_url || '',
         sms_notifications_enabled: profile.sms_notifications_enabled ?? true,
