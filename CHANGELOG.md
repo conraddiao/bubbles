@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.11.1] - 2026-04-08
+
+### Changed
+- FAB ("New Group" button) now floats centered at the bottom of the viewport, sized to its content rather than stretching full-width. Corner radius changed from pill (`rounded-full`) to softly squared (`rounded-2xl`).
+
 ## [0.2.10.2] - 2026-04-08
 
 ### Changed
