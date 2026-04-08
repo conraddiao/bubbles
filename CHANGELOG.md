@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.10.2] - 2026-04-08
+
+### Changed
+- The "New Group" button is now a floating action button (FAB) pinned to the bottom of the dashboard. The group list fills the full screen without the button blocking the top.
+
 ## [0.2.10.1] - 2026-04-07
 
 ### Added
