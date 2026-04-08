@@ -151,6 +151,17 @@ export default function OnboardingProfilePage() {
         throw new Error(updateError)
       }
 
+      // Also update email on the profile row (updateProfile omits email by design)
+      if (trimmed.email) {
+        const { error: emailDbError } = await (supabase as any)
+          .from('profiles')
+          .update({ email: trimmed.email })
+          .eq('id', user!.id)
+        if (emailDbError) {
+          console.error('Failed to update profile email:', emailDbError)
+        }
+      }
+
       await refreshProfile()
       toast.success('Profile saved')
       router.push('/dashboard')
