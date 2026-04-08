@@ -52,6 +52,11 @@ export const profileUpdateSchema = z.object({
 })
 
 export const contactCardSchema = profileUpdateSchema.extend({
+  email: z
+    .string()
+    .email('Invalid email address')
+    .or(z.literal(''))
+    .optional(),
   avatar_url: z
     .union([z.string().url('Enter a valid image URL'), z.literal('')])
     .transform((value) => (value === '' ? undefined : value))
@@ -76,7 +81,11 @@ export const twoFactorSchema = z.object({
 export const onboardingProfileSchema = z.object({
   first_name: z.string().min(1, 'First name is required').max(50, 'First name too long'),
   last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
-  email: z.string().email('Invalid email address'),
+  email: z
+    .string()
+    .email('Invalid email address')
+    .or(z.literal(''))
+    .optional(),
   phone: z.string().optional(),
   avatar_url: z
     .union([z.string().url('Enter a valid image URL'), z.literal('')])

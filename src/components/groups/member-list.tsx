@@ -165,8 +165,8 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
       'VERSION:3.0',
       `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
       `FN:${escapeVCardValue(fullName)}`,
-      `EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`,
     ]
+    if (member.email) vcard.push(`EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`)
     if (member.phone) vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
     if (member.avatar_url) vcard.push(`PHOTO;VALUE=URI:${escapeVCardValue(member.avatar_url)}`)
     vcard.push(`ORG:${escapeVCardValue(groupName)} | bubbles.fyi`)

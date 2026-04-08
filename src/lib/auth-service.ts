@@ -130,8 +130,7 @@ export function isProfileComplete(profile: Profile | null): boolean {
   
   return !!(
     profile.first_name?.trim() &&
-    profile.last_name?.trim() &&
-    profile.email?.trim()
+    profile.last_name?.trim()
   )
 }
 

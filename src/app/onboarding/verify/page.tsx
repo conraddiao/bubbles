@@ -1,21 +1,21 @@
 'use client'
 
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from '@/components/ui/input-otp'
 import { usePhoneAuth } from '@/hooks/use-phone-auth'
 import { useAuth } from '@/hooks/use-auth'
+import { isProfileComplete } from '@/lib/auth-service'
 
 function VerifyContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const phone = searchParams.get('phone') || ''
   const { verifyOtp, sendOtp, isLoading, resendCooldown } = usePhoneAuth()
-  const { user, loading } = useAuth()
+  const { user, profile, loading, profileFetchFailed } = useAuth()
   const [code, setCode] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
 
   // If no phone param, go back to phone entry
   useEffect(() => {
@@ -24,22 +24,22 @@ function VerifyContent() {
     }
   }, [phone, router])
 
-  // Once user session is established after OTP, go to profile
+  // Once user session is established after OTP, go to profile or dashboard
+  // Profile fetches in the background after auth — wait for it before deciding
   useEffect(() => {
-    if (!loading && user) {
-      router.push('/onboarding/profile')
+    if (!loading && user && (profile || profileFetchFailed)) {
+      if (isProfileComplete(profile)) {
+        router.push('/dashboard')
+      } else {
+        router.push('/onboarding/profile')
+      }
     }
-  }, [loading, user, router])
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+  }, [loading, user, profile, profileFetchFailed, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (code.length !== 6) return
     await verifyOtp(phone, code)
-    // Session will be picked up by useAuth's onAuthStateChange
   }
 
   const handleResend = async () => {
@@ -47,9 +47,11 @@ function VerifyContent() {
     await sendOtp(phone)
   }
 
-  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6)
+  const handleCodeChange = (value: string) => {
     setCode(value)
+    if (value.length === 6) {
+      verifyOtp(phone, value)
+    }
   }
 
   if (!phone || (user && !loading)) return null
@@ -68,22 +70,25 @@ function VerifyContent() {
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label htmlFor="otp-code" className="text-sm font-medium">
-              Verification code
-            </label>
-            <Input
-              ref={inputRef}
-              id="otp-code"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="000000"
+          <div className="flex flex-col items-center gap-2">
+            <InputOTP
               maxLength={6}
               value={code}
               onChange={handleCodeChange}
-              className="text-center font-mono text-2xl tracking-[0.5em]"
-            />
+              autoFocus
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+              </InputOTPGroup>
+              <InputOTPSeparator />
+              <InputOTPGroup>
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
           </div>
 
           <Button

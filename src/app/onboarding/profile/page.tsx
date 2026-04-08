@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Pencil, UserRound } from 'lucide-react'
+import { Loader2, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PhoneInput } from '@/components/ui/phone-input'
@@ -34,6 +34,14 @@ export default function OnboardingProfilePage() {
       avatar_url: '',
     },
   })
+
+  const watchedFirstName = form.watch('first_name')
+  const watchedLastName = form.watch('last_name')
+  const firstInitial = watchedFirstName?.trim().charAt(0).toUpperCase()
+  const lastInitial = watchedLastName?.trim().charAt(0).toUpperCase()
+  const avatarInitials = firstInitial && lastInitial
+    ? `${firstInitial}${lastInitial}`
+    : firstInitial || '?'
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -122,7 +130,7 @@ export default function OnboardingProfilePage() {
       const trimmed = {
         first_name: values.first_name.trim(),
         last_name: values.last_name.trim(),
-        email: values.email.trim(),
+        email: values.email?.trim() || '',
         phone: values.phone?.trim() || undefined,
         avatar_url: values.avatar_url?.trim() || undefined,
       }
@@ -211,8 +219,8 @@ export default function OnboardingProfilePage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center">
-                    <UserRound className="h-14 w-14 text-muted-foreground" />
+                  <span className="flex h-full w-full items-center justify-center bg-[var(--accent-light)] text-5xl font-semibold text-primary">
+                    {avatarInitials}
                   </span>
                 )}
                 {uploadingPhoto && (
@@ -315,7 +323,7 @@ export default function OnboardingProfilePage() {
           {/* Email */}
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
-              Email
+              Email <span className="text-muted-foreground font-normal">(optional)</span>
             </label>
             <Input
               id="email"
