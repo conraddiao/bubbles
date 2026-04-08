@@ -40,7 +40,7 @@ describe('AppHeader', () => {
 
   it('renders avatar with correct initial from profile name', () => {
     render(<AppHeader />)
-    expect(screen.getByText('T')).toBeInTheDocument() // "Test" User
+    expect(screen.getByText('TU')).toBeInTheDocument() // "Test" "User" → TU
   })
 
   it('falls back to email initial when no profile name', () => {
