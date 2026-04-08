@@ -26,3 +26,11 @@ export const mmsOnboarding = flag<boolean>({
     ? { adapter: vercelAdapter() as never }
     : { decide: () => false }),
 })
+
+export const showLandingPageCopy = flag<boolean>({
+  key: 'show-landing-page-copy',
+  defaultValue: false,
+  ...(hasFlags
+    ? { adapter: vercelAdapter() as never }
+    : { decide: () => false }),
+})
