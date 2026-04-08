@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -337,7 +338,10 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
 
         {isSignUp && (
           <div className="mt-4 text-xs text-muted-foreground text-center">
-            By creating an account, you agree to our Terms of Service and Privacy Policy
+            By creating an account, you agree to our{' '}
+            <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>
           </div>
         )}
       </CardContent>
