@@ -164,9 +164,9 @@ export default function DashboardPage() {
         </section>
       )}
       {/* Floating action button — New Group */}
-      <div className="fixed bottom-6 left-4 right-4 z-10 mx-auto max-w-lg sm:left-6 sm:right-6">
+      <div className="fixed bottom-6 left-0 right-0 z-10 flex justify-center px-4">
         <Button
-          className="h-14 w-full gap-2 rounded-full text-base shadow-lg"
+          className="h-14 gap-2 rounded-2xl px-6 text-base shadow-lg"
           onClick={() => createGroupMutation.mutate()}
           disabled={createGroupMutation.isPending}
         >
