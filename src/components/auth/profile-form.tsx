@@ -34,6 +34,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     defaultValues: {
       first_name: profile?.first_name || user?.user_metadata?.first_name || user?.user_metadata?.given_name || '',
       last_name: profile?.last_name || user?.user_metadata?.last_name || user?.user_metadata?.family_name || '',
+      email: profile?.email || user?.email || '',
       phone: profile?.phone || '',
       avatar_url: profile?.avatar_url || '',
       sms_notifications_enabled: profile?.sms_notifications_enabled ?? true,
@@ -45,6 +46,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       form.reset({
         first_name: profile.first_name || user?.user_metadata?.first_name || user?.user_metadata?.given_name || '',
         last_name: profile.last_name || user?.user_metadata?.last_name || user?.user_metadata?.family_name || '',
+        email: profile.email || user?.email || '',
         phone: profile.phone || user?.user_metadata?.phone || '',
         avatar_url: profile.avatar_url || '',
         sms_notifications_enabled: profile.sms_notifications_enabled ?? true,
@@ -53,6 +55,14 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     }
   }, [form, profile, user])
 
+  const watchedFirstName = form.watch('first_name')
+  const watchedLastName = form.watch('last_name')
+  const firstInitial = watchedFirstName?.trim().charAt(0).toUpperCase()
+  const lastInitial = watchedLastName?.trim().charAt(0).toUpperCase()
+  const avatarInitials = firstInitial && lastInitial
+    ? `${firstInitial}${lastInitial}`
+    : firstInitial || '?'
+
   const onSubmit = async (values: ContactCardFormData) => {
     setSaving(true)
     try {
@@ -60,8 +70,21 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
         ...values,
         first_name: values.first_name.trim(),
         last_name: values.last_name.trim(),
+        email: values.email?.trim() || '',
         phone: values.phone?.trim() || undefined,
         avatar_url: values.avatar_url?.trim() || undefined,
+      }
+
+      // Update auth email if provided and different
+      if (trimmed.email && trimmed.email !== user?.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: trimmed.email,
+        })
+        if (emailError) {
+          toast.error(emailError.message)
+          setSaving(false)
+          return
+        }
       }
 
       const { error: updateError } = await updateProfile({
@@ -74,6 +97,17 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
 
       if (updateError) {
         throw new Error(updateError)
+      }
+
+      // Update email on the profile row (updateProfile omits email by design)
+      if (trimmed.email) {
+        const { error: emailDbError } = await (supabase as any)
+          .from('profiles')
+          .update({ email: trimmed.email })
+          .eq('id', user!.id)
+        if (emailDbError) {
+          console.error('Failed to update profile email:', emailDbError)
+        }
       }
 
       const { error: propagateError } = await updateProfileAcrossGroups(
@@ -178,8 +212,8 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center">
-                    <UserRound className="h-20 w-20 text-muted-foreground" />
+                  <span className="flex h-full w-full items-center justify-center bg-[var(--accent-light)] text-6xl font-semibold text-primary">
+                    {avatarInitials}
                   </span>
                 )}
                 {uploadingPhoto && (
@@ -258,6 +292,23 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 </p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium">
+              Email <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Input
+              id="email"
+              type="email"
+              {...form.register('email')}
+              placeholder="jamie@example.com"
+            />
+            {form.formState.errors.email && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.email.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

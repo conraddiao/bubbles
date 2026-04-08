@@ -31,7 +31,11 @@ export function AppHeader() {
     .join(' ')
     .trim()
 
-  const avatarInitial = (displayName?.charAt(0) ?? user?.email?.charAt(0) ?? '?').toUpperCase()
+  const firstInitial = (profile?.first_name ?? user?.user_metadata?.first_name)?.trim().charAt(0).toUpperCase()
+  const lastInitial = (profile?.last_name ?? user?.user_metadata?.last_name)?.trim().charAt(0).toUpperCase()
+  const avatarInitial = firstInitial && lastInitial
+    ? `${firstInitial}${lastInitial}`
+    : firstInitial || '?'
   const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture
 
   const [classicCards, setClassicCards] = useState(() => {

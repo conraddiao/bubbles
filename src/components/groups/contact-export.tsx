@@ -73,9 +73,9 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
       'VERSION:3.0',
       `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
       `FN:${escapeVCardValue(fullName)}`,
-      `EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`,
     ]
 
+    if (member.email) vcard.push(`EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`)
     if (member.phone) {
       vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
     }

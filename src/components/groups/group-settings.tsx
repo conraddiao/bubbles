@@ -295,7 +295,7 @@ function MembersTab({ members, isLoading, onRemoveMember, isGroupClosed }: Membe
                     <Badge variant="secondary" className="text-xs">Owner</Badge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">{member.email}</p>
+                {member.email && <p className="text-sm text-muted-foreground">{member.email}</p>}
                 {member.phone && (
                   <p className="text-sm text-muted-foreground">{member.phone}</p>
                 )}

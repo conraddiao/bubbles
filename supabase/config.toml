@@ -19,8 +19,15 @@ double_confirm_changes = true
 enable_confirmations = false
 
 [auth.sms]
-enable_signup = false
+enable_signup = true
 enable_confirmations = false
+max_frequency = "5s"
+
+[auth.sms.twilio]
+enabled = true
+account_sid = "env(TWILIO_ACCOUNT_SID)"
+message_service_sid = "env(TWILIO_MESSAGING_SERVICE_SID)"
+auth_token = "env(TWILIO_AUTH_TOKEN)"
 
 [auth.external.apple]
 enabled = false

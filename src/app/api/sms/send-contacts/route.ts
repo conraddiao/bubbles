@@ -6,7 +6,7 @@ interface GroupMember {
   id: string
   first_name: string
   last_name: string
-  email: string
+  email?: string | null
   phone?: string
   avatar_url?: string | null
 }
@@ -32,9 +32,9 @@ function generateVCard(member: GroupMember, groupName: string): string {
     'VERSION:3.0',
     `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
     `FN:${escapeVCardValue(fullName)}`,
-    `EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`,
   ]
 
+  if (member.email) vcard.push(`EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`)
   if (member.phone) {
     vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
   }
