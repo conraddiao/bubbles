@@ -1,7 +1,5 @@
--- Fix: Supabase GoTrue stores auth.users.phone without the '+' prefix
--- (e.g. '15005550006' instead of '+15005550006'). The handle_new_user()
--- trigger must normalize to E.164 before inserting into profiles.phone,
--- which has a CHECK constraint requiring the '+' prefix.
+-- Fix: phone_verified should derive from the normalized _phone variable,
+-- not from NEW.phone, so it's true when phone comes from raw_user_meta_data.
 
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$

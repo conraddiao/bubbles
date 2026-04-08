@@ -95,16 +95,19 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
         sms_notifications_enabled: trimmed.sms_notifications_enabled,
       })
 
+      if (updateError) {
+        throw new Error(updateError)
+      }
+
       // Update email on the profile row (updateProfile omits email by design)
       if (trimmed.email) {
-        await (supabase as any)
+        const { error: emailDbError } = await (supabase as any)
           .from('profiles')
           .update({ email: trimmed.email })
           .eq('id', user!.id)
-      }
-
-      if (updateError) {
-        throw new Error(updateError)
+        if (emailDbError) {
+          console.error('Failed to update profile email:', emailDbError)
+        }
       }
 
       const { error: propagateError } = await updateProfileAcrossGroups(

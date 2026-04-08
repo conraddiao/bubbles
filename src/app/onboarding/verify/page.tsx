@@ -16,6 +16,7 @@ function VerifyContent() {
   const { verifyOtp, sendOtp, isLoading, resendCooldown } = usePhoneAuth()
   const { user, profile, loading, profileFetchFailed } = useAuth()
   const [code, setCode] = useState('')
+  const [isVerifying, setIsVerifying] = useState(false)
 
   // If no phone param, go back to phone entry
   useEffect(() => {
@@ -36,10 +37,20 @@ function VerifyContent() {
     }
   }, [loading, user, profile, profileFetchFailed, router])
 
+  const doVerify = async (phoneNum: string, token: string) => {
+    if (isVerifying) return
+    setIsVerifying(true)
+    try {
+      await verifyOtp(phoneNum, token)
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (code.length !== 6) return
-    await verifyOtp(phone, code)
+    await doVerify(phone, code)
   }
 
   const handleResend = async () => {
@@ -50,11 +61,20 @@ function VerifyContent() {
   const handleCodeChange = (value: string) => {
     setCode(value)
     if (value.length === 6) {
-      verifyOtp(phone, value)
+      doVerify(phone, value)
     }
   }
 
-  if (!phone || (user && !loading)) return null
+  if (!phone) return null
+
+  // Show spinner while waiting for profile to load after auth
+  if (user && !loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
