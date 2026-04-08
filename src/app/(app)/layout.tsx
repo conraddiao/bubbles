@@ -6,9 +6,10 @@ import { Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
+import { isProfileComplete } from '@/lib/auth-service'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, profileFetchFailed, retryProfile } = useAuth()
+  const { user, profile, loading, profileFetchFailed, retryProfile } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -16,6 +17,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.push('/auth')
     }
   }, [user, loading, router])
+
+  // Redirect phone-auth users with incomplete profiles to onboarding
+  useEffect(() => {
+    if (!loading && user && profile && !isProfileComplete(profile)) {
+      router.push('/onboarding/profile')
+    }
+  }, [loading, user, profile, router])
 
   if (loading) {
     return (

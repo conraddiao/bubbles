@@ -2,8 +2,11 @@ import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { AuthRedirect } from '@/components/auth-redirect'
+import { mmsOnboarding } from '@/flags'
 
-export default function Home() {
+export default async function Home() {
+  const isMmsOnboarding = await mmsOnboarding()
+
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12">
@@ -28,16 +31,26 @@ export default function Home() {
         </div>
 
         <div className="space-y-3">
-          <Link href="/auth?mode=signup" className="block">
-            <Button className="w-full" size="lg">
-              Get Started
-            </Button>
-          </Link>
-          <Link href="/auth?mode=signin" className="block">
-            <Button variant="outline" className="w-full" size="lg">
-              Log In
-            </Button>
-          </Link>
+          {isMmsOnboarding ? (
+            <Link href="/onboarding/phone" className="block">
+              <Button className="w-full" size="lg">
+                Get Started
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/auth?mode=signup" className="block">
+                <Button className="w-full" size="lg">
+                  Get Started
+                </Button>
+              </Link>
+              <Link href="/auth?mode=signin" className="block">
+                <Button variant="outline" className="w-full" size="lg">
+                  Log In
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <footer className="mt-10 text-center">
@@ -54,7 +67,7 @@ export default function Home() {
           </div>
         </footer>
       </main>
-      <AuthRedirect />
+      <AuthRedirect mmsOnboarding={isMmsOnboarding} />
     </div>
   )
 }

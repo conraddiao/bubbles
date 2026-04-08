@@ -18,3 +18,11 @@ export const showQRCube = flag<boolean>({
     ? { adapter: vercelAdapter() as never }
     : { decide: () => true }),
 })
+
+export const mmsOnboarding = flag<boolean>({
+  key: 'mms-onboarding',
+  defaultValue: false,
+  ...(hasFlags
+    ? { adapter: vercelAdapter() as never }
+    : { decide: () => false }),
+})
