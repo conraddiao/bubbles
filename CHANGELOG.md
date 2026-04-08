@@ -4,6 +4,9 @@ All notable changes to Bubbles will be documented in this file.
 
 ## [0.2.11.1] - 2026-04-08
 
+### Changed
+- FAB ("New Group" button) now floats centered at the bottom of the viewport, sized to its content rather than stretching full-width. Corner radius changed from pill (`rounded-full`) to softly squared (`rounded-2xl`).
+
 ### Removed
 - Removed post-signup phone verification flow (`PhoneVerification` component and `/profile/phone-verification` route) — phone verification is now mandatory during sign-up via the onboarding OTP flow, making the standalone page redundant.
 - Removed optional 2FA feature (`TwoFactorSetup`, `TwoFactorVerification` components, `/profile/2fa-setup` route, `twoFactorSchema`) — all users authenticate via phone OTP, which serves as the single factor. The 2FA check in the sign-in form was hardcoded `false` and never active.
