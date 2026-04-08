@@ -58,6 +58,11 @@ export const contactCardSchema = profileUpdateSchema.extend({
     .optional(),
 })
 
+export const contactCardSetupSchema = contactCardSchema.extend({
+  first_name: z.string().max(50, 'First name too long').default(''),
+  last_name: z.string().max(50, 'Last name too long').default(''),
+})
+
 // Phone verification schema
 export const phoneVerificationSchema = z.object({
   phone: z

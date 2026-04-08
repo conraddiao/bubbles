@@ -11,7 +11,7 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-auth'
-import { contactCardSchema, type ContactCardFormData } from '@/lib/validations'
+import { contactCardSchema, contactCardSetupSchema, type ContactCardFormData } from '@/lib/validations'
 import { updateProfileAcrossGroups } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -30,8 +30,10 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, profile, updateProfile, refreshProfile } = useAuth()
 
+  const schema = (mode === 'setup' ? contactCardSetupSchema : contactCardSchema) as typeof contactCardSchema
+
   const form = useForm<ContactCardFormData>({
-    resolver: zodResolver(contactCardSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       first_name: profile?.first_name || '',
       last_name: profile?.last_name || '',
@@ -66,8 +68,8 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
       }
 
       const { error: updateError } = await updateProfile({
-        first_name: trimmed.first_name,
-        last_name: trimmed.last_name,
+        first_name: trimmed.first_name || undefined,
+        last_name: trimmed.last_name || undefined,
         phone: trimmed.phone,
         avatar_url: trimmed.avatar_url ?? null,
         sms_notifications_enabled: trimmed.sms_notifications_enabled,
@@ -78,8 +80,8 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
       }
 
       const { error: propagateError } = await updateProfileAcrossGroups(
-        trimmed.first_name,
-        trimmed.last_name,
+        trimmed.first_name || undefined,
+        trimmed.last_name || undefined,
         trimmed.phone,
         trimmed.avatar_url ?? null
       )
