@@ -29,7 +29,7 @@ export function ProtectedRoute({
       }
 
       if (requireProfile && !profile) {
-        router.push('/dashboard')
+        router.push('/profile')
         return
       }
     }
@@ -51,7 +51,7 @@ export function ProtectedRoute({
   }
 
   if (requireProfile && !profile) {
-    return null // Will redirect to profile setup
+    return null // Will redirect to /profile
   }
 
   return <>{children}</>
