@@ -27,7 +27,6 @@ describe('useAuth', () => {
     last_name: 'User',
     phone: '+1234567890',
     phone_verified: true,
-    two_factor_enabled: false,
     sms_notifications_enabled: true,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',

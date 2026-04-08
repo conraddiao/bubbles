@@ -72,11 +72,6 @@ export const phoneVerificationSchema = z.object({
   verification_code: z.string().length(6, 'Verification code must be 6 digits').optional(),
 })
 
-// Two-factor authentication schema
-export const twoFactorSchema = z.object({
-  code: z.string().length(6, 'Verification code must be 6 digits'),
-})
-
 // Onboarding profile completion schema (phone-first flow)
 export const onboardingProfileSchema = z.object({
   first_name: z.string().min(1, 'First name is required').max(50, 'First name too long'),
@@ -101,5 +96,4 @@ export type SignInFormData = z.infer<typeof signInSchema>
 export type ProfileUpdateFormData = z.infer<typeof profileUpdateSchema>
 export type ContactCardFormData = z.infer<typeof contactCardSchema>
 export type PhoneVerificationFormData = z.infer<typeof phoneVerificationSchema>
-export type TwoFactorFormData = z.infer<typeof twoFactorSchema>
 export type OnboardingProfileFormData = z.infer<typeof onboardingProfileSchema>

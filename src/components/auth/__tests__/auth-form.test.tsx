@@ -288,23 +288,4 @@ describe('AuthForm', () => {
     })
   })
 
-  describe('2FA Flow', () => {
-    it('shows 2FA verification when user has 2FA enabled', async () => {
-      const user = userEvent.setup()
-      // Mock that user has 2FA enabled - this would be determined by the auth result
-      mockUseAuth.signIn.mockResolvedValue({ error: undefined })
-      
-      render(<AuthForm />)
-      
-      await user.type(screen.getByLabelText('Email'), 'test@example.com')
-      await user.type(screen.getByLabelText('Password'), 'password123')
-      await user.click(screen.getByRole('button', { name: 'Sign In' }))
-      
-      // Note: The current implementation doesn't fully implement 2FA detection
-      // This test documents the expected behavior
-      await waitFor(() => {
-        expect(mockUseAuth.signIn).toHaveBeenCalled()
-      })
-    })
-  })
 })
