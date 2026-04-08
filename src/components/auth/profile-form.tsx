@@ -97,7 +97,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
 
       // Update email on the profile row (updateProfile omits email by design)
       if (trimmed.email) {
-        await supabase
+        await (supabase as any)
           .from('profiles')
           .update({ email: trimmed.email })
           .eq('id', user!.id)
