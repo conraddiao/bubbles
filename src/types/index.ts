@@ -7,7 +7,6 @@ export interface Profile {
   phone?: string
   avatar_url?: string | null
   phone_verified: boolean
-  two_factor_enabled: boolean
   sms_notifications_enabled: boolean
   created_at: string
   updated_at: string
@@ -55,7 +54,7 @@ export interface NotificationEvent {
 export interface SMSNotification {
   id: string
   recipient_phone: string
-  message_type: 'group_closed' | 'member_notification' | '2fa_code'
+  message_type: 'group_closed' | 'member_notification'
   twilio_sid?: string
   status: 'pending' | 'sent' | 'delivered' | 'failed'
   group_id?: string

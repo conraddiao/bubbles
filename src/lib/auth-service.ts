@@ -57,7 +57,6 @@ export async function createUserProfile(userId: string): Promise<Profile | null>
       phone: normalizePhoneInput(user.user_metadata?.phone),
       avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
       phone_verified: false,
-      two_factor_enabled: false,
       sms_notifications_enabled: true
     }
     

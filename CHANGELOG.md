@@ -2,6 +2,13 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.11.1] - 2026-04-08
+
+### Removed
+- Removed post-signup phone verification flow (`PhoneVerification` component and `/profile/phone-verification` route) — phone verification is now mandatory during sign-up via the onboarding OTP flow, making the standalone page redundant.
+- Removed optional 2FA feature (`TwoFactorSetup`, `TwoFactorVerification` components, `/profile/2fa-setup` route, `twoFactorSchema`) — all users authenticate via phone OTP, which serves as the single factor. The 2FA check in the sign-in form was hardcoded `false` and never active.
+- Removed `two_factor_enabled` field from the `Profile` type and `auth-service.ts` profile initializer. Removed `2fa_code` from the `SMSNotification` message type union.
+
 ## [0.2.10.2] - 2026-04-08
 
 ### Changed

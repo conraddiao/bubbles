@@ -12,7 +12,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/hooks/use-auth'
-import { TwoFactorVerification } from './two-factor-verification'
 import { signInSchema, signUpSchema, SignInFormData, SignUpFormData } from '@/lib/validations'
 
 interface AuthFormProps {
@@ -26,8 +25,6 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const [show2FA, setShow2FA] = useState(false)
-  const [userEmail, setUserEmail] = useState('')
   const router = useRouter()
   const { signIn, signUp, signInWithGoogle } = useAuth()
 
@@ -79,19 +76,6 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
       } else {
         const signInData = data as SignInFormData
         result = await signIn(signInData.email, signInData.password)
-        
-        // TODO: Check if user has 2FA enabled and show 2FA verification
-        // For now, we'll simulate this check
-        if (!result.error) {
-          setUserEmail(signInData.email)
-          // Simulate checking if user has 2FA enabled
-          const has2FA = false // This would come from the auth result
-          
-          if (has2FA) {
-            setShow2FA(true)
-            return
-          }
-        }
       }
 
       if (!result.error) {
@@ -111,32 +95,6 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
     setAuthMode(prev => prev === 'signin' ? 'signup' : 'signin')
     signInForm.reset()
     signUpForm.reset()
-    setShow2FA(false)
-  }
-
-  const handle2FASuccess = () => {
-    currentForm.reset()
-    if (onSuccess) {
-      onSuccess()
-    } else if (redirectTo) {
-      window.location.href = redirectTo
-    }
-  }
-
-  const handle2FABack = () => {
-    setShow2FA(false)
-    setIsLoading(false)
-  }
-
-  // Show 2FA verification if needed
-  if (show2FA) {
-    return (
-      <TwoFactorVerification
-        email={userEmail}
-        onSuccess={handle2FASuccess}
-        onBack={handle2FABack}
-      />
-    )
   }
 
   return (
