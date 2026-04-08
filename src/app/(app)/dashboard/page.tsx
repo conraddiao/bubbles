@@ -63,23 +63,7 @@ export default function DashboardPage() {
   })
 
   return (
-    <div className="animate-fade-up-in mx-auto max-w-lg px-4 py-6 sm:px-6 sm:py-10">
-      {/* New Group — primary action */}
-      <div className="mb-6">
-        <Button
-          className="h-14 w-full gap-2 text-base"
-          onClick={() => createGroupMutation.mutate()}
-          disabled={createGroupMutation.isPending}
-        >
-          {createGroupMutation.isPending ? (
-            <Loader2 className="size-5 animate-spin" />
-          ) : (
-            <Plus className="size-5" />
-          )}
-          New Group
-        </Button>
-      </div>
-
+    <div className="animate-fade-up-in mx-auto max-w-lg px-4 pt-6 pb-28 sm:px-6 sm:pt-10 sm:pb-28">
       {/* Groups list — primary content */}
       <section aria-label="Your groups">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -179,6 +163,21 @@ export default function DashboardPage() {
           )}
         </section>
       )}
+      {/* Floating action button — New Group */}
+      <div className="fixed bottom-6 left-4 right-4 z-10 mx-auto max-w-lg sm:left-6 sm:right-6">
+        <Button
+          className="h-14 w-full gap-2 rounded-full text-base shadow-lg"
+          onClick={() => createGroupMutation.mutate()}
+          disabled={createGroupMutation.isPending}
+        >
+          {createGroupMutation.isPending ? (
+            <Loader2 className="size-5 animate-spin" />
+          ) : (
+            <Plus className="size-5" />
+          )}
+          New Group
+        </Button>
+      </div>
     </div>
   )
 }

@@ -2,20 +2,10 @@
 
 All notable changes to Bubbles will be documented in this file.
 
-## [0.2.11.0] - 2026-04-08
-
-### Fixed
-- Phone OTP signup returning 500: Supabase GoTrue stores phone numbers without the `+` prefix, which violated the E.164 CHECK constraint on profiles. New migration normalizes phone in the trigger.
-- Returning phone users no longer forced through profile setup if they already have first and last name.
-- vCard export no longer generates invalid EMAIL fields for members without email addresses.
+## [0.2.10.2] - 2026-04-08
 
 ### Changed
-- OTP verification page uses shadcn InputOTP component with auto-submit on 6 digits.
-- Email is now optional in the onboarding profile form and profile settings. "(optional)" label shown.
-- Email field added to profile settings so phone-first users can add email later.
-- Profile completion check only requires first and last name (no longer requires email).
-- Avatar fallback shows first + last initials (e.g. "CR") instead of single letter or generic icon.
-- Supabase local config enables SMS auth with Twilio provider.
+- The "New Group" button is now a floating action button (FAB) pinned to the bottom of the dashboard. The group list fills the full screen without the button blocking the top.
 
 ## [0.2.10.1] - 2026-04-07
 
