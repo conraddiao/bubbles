@@ -2,10 +2,11 @@ import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { AuthRedirect } from '@/components/auth-redirect'
-import { mmsOnboarding } from '@/flags'
+import { mmsOnboarding, showLandingPageCopy } from '@/flags'
 
 export default async function Home() {
   const isMmsOnboarding = await mmsOnboarding()
+  const showCopy = await showLandingPageCopy()
 
   return (
     <div className="min-h-screen bg-background">
@@ -19,16 +20,18 @@ export default async function Home() {
           </p>
         </header>
 
-        <div className="mb-10 space-y-4 text-center text-base text-foreground/80">
-          <p>
-            New group chats w/ randoms, park hangs, weddings, that friend-of-a-friend dinner
-            where everyone clicked. <strong className="text-foreground">Bubbles</strong> lets
-            the whole group share contact info in seconds.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Flash a QR code or share a link. Everyone joins and can download everyone&rsquo;s contact info.
-          </p>
-        </div>
+        {showCopy && (
+          <div className="mb-10 space-y-4 text-center text-base text-foreground/80">
+            <p>
+              New group chats w/ randoms, park hangs, weddings, that friend-of-a-friend dinner
+              where everyone clicked. <strong className="text-foreground">Bubbles</strong> lets
+              the whole group share contact info in seconds.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Flash a QR code or share a link. Everyone joins and can download everyone&rsquo;s contact info.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-3">
           {isMmsOnboarding ? (
@@ -55,7 +58,7 @@ export default async function Home() {
 
         <footer className="mt-10 text-center">
           <p className="font-label text-xs uppercase tracking-widest text-muted-foreground">
-            Not another network
+            QR --&gt; VCF
           </p>
           <div className="mt-3 flex justify-center gap-4 text-xs text-muted-foreground">
             <Link href="/privacy" className="hover:text-foreground hover:underline">
