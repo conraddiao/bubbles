@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
 
 export function AuthRedirect() {
-  const { user, profile, loading } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!loading && user) {
-      router.push(profile ? '/dashboard' : '/profile/setup')
+      router.push('/dashboard')
     }
-  }, [loading, user, profile, router])
+  }, [loading, user, router])
 
   return null
 }

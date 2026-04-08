@@ -1,31 +1,21 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
-import { isProfileComplete } from '@/lib/auth-service'
 import { AppHeader } from '@/components/app-header'
 import { Button } from '@/components/ui/button'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading, profileFetchFailed, retryProfile } = useAuth()
+  const { user, loading, profileFetchFailed, retryProfile } = useAuth()
   const router = useRouter()
-  const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/auth')
-        return
-      }
-      // Only redirect to setup once profile has loaded and is confirmed incomplete.
-      // While profile is null (still fetching in background), don't redirect.
-      if (!profileFetchFailed && profile !== null && !isProfileComplete(profile) && pathname !== '/profile/setup') {
-        router.push('/profile/setup')
-      }
+    if (!loading && !user) {
+      router.push('/auth')
     }
-  }, [user, profile, loading, profileFetchFailed, router, pathname])
+  }, [user, loading, router])
 
   if (loading) {
     return (
@@ -39,7 +29,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  // Show retry UI when profile failed to load rather than silently redirecting to setup
+  // Show retry UI when profile failed to load
   if (profileFetchFailed) {
     return (
       <div className="flex min-h-screen bg-background items-center justify-center flex-col gap-4">
@@ -50,12 +40,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Button>
       </div>
     )
-  }
-
-  // Allow profile setup page when profile is loaded and incomplete.
-  // If profile is null, it's still loading in the background — render children.
-  if (profile !== null && !isProfileComplete(profile) && pathname !== '/profile/setup') {
-    return null
   }
 
   return (

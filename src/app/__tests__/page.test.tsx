@@ -66,7 +66,7 @@ describe('Landing Page', () => {
     expect(mockPush).toHaveBeenCalledWith('/dashboard')
   })
 
-  it('redirects to /profile/setup when user has no profile', () => {
+  it('redirects to /dashboard when user has no profile', () => {
     mockUseAuth.mockReturnValue(
       createMockUseAuth({
         user: { id: 'test-user-id', email: 'test@example.com' },
@@ -75,7 +75,7 @@ describe('Landing Page', () => {
       }) as ReturnType<typeof useAuth>
     )
     render(<Home />)
-    expect(mockPush).toHaveBeenCalledWith('/profile/setup')
+    expect(mockPush).toHaveBeenCalledWith('/dashboard')
   })
 
   it('shows spinner while loading', () => {

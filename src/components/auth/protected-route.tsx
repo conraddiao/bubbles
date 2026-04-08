@@ -29,8 +29,7 @@ export function ProtectedRoute({
       }
 
       if (requireProfile && !profile) {
-        // User exists but profile is missing - redirect to profile setup
-        router.push('/profile/setup')
+        router.push('/profile')
         return
       }
     }
@@ -52,7 +51,7 @@ export function ProtectedRoute({
   }
 
   if (requireProfile && !profile) {
-    return null // Will redirect to profile setup
+    return null // Will redirect to /profile
   }
 
   return <>{children}</>

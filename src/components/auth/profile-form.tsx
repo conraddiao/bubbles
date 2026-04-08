@@ -17,11 +17,10 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
 interface ProfileFormProps {
-  mode: 'setup' | 'settings'
   onSuccess?: () => void
 }
 
-export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
+export function ProfileForm({ onSuccess }: ProfileFormProps) {
   const [saving, setSaving] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -33,8 +32,8 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
   const form = useForm<ContactCardFormData>({
     resolver: zodResolver(contactCardSchema),
     defaultValues: {
-      first_name: profile?.first_name || '',
-      last_name: profile?.last_name || '',
+      first_name: profile?.first_name || user?.user_metadata?.first_name || user?.user_metadata?.given_name || '',
+      last_name: profile?.last_name || user?.user_metadata?.last_name || user?.user_metadata?.family_name || '',
       phone: profile?.phone || '',
       avatar_url: profile?.avatar_url || '',
       sms_notifications_enabled: profile?.sms_notifications_enabled ?? true,
@@ -44,8 +43,8 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
   useEffect(() => {
     if (profile) {
       form.reset({
-        first_name: profile.first_name || user?.user_metadata?.first_name || '',
-        last_name: profile.last_name || user?.user_metadata?.last_name || '',
+        first_name: profile.first_name || user?.user_metadata?.first_name || user?.user_metadata?.given_name || '',
+        last_name: profile.last_name || user?.user_metadata?.last_name || user?.user_metadata?.family_name || '',
         phone: profile.phone || user?.user_metadata?.phone || '',
         avatar_url: profile.avatar_url || '',
         sms_notifications_enabled: profile.sms_notifications_enabled ?? true,
@@ -89,11 +88,7 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
       }
 
       await refreshProfile()
-
-      if (mode === 'settings') {
-        toast.success('Your contact card has been updated')
-      }
-
+      toast.success('Your contact card has been updated')
       onSuccess?.()
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to update contact card'
@@ -152,218 +147,170 @@ export function ProfileForm({ mode, onSuccess }: ProfileFormProps) {
     if (pendingCropSrc) { URL.revokeObjectURL(pendingCropSrc); setPendingCropSrc(null) }
   }
 
-  const isSubmitDisabled = saving || uploadingPhoto
-
-  const formContent = (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      {/* Profile photo — always at top */}
-      <div className="flex justify-center pb-2">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingPhoto}
-            aria-label={photoPreview ? 'Change photo' : 'Add photo'}
-            className="relative h-48 w-48 rounded-full overflow-hidden border-2 border-border bg-secondary hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors disabled:opacity-60"
-          >
-            {photoPreview ? (
-              <img
-                src={photoPreview}
-                alt="Contact photo preview"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="flex h-full w-full items-center justify-center">
-                <UserRound className="h-20 w-20 text-muted-foreground" />
-              </span>
-            )}
-            {uploadingPhoto && (
-              <span className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </span>
-            )}
-          </button>
-
-          {!uploadingPhoto && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Edit photo"
-              className="absolute top-1 right-1 h-9 w-9 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        onChange={handlePhotoSelect}
-        disabled={uploadingPhoto}
-        aria-label="Select contact photo"
-      />
-
-      <input type="hidden" {...form.register('avatar_url')} />
-
-      <AvatarCropDialog
-        imageSrc={pendingCropSrc}
-        open={cropDialogOpen}
-        onClose={handleCropCancel}
-        onCropComplete={handleCropComplete}
-      />
-
-      {form.formState.errors.avatar_url && (
-        <p className="text-sm text-destructive">
-          {form.formState.errors.avatar_url.message}
-        </p>
-      )}
-
-      {mode !== 'setup' && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <label htmlFor="first_name" className="text-sm font-medium">
-              First name
-            </label>
-            <Input
-              id="first_name"
-              {...form.register('first_name')}
-              placeholder="Jamie"
-            />
-            {form.formState.errors.first_name && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.first_name.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="last_name" className="text-sm font-medium">
-              Last name
-            </label>
-            <Input
-              id="last_name"
-              {...form.register('last_name')}
-              placeholder="Rivera"
-            />
-            {form.formState.errors.last_name && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.last_name.message}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {mode !== 'setup' && (
-        <div className="space-y-2">
-          <label htmlFor="phone" className="text-sm font-medium">
-            Phone number
-          </label>
-          <Controller
-            name="phone"
-            control={form.control}
-            render={({ field }) => (
-              <PhoneInput
-                {...field}
-                id="phone"
-              />
-            )}
-          />
-          {form.formState.errors.phone && (
-            <p className="text-sm text-destructive">
-              {form.formState.errors.phone.message}
-            </p>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-        <div className="space-y-1">
-          <p className="text-sm font-medium">SMS notifications</p>
-          <p className="text-xs text-muted-foreground">
-            Receive important updates and group changes via text message.
-          </p>
-        </div>
-        <Switch
-          checked={form.watch('sms_notifications_enabled')}
-          onCheckedChange={(checked) =>
-            form.setValue('sms_notifications_enabled', checked, {
-              shouldDirty: true,
-            })
-          }
-        />
-      </div>
-
-      {mode === 'setup' && (
-        <Button
-          type="submit"
-          disabled={isSubmitDisabled}
-          className="inline-flex items-center gap-2"
-        >
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-          Complete Profile
-        </Button>
-      )}
-
-      {mode === 'settings' && form.formState.isDirty && (
-        <div className="fixed bottom-6 inset-x-0 px-4 z-40 pointer-events-none flex justify-center">
-          <Button
-            type="submit"
-            disabled={saving || uploadingPhoto}
-            className="pointer-events-auto h-14 w-full max-w-lg gap-2 text-base shadow-xl"
-          >
-            {saving && <Loader2 className="h-5 w-5 animate-spin" />}
-            Save contact card
-          </Button>
-        </div>
-      )}
-    </form>
-  )
-
-  if (mode === 'settings') {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserRound className="h-5 w-5 text-primary" />
-            Contact card
-          </CardTitle>
-          <CardDescription>
-            These details appear in your shared contact card when members export the group
-            vCard.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>{formContent}</CardContent>
-      </Card>
-    )
-  }
-
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserRound className="h-5 w-5" />
-          Profile Settings
+          <UserRound className="h-5 w-5 text-primary" />
+          Contact card
         </CardTitle>
         <CardDescription>
-          Update your profile information. Changes will be reflected across all your groups.
+          These details appear in your shared contact card when members export the group
+          vCard.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {formContent}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Profile photo */}
+          <div className="flex justify-center pb-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                aria-label={photoPreview ? 'Change photo' : 'Add photo'}
+                className="relative h-48 w-48 rounded-full overflow-hidden border-2 border-border bg-secondary hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors disabled:opacity-60"
+              >
+                {photoPreview ? (
+                  <img
+                    src={photoPreview}
+                    alt="Contact photo preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center">
+                    <UserRound className="h-20 w-20 text-muted-foreground" />
+                  </span>
+                )}
+                {uploadingPhoto && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </span>
+                )}
+              </button>
 
-        <div className="mt-6 p-4 bg-secondary rounded-lg">
-          <h4 className="text-sm font-medium mb-2">Account Information</h4>
-          <div className="space-y-1 text-sm text-muted-foreground">
-            <p><strong>Email:</strong> {profile?.email || user?.email || 'Unavailable'}</p>
-            <p><strong>Phone Verified:</strong> {profile?.phone_verified ? 'Yes' : 'No'}</p>
-            <p><strong>2FA Enabled:</strong> {profile?.two_factor_enabled ? 'Yes' : 'No'}</p>
-            <p><strong>Member Since:</strong> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unavailable'}</p>
+              {!uploadingPhoto && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Edit photo"
+                  className="absolute top-1 right-1 h-9 w-9 rounded-full bg-background border border-border shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={handlePhotoSelect}
+            disabled={uploadingPhoto}
+            aria-label="Select contact photo"
+          />
+
+          <input type="hidden" {...form.register('avatar_url')} />
+
+          <AvatarCropDialog
+            imageSrc={pendingCropSrc}
+            open={cropDialogOpen}
+            onClose={handleCropCancel}
+            onCropComplete={handleCropComplete}
+          />
+
+          {form.formState.errors.avatar_url && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.avatar_url.message}
+            </p>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="first_name" className="text-sm font-medium">
+                First name
+              </label>
+              <Input
+                id="first_name"
+                {...form.register('first_name')}
+                placeholder="Jamie"
+              />
+              {form.formState.errors.first_name && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.first_name.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="last_name" className="text-sm font-medium">
+                Last name
+              </label>
+              <Input
+                id="last_name"
+                {...form.register('last_name')}
+                placeholder="Rivera"
+              />
+              {form.formState.errors.last_name && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.last_name.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="phone" className="text-sm font-medium">
+              Phone number
+            </label>
+            <Controller
+              name="phone"
+              control={form.control}
+              render={({ field }) => (
+                <PhoneInput
+                  {...field}
+                  id="phone"
+                />
+              )}
+            />
+            {form.formState.errors.phone && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.phone.message}
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border bg-card p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">SMS notifications</p>
+              <p className="text-xs text-muted-foreground">
+                Receive important updates and group changes via text message.
+              </p>
+            </div>
+            <Switch
+              checked={form.watch('sms_notifications_enabled')}
+              onCheckedChange={(checked) =>
+                form.setValue('sms_notifications_enabled', checked, {
+                  shouldDirty: true,
+                })
+              }
+            />
+          </div>
+
+          {form.formState.isDirty && (
+            <div className="fixed bottom-6 inset-x-0 px-4 z-40 pointer-events-none flex justify-center">
+              <Button
+                type="submit"
+                disabled={saving || uploadingPhoto}
+                className="pointer-events-auto h-14 w-full max-w-lg gap-2 text-base shadow-xl"
+              >
+                {saving && <Loader2 className="h-5 w-5 animate-spin" />}
+                Save contact card
+              </Button>
+            </div>
+          )}
+        </form>
       </CardContent>
     </Card>
   )
