@@ -151,6 +151,20 @@ export async function POST(request: NextRequest) {
       mediaUrl: [publicUrl],
     })
 
+    const { error: insertError } = await (supabaseAdmin as any)
+      .from('sms_notifications')
+      .insert({
+        recipient_phone: recipient,
+        message_type: 'member_notification',
+        twilio_sid: message.sid,
+        status: 'sent',
+        group_id: groupId,
+      })
+
+    if (insertError) {
+      console.error('Failed to insert sms_notifications record:', insertError)
+    }
+
     return NextResponse.json({
       success: true,
       messageSid: message.sid,
