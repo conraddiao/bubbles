@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
       from: fromNumber,
       body: `${groupName || 'Your group'} contacts from Bubbles — tap the attachment to add them to your phone.`,
       mediaUrl: [publicUrl],
+      statusCallback: `${process.env.APP_URL}/api/webhooks/twilio`,
     })
 
     const { error: insertError } = await (supabaseAdmin as any)
