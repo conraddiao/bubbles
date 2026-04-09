@@ -2,6 +2,16 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.11.3] - 2026-04-09
+
+### Added
+- Twilio Event Streams sink + subscription for SMS events — fires on `sent`, `failed`, and `undelivered` via a new `POST /api/webhooks/twilio/events` endpoint that handles CloudEvents JSON format.
+- Alert emails now include the **SMS body** (OTP code) fetched from the Twilio REST API on delivery failure.
+- Alert email links directly to the specific Twilio message log (`/monitor/logs/sms/{MessageSid}`) instead of the generic logs page.
+
+### Fixed
+- Webhook no longer returns 400 for inbound message webhooks (when a recipient replies to the SMS) — these have no `MessageStatus` field and are now silently acknowledged with 204.
+
 ## [0.2.11.2] - 2026-04-08
 
 ### Added
