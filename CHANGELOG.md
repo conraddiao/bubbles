@@ -2,6 +2,13 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.11.2] - 2026-04-08
+
+### Added
+- Twilio status callback webhook (`POST /api/webhooks/twilio`) — verifies Twilio signature, updates `sms_notifications` delivery status, and sends a Resend email alert when a message fails or is undelivered.
+- `src/lib/resend.ts` helper for sending alert emails via Resend (lazy client init, never throws).
+- `sms_notifications` record is now inserted after each successful MMS send, enabling delivery status tracking.
+
 ## [0.2.11.1] - 2026-04-08
 
 ### Changed
