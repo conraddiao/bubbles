@@ -381,7 +381,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 h-full w-full"
+      className="absolute inset-0 h-full w-full touch-none"
       aria-hidden="true"
     />
   )
