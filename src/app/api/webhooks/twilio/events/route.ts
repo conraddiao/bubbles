@@ -85,13 +85,10 @@ async function handleEvent(event: CloudEvent) {
   console.log(`Twilio event: ${type}`, { messageSid, to, status, hasBody: !!body })
 
   const isFailed = status === 'failed' || status === 'undelivered'
-  const isSent = status === 'sent'
 
-  if (!isSent && !isFailed) return
+  if (!isFailed) return
 
-  const subject = isFailed
-    ? `Bubbles: SMS delivery ${status} to ${to}`
-    : `Bubbles: SMS sent to ${to}`
+  const subject = `Bubbles: SMS delivery ${status} to ${to}`
 
   const bodyRow = body != null
     ? `<tr><td><strong>Message Body</strong></td><td style="font-family:monospace">${body}</td></tr>`
@@ -101,7 +98,7 @@ async function handleEvent(event: CloudEvent) {
     : ''
 
   const html = `
-    <h2>SMS ${isFailed ? 'delivery failed' : 'sent'}</h2>
+    <h2>SMS delivery failed</h2>
     <table cellpadding="6" cellspacing="0" style="border-collapse:collapse">
       <tr><td><strong>Status</strong></td><td>${status}</td></tr>
       <tr><td><strong>To</strong></td><td>${to}</td></tr>
