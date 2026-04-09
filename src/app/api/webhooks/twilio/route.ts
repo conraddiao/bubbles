@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendAlertEmail } from '@/lib/resend'
-
-// Terminal failure statuses per Twilio docs
-const FAILED_STATUSES = new Set(['failed', 'undelivered'])
 
 // Statuses worth persisting to the DB
 const TRACKED_STATUSES = new Set(['sent', 'delivered', 'failed', 'undelivered'])
@@ -35,8 +31,6 @@ export async function POST(request: NextRequest) {
 
   const messageSid = params['MessageSid']
   const messageStatus = params['MessageStatus']
-  const errorCode = params['ErrorCode'] ?? null
-  const to = params['To'] ?? null
 
   if (!messageSid) {
     console.error('Twilio webhook: missing MessageSid', params)
@@ -45,16 +39,12 @@ export async function POST(request: NextRequest) {
 
   if (!messageStatus) {
     // Inbound message webhook (e.g. someone replied to the SMS) — no status callback, ignore
-    console.log('Twilio webhook: no MessageStatus, treating as inbound message', { messageSid, to })
+    console.log('Twilio webhook: no MessageStatus, treating as inbound message', { messageSid })
     return new NextResponse(null, { status: 204 })
   }
 
   if (TRACKED_STATUSES.has(messageStatus)) {
     await updateSmsNotificationStatus(messageSid, messageStatus)
-  }
-
-  if (FAILED_STATUSES.has(messageStatus)) {
-    await handleMessageFailed({ messageSid, messageStatus, errorCode, to, authToken })
   }
 
   return new NextResponse(null, { status: 204 })
@@ -79,49 +69,3 @@ async function updateSmsNotificationStatus(twilioSid: string, messageStatus: str
   }
 }
 
-interface FailedMessageParams {
-  messageSid: string
-  messageStatus: string
-  errorCode: string | null
-  to: string | null
-  authToken: string
-}
-
-async function handleMessageFailed({ messageSid, messageStatus, errorCode, to, authToken }: FailedMessageParams) {
-  try {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID
-
-    let messageBody: string | null = null
-    if (accountSid) {
-      try {
-        const client = twilio(accountSid, authToken)
-        const msg = await client.messages(messageSid).fetch()
-        messageBody = msg.body ?? null
-      } catch (err) {
-        console.error('Twilio webhook: failed to fetch message body', err)
-      }
-    }
-
-    const subject = `Bubbles: SMS/MMS delivery ${messageStatus}`
-    const errorCodeRow = errorCode
-      ? `<tr><td><strong>Error Code</strong></td><td><a href="https://www.twilio.com/docs/api/errors/${errorCode}">${errorCode}</a></td></tr>`
-      : ''
-    const bodyRow = messageBody != null
-      ? `<tr><td><strong>Message Body</strong></td><td>${messageBody}</td></tr>`
-      : ''
-    const html = `
-      <h2>SMS/MMS delivery failed</h2>
-      <table>
-        <tr><td><strong>Status</strong></td><td>${messageStatus}</td></tr>
-        <tr><td><strong>Message SID</strong></td><td>${messageSid}</td></tr>
-        <tr><td><strong>Recipient</strong></td><td>${to ?? 'unknown'}</td></tr>
-        ${bodyRow}
-        ${errorCodeRow}
-      </table>
-      <p><a href="https://console.twilio.com/us1/monitor/logs/sms/${messageSid}">View message in Twilio console</a></p>
-    `
-    await sendAlertEmail({ subject, html })
-  } catch (err) {
-    console.error('handleMessageFailed threw:', err)
-  }
-}

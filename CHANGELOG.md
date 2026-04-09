@@ -2,6 +2,12 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.11.4] - 2026-04-08
+
+### Fixed
+- SMS delivery failure alerts now send exactly **one** email instead of two. Previously both the status callback webhook and the Event Streams webhook fired independently on the same failure event.
+- Removed spurious alert emails that fired on every successful SMS delivery.
+
 ## [0.2.11.3] - 2026-04-09
 
 ### Added
