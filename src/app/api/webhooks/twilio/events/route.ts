@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
-import { sendAlertEmail } from '@/lib/resend'
 
 async function fetchMessageBody(messageSid: string): Promise<string | null> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
@@ -97,32 +96,7 @@ async function handleEvent(event: CloudEvent) {
   const errorCode = data.ErrorCode ?? null
   const errorMessage = data.ErrorMessage ?? null
 
-  console.log(`Twilio event: ${type}`, { messageSid, to, status, hasBody: !!body })
-
-  const isFailed = status === 'failed' || status === 'undelivered'
-
-  if (!isFailed) return
-
-  const subject = `Bubbles: SMS delivery ${status} to ${to}`
-
-  const bodyRow = body != null
-    ? `<tr><td><strong>Message Body</strong></td><td style="font-family:monospace">${body}</td></tr>`
-    : ''
-  const errorCodeRow = errorCode
-    ? `<tr><td><strong>Error Code</strong></td><td><a href="https://www.twilio.com/docs/api/errors/${errorCode}">${errorCode}</a>${errorMessage ? ` — ${errorMessage}` : ''}</td></tr>`
-    : ''
-
-  const html = `
-    <h2>SMS delivery failed</h2>
-    <table cellpadding="6" cellspacing="0" style="border-collapse:collapse">
-      <tr><td><strong>Status</strong></td><td>${status}</td></tr>
-      <tr><td><strong>To</strong></td><td>${to}</td></tr>
-      <tr><td><strong>Message SID</strong></td><td>${messageSid}</td></tr>
-      ${bodyRow}
-      ${errorCodeRow}
-    </table>
-    <p><a href="https://console.twilio.com/us1/monitor/logs/sms/${messageSid}">View in Twilio console</a></p>
-  `
-
-  await sendAlertEmail({ subject, html })
+  // Alert email is sent by the standard status callback webhook (route.ts).
+  // This handler just logs for observability.
+  console.log(`Twilio event: ${type}`, { messageSid, to, status })
 }
