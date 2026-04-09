@@ -38,8 +38,15 @@ export async function POST(request: NextRequest) {
   const errorCode = params['ErrorCode'] ?? null
   const to = params['To'] ?? null
 
-  if (!messageSid || !messageStatus) {
+  if (!messageSid) {
+    console.error('Twilio webhook: missing MessageSid', params)
     return new NextResponse('Bad Request', { status: 400 })
+  }
+
+  if (!messageStatus) {
+    // Inbound message webhook (e.g. someone replied to the SMS) — no status callback, ignore
+    console.log('Twilio webhook: no MessageStatus, treating as inbound message', { messageSid, to })
+    return new NextResponse(null, { status: 204 })
   }
 
   if (TRACKED_STATUSES.has(messageStatus)) {
@@ -47,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (FAILED_STATUSES.has(messageStatus)) {
-    await handleMessageFailed({ messageSid, messageStatus, errorCode, to })
+    await handleMessageFailed({ messageSid, messageStatus, errorCode, to, authToken })
   }
 
   return new NextResponse(null, { status: 204 })
@@ -77,13 +84,30 @@ interface FailedMessageParams {
   messageStatus: string
   errorCode: string | null
   to: string | null
+  authToken: string
 }
 
-async function handleMessageFailed({ messageSid, messageStatus, errorCode, to }: FailedMessageParams) {
+async function handleMessageFailed({ messageSid, messageStatus, errorCode, to, authToken }: FailedMessageParams) {
   try {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID
+
+    let messageBody: string | null = null
+    if (accountSid) {
+      try {
+        const client = twilio(accountSid, authToken)
+        const msg = await client.messages(messageSid).fetch()
+        messageBody = msg.body ?? null
+      } catch (err) {
+        console.error('Twilio webhook: failed to fetch message body', err)
+      }
+    }
+
     const subject = `Bubbles: SMS/MMS delivery ${messageStatus}`
     const errorCodeRow = errorCode
       ? `<tr><td><strong>Error Code</strong></td><td><a href="https://www.twilio.com/docs/api/errors/${errorCode}">${errorCode}</a></td></tr>`
+      : ''
+    const bodyRow = messageBody != null
+      ? `<tr><td><strong>Message Body</strong></td><td>${messageBody}</td></tr>`
       : ''
     const html = `
       <h2>SMS/MMS delivery failed</h2>
@@ -91,9 +115,10 @@ async function handleMessageFailed({ messageSid, messageStatus, errorCode, to }:
         <tr><td><strong>Status</strong></td><td>${messageStatus}</td></tr>
         <tr><td><strong>Message SID</strong></td><td>${messageSid}</td></tr>
         <tr><td><strong>Recipient</strong></td><td>${to ?? 'unknown'}</td></tr>
+        ${bodyRow}
         ${errorCodeRow}
       </table>
-      <p><a href="https://console.twilio.com/us1/monitor/logs/sms">View in Twilio console</a></p>
+      <p><a href="https://console.twilio.com/us1/monitor/logs/sms/${messageSid}">View message in Twilio console</a></p>
     `
     await sendAlertEmail({ subject, html })
   } catch (err) {
