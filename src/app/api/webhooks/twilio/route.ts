@@ -33,30 +33,62 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 })
   }
 
+  // Twilio sends two webhook formats to this endpoint:
+  // 1. Status callbacks: top-level MessageSid, MessageStatus, ErrorCode, To
+  // 2. Debugger notifications: Level, Payload (JSON string with resource_sid, error_code), Sid (NO…)
+
   const messageSid = params['MessageSid']
-  const messageStatus = params['MessageStatus']
-  const errorCode = params['ErrorCode'] ?? null
-  const to = params['To'] ?? null
 
-  if (!messageSid) {
-    console.error('Twilio webhook: missing MessageSid', params)
-    return new NextResponse('Bad Request', { status: 400 })
-  }
+  if (messageSid) {
+    // ── Standard status callback ──
+    const messageStatus = params['MessageStatus']
+    const errorCode = params['ErrorCode'] ?? null
+    const to = params['To'] ?? null
 
-  if (!messageStatus) {
-    // Inbound message webhook (e.g. someone replied to the SMS) — no status callback, ignore
-    console.log('Twilio webhook: no MessageStatus, treating as inbound message', { messageSid, to })
+    if (!messageStatus) {
+      console.log('Twilio webhook: no MessageStatus, treating as inbound message', { messageSid, to })
+      return new NextResponse(null, { status: 204 })
+    }
+
+    if (TRACKED_STATUSES.has(messageStatus)) {
+      await updateSmsNotificationStatus(messageSid, messageStatus)
+    }
+
+    if (FAILED_STATUSES.has(messageStatus)) {
+      await handleMessageFailed({ messageSid, messageStatus, errorCode, to, authToken })
+    }
+
     return new NextResponse(null, { status: 204 })
   }
 
-  if (TRACKED_STATUSES.has(messageStatus)) {
-    await updateSmsNotificationStatus(messageSid, messageStatus)
+  // ── Debugger error notification ──
+  if (params['Level'] === 'ERROR' && params['Payload']) {
+    try {
+      const payload = JSON.parse(params['Payload']) as {
+        resource_sid?: string
+        error_code?: string
+      }
+      const resourceSid = payload.resource_sid
+      const errorCode = payload.error_code ?? null
+
+      if (resourceSid?.startsWith('SM')) {
+        await handleMessageFailed({
+          messageSid: resourceSid,
+          messageStatus: 'failed',
+          errorCode,
+          to: null,
+          authToken,
+        })
+        await updateSmsNotificationStatus(resourceSid, 'failed')
+      }
+    } catch (err) {
+      console.error('Twilio webhook: failed to parse debugger Payload', err)
+    }
+
+    return new NextResponse(null, { status: 204 })
   }
 
-  if (FAILED_STATUSES.has(messageStatus)) {
-    await handleMessageFailed({ messageSid, messageStatus, errorCode, to, authToken })
-  }
-
+  console.log('Twilio webhook: unrecognized payload, ignoring', Object.keys(params))
   return new NextResponse(null, { status: 204 })
 }
 
@@ -92,13 +124,15 @@ async function handleMessageFailed({ messageSid, messageStatus, errorCode, to, a
     const accountSid = process.env.TWILIO_ACCOUNT_SID
 
     let messageBody: string | null = null
+    let recipient = to
     if (accountSid) {
       try {
         const client = twilio(accountSid, authToken)
         const msg = await client.messages(messageSid).fetch()
         messageBody = msg.body ?? null
+        if (!recipient) recipient = msg.to ?? null
       } catch (err) {
-        console.error('Twilio webhook: failed to fetch message body', err)
+        console.error('Twilio webhook: failed to fetch message details', err)
       }
     }
 
@@ -114,7 +148,7 @@ async function handleMessageFailed({ messageSid, messageStatus, errorCode, to, a
       <table>
         <tr><td><strong>Status</strong></td><td>${messageStatus}</td></tr>
         <tr><td><strong>Message SID</strong></td><td>${messageSid}</td></tr>
-        <tr><td><strong>Recipient</strong></td><td>${to ?? 'unknown'}</td></tr>
+        <tr><td><strong>Recipient</strong></td><td>${recipient ?? 'unknown'}</td></tr>
         ${bodyRow}
         ${errorCodeRow}
       </table>
