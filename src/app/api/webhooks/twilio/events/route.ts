@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 
+async function fetchMessageBody(messageSid: string): Promise<string | null> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  if (!accountSid || !authToken) return null
+  try {
+    const client = twilio(accountSid, authToken)
+    const msg = await client.messages(messageSid).fetch()
+    return msg.body ?? null
+  } catch (err) {
+    console.error('Twilio events webhook: failed to fetch message body', err)
+    return null
+  }
+}
+
 export async function POST(request: NextRequest) {
   const authToken = process.env.TWILIO_AUTH_TOKEN
   if (!authToken) {
@@ -77,6 +91,10 @@ async function handleEvent(event: CloudEvent) {
   const status = type.split('.').pop() ?? 'unknown' // sent, delivered, failed, undelivered
   const messageSid = data.MessageSid ?? data.SmsSid ?? 'unknown'
   const to = data.To ?? 'unknown'
+  // Event Streams may not include Body for status events — fall back to the API
+  const body = data.Body ?? (messageSid !== 'unknown' ? await fetchMessageBody(messageSid) : null)
+  const errorCode = data.ErrorCode ?? null
+  const errorMessage = data.ErrorMessage ?? null
 
   // Alert email is sent by the standard status callback webhook (route.ts).
   // This handler just logs for observability.
