@@ -3,6 +3,15 @@ import twilio from 'twilio'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendAlertEmail } from '@/lib/resend'
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // Terminal failure statuses per Twilio docs
 const FAILED_STATUSES = new Set(['failed', 'undelivered'])
 
@@ -46,7 +55,7 @@ export async function POST(request: NextRequest) {
     const to = params['To'] ?? null
 
     if (!messageStatus) {
-      console.log('Twilio webhook: no MessageStatus, treating as inbound message', { messageSid, to })
+      console.log('Twilio webhook: no MessageStatus, treating as inbound message', { messageSid })
       return new NextResponse(null, { status: 204 })
     }
 
@@ -136,23 +145,27 @@ async function handleMessageFailed({ messageSid, messageStatus, errorCode, to, a
       }
     }
 
+    const safeStatus = escapeHtml(messageStatus)
+    const safeSid = escapeHtml(messageSid)
+    const safeRecipient = escapeHtml(recipient ?? 'unknown')
+
     const subject = `Bubbles: SMS/MMS delivery ${messageStatus}`
     const errorCodeRow = errorCode
-      ? `<tr><td><strong>Error Code</strong></td><td><a href="https://www.twilio.com/docs/api/errors/${errorCode}">${errorCode}</a></td></tr>`
+      ? `<tr><td><strong>Error Code</strong></td><td><a href="https://www.twilio.com/docs/api/errors/${encodeURIComponent(errorCode)}">${escapeHtml(errorCode)}</a></td></tr>`
       : ''
     const bodyRow = messageBody != null
-      ? `<tr><td><strong>Message Body</strong></td><td>${messageBody}</td></tr>`
+      ? `<tr><td><strong>Message Body</strong></td><td>${escapeHtml(messageBody)}</td></tr>`
       : ''
     const html = `
       <h2>SMS/MMS delivery failed</h2>
       <table>
-        <tr><td><strong>Status</strong></td><td>${messageStatus}</td></tr>
-        <tr><td><strong>Message SID</strong></td><td>${messageSid}</td></tr>
-        <tr><td><strong>Recipient</strong></td><td>${recipient ?? 'unknown'}</td></tr>
+        <tr><td><strong>Status</strong></td><td>${safeStatus}</td></tr>
+        <tr><td><strong>Message SID</strong></td><td>${safeSid}</td></tr>
+        <tr><td><strong>Recipient</strong></td><td>${safeRecipient}</td></tr>
         ${bodyRow}
         ${errorCodeRow}
       </table>
-      <p><a href="https://console.twilio.com/us1/monitor/logs/sms/${messageSid}">View message in Twilio console</a></p>
+      <p><a href="https://console.twilio.com/us1/monitor/logs/sms/${encodeURIComponent(messageSid)}">View message in Twilio console</a></p>
     `
     await sendAlertEmail({ subject, html })
   } catch (err) {
