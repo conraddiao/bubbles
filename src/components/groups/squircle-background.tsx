@@ -4,11 +4,14 @@ import { useEffect, useRef } from 'react'
 import {
   CanvasTexture,
   DoubleSide,
+  Matrix4,
   Mesh,
   PerspectiveCamera,
+  Quaternion,
   Scene,
   ShaderMaterial,
   SphereGeometry,
+  Vector3,
   WebGLRenderer,
 } from 'three'
 import QRCode from 'qrcode'
@@ -36,6 +39,55 @@ function buildSquircle() {
   p.needsUpdate = true
   geometry.computeVertexNormals()
   return geometry
+}
+
+/** Snap a quaternion to the nearest of the cube's 24 rotational symmetries
+ *  by snapping rotation-matrix columns to the nearest signed world basis
+ *  vector and re-orthonormalizing via a cross product. */
+function snapQuaternionToCubeRotation(
+  q: Quaternion,
+  m: Matrix4,
+  colX: Vector3,
+  colY: Vector3,
+  colZ: Vector3,
+): Quaternion {
+  m.makeRotationFromQuaternion(q)
+  const e = m.elements
+  colX.set(e[0], e[1], e[2])
+  colY.set(e[4], e[5], e[6])
+  snapVectorToSignedBasis(colX)
+  snapVectorToSignedBasis(colY)
+  // If X and Y snapped to the same or opposite axis, rebuild Y from the
+  // original column with the dominant axis of X zeroed out so they land on
+  // different basis vectors.
+  if (Math.abs(colX.dot(colY)) > 0.5) {
+    colY.set(e[4], e[5], e[6])
+    const ax = dominantAxisIndex(colX)
+    if (ax === 0) colY.x = 0
+    else if (ax === 1) colY.y = 0
+    else colY.z = 0
+    snapVectorToSignedBasis(colY)
+  }
+  colZ.crossVectors(colX, colY) // guarantees right-handed orthonormal frame
+  e[0] = colX.x; e[1] = colX.y; e[2] = colX.z; e[3] = 0
+  e[4] = colY.x; e[5] = colY.y; e[6] = colY.z; e[7] = 0
+  e[8] = colZ.x; e[9] = colZ.y; e[10] = colZ.z; e[11] = 0
+  e[12] = 0; e[13] = 0; e[14] = 0; e[15] = 1
+  return new Quaternion().setFromRotationMatrix(m)
+}
+
+function snapVectorToSignedBasis(v: Vector3): void {
+  const ax = Math.abs(v.x), ay = Math.abs(v.y), az = Math.abs(v.z)
+  if (ax >= ay && ax >= az)      v.set(Math.sign(v.x) || 1, 0, 0)
+  else if (ay >= az)             v.set(0, Math.sign(v.y) || 1, 0)
+  else                           v.set(0, 0, Math.sign(v.z) || 1)
+}
+
+function dominantAxisIndex(v: Vector3): 0 | 1 | 2 {
+  const ax = Math.abs(v.x), ay = Math.abs(v.y), az = Math.abs(v.z)
+  if (ax >= ay && ax >= az) return 0
+  if (ay >= az)             return 1
+  return 2
 }
 
 export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
@@ -215,10 +267,28 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
       let vx = 0, vy = 0
       const recentMoves: Array<{ dx: number; dy: number; dt: number }> = []
 
+      // Rotation scratch — reused every frame to avoid GC churn.
+      const WORLD_X = new Vector3(1, 0, 0)
+      const WORLD_Y = new Vector3(0, 1, 0)
+      // 0→Y, 1→X, 2→Z mirrors the shader's uAxis branches so that committing
+      // a π twist rotates around the same local axis the shader was twisting.
+      const LOCAL_AXES: readonly Vector3[] = [
+        new Vector3(0, 1, 0),
+        new Vector3(1, 0, 0),
+        new Vector3(0, 0, 1),
+      ]
+      const deltaQ = new Quaternion()
+      const snapMat = new Matrix4()
+      const snapColX = new Vector3()
+      const snapColY = new Vector3()
+      const snapColZ = new Vector3()
+      let snapTarget: Quaternion | null = null
+
       function advanceAxis() {
-        if (currentAxis === 0) mesh.rotation.y += Math.PI
-        else if (currentAxis === 1) mesh.rotation.x += Math.PI
-        else mesh.rotation.z += Math.PI
+        // Local-axis post-multiply matches the shader's local-space twist.
+        deltaQ.setFromAxisAngle(LOCAL_AXES[currentAxis], Math.PI)
+        mesh.quaternion.multiply(deltaQ)
+        mesh.quaternion.normalize()
         currentAxis = (currentAxis + 1) % 3
         uniforms.uAxis.value = currentAxis
         uniforms.uTopAngle.value = 0
@@ -234,6 +304,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         mode = 'drag'
         vx = 0; vy = 0
         recentMoves.length = 0
+        snapTarget = null
         lastX = e.clientX
         lastY = e.clientY
         lastMoveTime = performance.now()
@@ -250,8 +321,13 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         const sensitivity = getSensitivity()
         const dx = (e.clientX - lastX) * sensitivity
         const dy = (e.clientY - lastY) * sensitivity
-        mesh.rotation.y += dx
-        mesh.rotation.x += dy
+        // World-axis pre-multiply: horizontal swipe spins around world Y,
+        // vertical swipe tilts around world X, regardless of current pose.
+        deltaQ.setFromAxisAngle(WORLD_X, dy)
+        mesh.quaternion.premultiply(deltaQ)
+        deltaQ.setFromAxisAngle(WORLD_Y, dx)
+        mesh.quaternion.premultiply(deltaQ)
+        mesh.quaternion.normalize()
         recentMoves.push({ dx, dy, dt })
         // Keep only moves within the last 80ms window
         let totalWindow = 0
@@ -276,6 +352,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         vx = totalDx / totalDt
         vy = totalDy / totalDt
         const speed = Math.sqrt(vx * vx + vy * vy)
+        snapTarget = null
         mode = speed > 0.0003 ? 'momentum' : 'snap'
       }
 
@@ -315,23 +392,34 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
           }
         } else if (mode === 'momentum') {
           const DAMPING = Math.pow(0.88, dt / 16.667) // frame-rate independent
-          mesh.rotation.y += vx * dt
-          mesh.rotation.x += vy * dt
+          deltaQ.setFromAxisAngle(WORLD_X, vy * dt)
+          mesh.quaternion.premultiply(deltaQ)
+          deltaQ.setFromAxisAngle(WORLD_Y, vx * dt)
+          mesh.quaternion.premultiply(deltaQ)
+          mesh.quaternion.normalize()
           vx *= DAMPING
           vy *= DAMPING
           if (Math.sqrt(vx * vx + vy * vy) < 0.0003) {
             vx = 0; vy = 0
+            snapTarget = null
             mode = 'snap'
           }
         } else if (mode === 'snap') {
-          const HALF_PI = Math.PI / 2
-          const targetX = Math.round(mesh.rotation.x / HALF_PI) * HALF_PI
-          const targetY = Math.round(mesh.rotation.y / HALF_PI) * HALF_PI
-          mesh.rotation.x += (targetX - mesh.rotation.x) * 0.12
-          mesh.rotation.y += (targetY - mesh.rotation.y) * 0.12
-          if (Math.abs(targetX - mesh.rotation.x) < 0.001 && Math.abs(targetY - mesh.rotation.y) < 0.001) {
-            mesh.rotation.x = targetX
-            mesh.rotation.y = targetY
+          if (!snapTarget) {
+            snapTarget = snapQuaternionToCubeRotation(
+              mesh.quaternion, snapMat, snapColX, snapColY, snapColZ,
+            )
+            // Take the short-way slerp (quaternion double cover).
+            if (mesh.quaternion.dot(snapTarget) < 0) {
+              snapTarget.set(-snapTarget.x, -snapTarget.y, -snapTarget.z, -snapTarget.w)
+            }
+          }
+          // Frame-rate independent slerp (matches the old 0.12 lerp at 60fps).
+          const SLERP_T = 1 - Math.pow(1 - 0.12, dt / 16.667)
+          mesh.quaternion.slerp(snapTarget, SLERP_T)
+          if (mesh.quaternion.angleTo(snapTarget) < 0.001) {
+            mesh.quaternion.copy(snapTarget)
+            snapTarget = null
             phase = 'phase1'; phaseStart = -1; currentAxis = 0
             uniforms.uAxis.value = 0
             uniforms.uTopAngle.value = 0
@@ -339,7 +427,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
             mode = 'auto'
           }
         }
-        // mode === 'drag': pointer events drive mesh.rotation directly, just render
+        // mode === 'drag': pointer events drive mesh.quaternion directly, just render
 
         renderer.render(scene, camera)
       })
