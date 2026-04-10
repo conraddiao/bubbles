@@ -12,7 +12,7 @@ export default function CreateGroupPage() {
   const router = useRouter()
 
   const handleSuccess = (_groupId: string, shareToken: string) => {
-    router.push(`/groups/${shareToken}?created=true`)
+    router.push(`/group/${shareToken}?created=true`)
   }
 
   const handleCancel = () => {

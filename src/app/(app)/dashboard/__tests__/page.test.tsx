@@ -70,9 +70,9 @@ describe('DashboardPage', () => {
     render(<DashboardPage />)
     await waitFor(() => {
       const weddingLink = screen.getByText('Wedding Party').closest('a')
-      expect(weddingLink).toHaveAttribute('href', '/groups/abc123')
+      expect(weddingLink).toHaveAttribute('href', '/group/abc123')
       const parkLink = screen.getByText('Park Hangout').closest('a')
-      expect(parkLink).toHaveAttribute('href', '/groups/def456')
+      expect(parkLink).toHaveAttribute('href', '/group/def456')
     })
   })
 
@@ -96,7 +96,7 @@ describe('DashboardPage', () => {
       expect(mockCreateContactGroup).toHaveBeenCalled()
     })
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/groups/newtoken123?created=true')
+      expect(mockPush).toHaveBeenCalledWith('/group/newtoken123?created=true')
     })
   })
 

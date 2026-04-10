@@ -82,7 +82,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
       if (result.error) throw new Error(result.error)
 
       toast.success('Successfully joined the group!')
-      router.push(`/groups/${token}`)
+      router.push(`/group/${token}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to join group'
       toast.error(message)
