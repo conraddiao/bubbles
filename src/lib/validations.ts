@@ -88,7 +88,19 @@ export const onboardingProfileSchema = z.object({
     .optional(),
 })
 
+// Join form schema (simplified — no notifications or password, those come later)
+export const joinFormSchema = z.object({
+  first_name: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+  last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+  phone: z
+    .string()
+    .min(1, 'Phone number is required')
+    .refine(isRequiredE164Phone, 'Invalid phone number format. Use +1234567890'),
+  email: z.string().email('Invalid email address'),
+})
+
 // Export form data types
+export type JoinFormData = z.infer<typeof joinFormSchema>
 export type ContactFormData = z.infer<typeof contactFormSchema>
 export type GroupCreationFormData = z.infer<typeof groupCreationSchema>
 export type SignUpFormData = z.infer<typeof signUpSchema>

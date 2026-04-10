@@ -96,7 +96,7 @@ export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCu
 
   const shareUrl =
     typeof window !== 'undefined' && group
-      ? `${window.location.origin}/join/${group.share_token}`
+      ? `${window.location.origin}/group/${group.share_token}/join`
       : ''
 
   const totalMembers = members?.length ?? 0
