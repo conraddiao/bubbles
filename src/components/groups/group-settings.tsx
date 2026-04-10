@@ -118,7 +118,7 @@ export function GroupSettings({ groupId, group, isOwner, onBack }: GroupSettings
       toast.success('Share link regenerated successfully')
       queryClient.invalidateQueries({ queryKey: ['user-groups'] })
       if (newToken) {
-        router.replace(`/groups/${newToken}`)
+        router.replace(`/group/${newToken}`)
       }
     },
     onError: (err) => {
