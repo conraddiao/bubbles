@@ -16,6 +16,10 @@ import {
 import { getGroupMembers } from '@/lib/database'
 import { toast } from 'sonner'
 import { getDisplayName, extractNames } from '@/lib/name-utils'
+import {
+  generateMemberVCard,
+  generateBulkVCard as generateBulkVCardBase,
+} from '@/lib/vcard'
 
 interface GroupMember {
   id: string
@@ -33,16 +37,6 @@ interface ContactExportProps {
   groupId: string
   groupName: string
   layout?: 'card' | 'embedded'
-}
-
-const escapeVCardValue = (value?: string | null) => {
-  if (!value) return ''
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .trim()
 }
 
 export function ContactExport({ groupId, groupName, layout = 'card' }: ContactExportProps) {
@@ -63,39 +57,12 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
   const disableBulkActions = !members || members.length === 0
 
   // Generate vCard content for a single member
-  const generateVCard = (member: GroupMember): string => {
-    const { firstName, lastName } = extractNames(member)
-    const fullName = getDisplayName(member) || member.email || 'Bubbles Member'
-    const givenName = firstName || fullName
-
-    const vcard = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
-      `FN:${escapeVCardValue(fullName)}`,
-    ]
-
-    if (member.email) vcard.push(`EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`)
-    if (member.phone) {
-      vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
-    }
-
-    if (member.avatar_url) {
-      vcard.push(`PHOTO;VALUE=URI:${escapeVCardValue(member.avatar_url)}`)
-    }
-
-    // Add organization/note to indicate the group
-    vcard.push(`ORG:${escapeVCardValue(groupName)} | bubbles.fyi`)
-    vcard.push(`NOTE:${escapeVCardValue(`Member of ${groupName} group from bubbles.fyi`)}`)
-
-    vcard.push('END:VCARD')
-    return vcard.join('\r\n')
-  }
+  const generateVCard = (member: GroupMember): string =>
+    generateMemberVCard(member, groupName)
 
   // Generate combined vCard content for multiple members
-  const generateBulkVCard = (memberList: GroupMember[]): string => {
-    return `${memberList.map(generateVCard).join('\r\n\r\n')}\r\n`
-  }
+  const generateBulkVCard = (memberList: GroupMember[]): string =>
+    generateBulkVCardBase(memberList, groupName)
 
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/i.test(navigator.userAgent)
 

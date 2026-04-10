@@ -70,18 +70,27 @@ afterEach(() => {
 // ─── generateBulkVCard ────────────────────────────────────────────────────────
 
 describe('generateBulkVCard', () => {
-  it('joins two vCards with \\r\\n\\r\\n separator', async () => {
-    const user = userEvent.setup()
-    // Capture blob parts by intercepting the Blob constructor
-    let capturedContent = ''
+  // Intercept Blob construction so we can inspect the vCard text the
+  // component feeds to the desktop downloader.
+  const captureBlobContent = (): { getContent: () => string; restore: () => void } => {
+    let captured = ''
     const OrigBlob = global.Blob
     global.Blob = class MockBlob extends OrigBlob {
       constructor(parts: BlobPart[], options?: BlobPropertyBag) {
         super(parts, options)
-        capturedContent = parts.map(String).join('')
+        captured = parts.map(String).join('')
       }
     } as typeof Blob
+    return {
+      getContent: () => captured,
+      restore: () => {
+        global.Blob = OrigBlob
+      },
+    }
+  }
 
+  const triggerExportAll = async () => {
+    const user = userEvent.setup()
     URL.createObjectURL = vi.fn(() => 'blob:mock')
     URL.revokeObjectURL = vi.fn()
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
@@ -94,11 +103,45 @@ describe('generateBulkVCard', () => {
     fireEvent.click(screen.getByText(/Export All/))
 
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalled())
+  }
 
-    expect((capturedContent.match(/BEGIN:VCARD/g) || []).length).toBe(2)
-    expect(capturedContent).toMatch(/END:VCARD\r\n\r\nBEGIN:VCARD/)
+  it('joins two vCards with \\r\\n\\r\\n separator', async () => {
+    const blob = captureBlobContent()
+    await triggerExportAll()
 
-    global.Blob = OrigBlob
+    const content = blob.getContent()
+    expect((content.match(/BEGIN:VCARD/g) || []).length).toBe(2)
+    expect(content).toMatch(/END:VCARD\r\n\r\nBEGIN:VCARD/)
+
+    blob.restore()
+  })
+
+  it('emits a stable UID:urn:uuid:<member.id> for every member card', async () => {
+    const blob = captureBlobContent()
+    await triggerExportAll()
+
+    const content = blob.getContent()
+    // One UID per member, matching the member.id values from the mock.
+    expect(content).toMatch(/UID:urn:uuid:1\r\n/)
+    expect(content).toMatch(/UID:urn:uuid:2\r\n/)
+    // Exactly two UID lines total.
+    expect((content.match(/\r\nUID:/g) || []).length).toBe(2)
+
+    blob.restore()
+  })
+
+  it('emits a REV line in ISO-8601 UTC form (no milliseconds)', async () => {
+    const blob = captureBlobContent()
+    await triggerExportAll()
+
+    const content = blob.getContent()
+    const revs = content.match(/\r\nREV:[^\r]+/g) || []
+    expect(revs.length).toBe(2)
+    for (const rev of revs) {
+      expect(rev).toMatch(/^\r\nREV:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/)
+    }
+
+    blob.restore()
   })
 })
 

@@ -1,53 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { supabaseAdmin } from '@/lib/supabase'
-
-interface GroupMember {
-  id: string
-  first_name: string
-  last_name: string
-  email?: string | null
-  phone?: string
-  avatar_url?: string | null
-}
-
-const escapeVCardValue = (value?: string | null) => {
-  if (!value) return ''
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .trim()
-}
-
-function generateVCard(member: GroupMember, groupName: string): string {
-  const firstName = member.first_name?.trim() || ''
-  const lastName = member.last_name?.trim() || ''
-  const fullName = [firstName, lastName].filter(Boolean).join(' ') || member.email || 'Bubbles Member'
-  const givenName = firstName || fullName
-
-  const vcard = [
-    'BEGIN:VCARD',
-    'VERSION:3.0',
-    `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
-    `FN:${escapeVCardValue(fullName)}`,
-  ]
-
-  if (member.email) vcard.push(`EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`)
-  if (member.phone) {
-    vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
-  }
-
-  if (member.avatar_url) {
-    vcard.push(`PHOTO;VALUE=URI:${escapeVCardValue(member.avatar_url)}`)
-  }
-
-  vcard.push(`ORG:${escapeVCardValue(groupName)} | bubbles.fyi`)
-  vcard.push(`NOTE:${escapeVCardValue(`Member of ${groupName} group from bubbles.fyi`)}`)
-  vcard.push('END:VCARD')
-  return vcard.join('\r\n')
-}
+import { generateMemberVCard, formatVCardRev, type VCardMember } from '@/lib/vcard'
 
 export async function POST(request: NextRequest) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID
@@ -98,14 +52,22 @@ export async function POST(request: NextRequest) {
   if (memberError || !memberData || memberData.length === 0) {
     return NextResponse.json({ error: 'No members found' }, { status: 404 })
   }
-  const members = memberData as unknown as GroupMember[]
+  const members = memberData as unknown as VCardMember[]
 
-  // Generate .vcf content — lead with a Bubbles contact card so users save the sending number
+  // Use one REV instant across every card in this export so the output
+  // is internally consistent.
+  const exportedAt = new Date()
+
+  // Generate .vcf content — lead with a Bubbles contact card so users save
+  // the sending number. A hard-coded UID lets iOS dedupe re-sends of the
+  // sender card, matching the member cards' dedup behavior.
   const bubblesVCard = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     'N:;Bubbles;;;',
     'FN:Bubbles',
+    'UID:urn:bubbles:service:sender',
+    `REV:${formatVCardRev(exportedAt)}`,
     `TEL;TYPE=CELL:${fromNumber}`,
     'URL:https://bubbles.fyi',
     'ORG:bubbles.fyi',
@@ -113,7 +75,9 @@ export async function POST(request: NextRequest) {
     'END:VCARD',
   ].join('\r\n')
 
-  const memberVCards = members.map((m) => generateVCard(m, fetchedGroupName)).join('\r\n\r\n')
+  const memberVCards = members
+    .map((m) => generateMemberVCard(m, fetchedGroupName, exportedAt))
+    .join('\r\n\r\n')
   const vcfContent = bubblesVCard + '\r\n\r\n' + memberVCards + '\r\n'
   const filename = `${groupId}/${Date.now()}.vcf`
 
