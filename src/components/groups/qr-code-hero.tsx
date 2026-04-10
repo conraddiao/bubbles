@@ -79,17 +79,17 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, 
         <div className="h-[232px] w-[232px] animate-pulse rounded-2xl bg-[#FEFAF4]/20" />
       ))}
 
-      <div className="flex w-full max-w-xs gap-3">
+      <div className="relative z-10 flex w-full max-w-xs gap-3">
         <button
           onClick={handleCopyLink}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 bg-[#E8622A] py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
         >
           <Copy className="h-4 w-4" aria-hidden="true" />
           Copy link
         </button>
         <button
           onClick={handleShare}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 bg-[#E8622A] py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
         >
           <Share className="h-4 w-4" aria-hidden="true" />
           Share
