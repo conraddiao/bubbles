@@ -332,7 +332,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
           )
         )}
 
-        {/* Text Me + export-all dropdown (split button) */}
+        {/* Get Contacts + export-all dropdown (split button) */}
         <div className="flex">
           <Button
             onClick={() => setShowSmsInput(!showSmsInput)}
@@ -342,7 +342,7 @@ export function ContactExport({ groupId, groupName, layout = 'card' }: ContactEx
             className="rounded-r-none border-r-0"
           >
             <Smartphone className="h-4 w-4" />
-            Text Me
+            Get Contacts
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
