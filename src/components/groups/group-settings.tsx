@@ -128,7 +128,7 @@ export function GroupSettings({ groupId, group, isOwner, onBack }: GroupSettings
 
   const handleCopyShareLink = async () => {
     if (!group) return
-    const shareUrl = `${window.location.origin}/join/${group?.share_token}`
+    const shareUrl = `${window.location.origin}/group/${group?.share_token}/join`
     try {
       await navigator.clipboard.writeText(shareUrl)
       toast.success('Share link copied to clipboard')
@@ -349,7 +349,7 @@ function SettingsTab({
   isArchiving,
   isUnarchiving,
 }: SettingsTabProps) {
-  const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/join/${group?.share_token}`
+  const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/group/${group?.share_token}/join`
 
   return (
     <div className="space-y-6">

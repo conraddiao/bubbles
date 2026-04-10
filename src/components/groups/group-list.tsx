@@ -133,7 +133,7 @@ function GroupCard({ group, onViewGroup }: GroupCardProps) {
   })
 
   const handleCopyShareLink = async () => {
-    const shareUrl = `${window.location.origin}/join/${group.share_token}`
+    const shareUrl = `${window.location.origin}/group/${group.share_token}/join`
     try {
       await navigator.clipboard.writeText(shareUrl)
       toast.success('Share link copied to clipboard')
@@ -206,7 +206,7 @@ function GroupCard({ group, onViewGroup }: GroupCardProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`/join/${group.share_token}`, '_blank')}
+            onClick={() => window.open(`/group/${group.share_token}/join`, '_blank')}
           >
             <ExternalLink className="h-4 w-4" />
           </Button>
