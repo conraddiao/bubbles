@@ -121,7 +121,7 @@ export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCu
 
   if (groupLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         {/* Orange hero skeleton — matches QrCodeHero h-[520px] exactly */}
         <div className="flex h-[520px] flex-col items-center justify-between bg-[#E8622A] px-6 py-10">
           <div className="space-y-2 text-center">
@@ -167,7 +167,7 @@ export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCu
   if (!group) return null
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-dvh flex-col">
       {/* Archived banner */}
       {group.archived_at && isOwner && (
         <div className="flex items-center justify-between bg-[#F0E8D9] px-4 py-2.5">

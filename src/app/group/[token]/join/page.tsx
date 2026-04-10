@@ -118,7 +118,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
   // Loading state
   if (groupLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-dvh bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
@@ -127,7 +127,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
   // Error states
   if (groupError || !group) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-dvh bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-center text-destructive">Group Not Found</CardTitle>
@@ -150,7 +150,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
 
   if (group.is_closed) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-dvh bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-center">Group Closed</CardTitle>
@@ -173,7 +173,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
 
   if (group.archived_at) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-dvh bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-center">Group Not Available</CardTitle>
@@ -197,8 +197,8 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
   // OTP step
   if (step === 'otp' && formData) {
     return (
-      <div className="min-h-screen bg-background">
-        <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12">
+      <div className="min-h-dvh bg-background">
+        <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-12">
           <OTPVerifyForm
             phone={formData.phone}
             onVerified={handleOtpVerified}
@@ -212,7 +212,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
   // Password step
   if (step === 'password') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-dvh bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
 
   // Form step (default)
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-dvh bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
