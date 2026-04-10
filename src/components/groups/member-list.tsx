@@ -253,7 +253,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
 
   const memberCount = members?.length ?? 0
 
-  // Header with Select All + Text Me
+  // Header with Select All + Get Contacts
   const headerContent = (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -274,7 +274,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 className="rounded-r-none border-r-0"
               >
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
-                Text Me
+                Get Contacts
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
