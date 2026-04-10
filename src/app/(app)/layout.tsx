@@ -27,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
@@ -40,7 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Show retry UI when profile failed to load
   if (profileFetchFailed) {
     return (
-      <div className="flex min-h-screen bg-background items-center justify-center flex-col gap-4">
+      <div className="flex min-h-dvh bg-background items-center justify-center flex-col gap-4">
         <p className="text-muted-foreground">Unable to load your profile. Please try again.</p>
         <Button onClick={retryProfile}>
           <RefreshCw className="h-4 w-4" />
@@ -51,7 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background">
         <AppHeader />
       </div>

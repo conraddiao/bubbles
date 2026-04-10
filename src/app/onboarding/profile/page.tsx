@@ -183,14 +183,14 @@ export default function OnboardingProfilePage() {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <main className="mx-auto max-w-lg px-4 py-12">
         <header className="mb-8 text-center">
           <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl">

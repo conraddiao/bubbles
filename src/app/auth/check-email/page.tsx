@@ -11,7 +11,7 @@ export default async function CheckEmailPage({ searchParams }: CheckEmailPagePro
   const email = params?.email ? decodeURIComponent(params.email) : null
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-dvh items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Check your email</CardTitle>

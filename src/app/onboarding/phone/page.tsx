@@ -38,8 +38,8 @@ export default function OnboardingPhonePage() {
   if (loading || user) return null
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12">
+    <div className="min-h-dvh bg-background">
+      <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-12">
         <header className="mb-10 text-center">
           <h1 className="font-display text-4xl font-bold leading-tight sm:text-5xl">
             Welcome to Bubbles

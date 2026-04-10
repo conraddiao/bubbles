@@ -45,15 +45,15 @@ function VerifyContent() {
   // Show spinner while waiting for profile to load after auth
   if (user && !loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12">
+    <div className="min-h-dvh bg-background">
+      <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-12">
         <OTPVerifyForm
           phone={phone}
           onVerified={handleVerified}
@@ -68,7 +68,7 @@ export default function OnboardingVerifyPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">
+        <div className="flex min-h-dvh items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       }

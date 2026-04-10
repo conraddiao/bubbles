@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-dvh bg-background">
       <main className="mx-auto max-w-2xl animate-fade-up-in px-4 py-12 sm:px-6">
         <header className="mb-10">
           <p className="font-label mb-2 text-xs uppercase tracking-widest text-muted-foreground">
