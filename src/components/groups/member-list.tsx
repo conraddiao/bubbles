@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Phone, Mail, Users, Smartphone, Share2, UserPlus, ChevronDown, Loader2, Download } from 'lucide-react'
+import { Trash2, Users, Smartphone, Share2, UserPlus, ChevronDown, Loader2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -61,6 +62,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
 
   const [isExporting, setIsExporting] = useState(false)
   const [isSending, setIsSending] = useState(false)
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set())
 
   const { data: members, isLoading, error } = useQuery<GroupMember[]>({
     queryKey: ['group-members', groupId],
@@ -77,10 +79,20 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   const totalMembers = members?.length ?? 0
   const disableBulkActions = !members || members.length === 0
 
-  // Detect newly joined members for animation
+  // Detect newly joined members for animation + prune stale selections
   useEffect(() => {
     if (!members) return
     const currentIds = new Set(members.map(m => m.id))
+    // Drop any selected ids that no longer exist (member left, removed, etc.)
+    setSelectedMemberIds(prev => {
+      let shrunk = false
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (currentIds.has(id)) next.add(id)
+        else shrunk = true
+      }
+      return shrunk ? next : prev
+    })
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false
       knownMemberIdsRef.current = currentIds
@@ -197,6 +209,69 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     finally { setIsExporting(false) }
   }
 
+  // Selection helpers
+  const toggleMember = (id: string) => {
+    setSelectedMemberIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  const selectionCount = selectedMemberIds.size
+  const allSelected = !!members && members.length > 0 && selectionCount === members.length
+  const toggleAll = () => {
+    if (!members) return
+    if (allSelected) {
+      setSelectedMemberIds(new Set())
+    } else {
+      setSelectedMemberIds(new Set(members.map(m => m.id)))
+    }
+  }
+  const clearSelection = () => setSelectedMemberIds(new Set())
+  const getSelectedMembers = () =>
+    (members ?? []).filter(m => selectedMemberIds.has(m.id))
+
+  // Export a single member's vCard. Synchronous on iOS — do NOT await before
+  // calling downloadViaDataUri or Safari will block the data: navigation.
+  const exportSingleContact = (member: GroupMember) => {
+    try {
+      const content = generateVCard(member)
+      if (isIOS) {
+        downloadViaDataUri(content)
+      } else {
+        downloadViaBlob(content, getSingleContactFilename(member))
+      }
+    } catch {
+      toast.error('Failed to export contact')
+    }
+  }
+
+  const exportSelectedContacts = async (via: 'share' | 'direct' | 'auto' = 'auto') => {
+    const selected = getSelectedMembers()
+    if (selected.length === 0) return toast.error('No members selected')
+    try {
+      setIsExporting(true)
+      const isSingle = selected.length === 1
+      const content = isSingle ? generateVCard(selected[0]) : generateBulkVCard(selected)
+      const filename = isSingle
+        ? getSingleContactFilename(selected[0])
+        : `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_selected_${selected.length}.vcf`
+      if (via === 'share') await downloadViaShare(content, filename)
+      else if (via === 'direct') downloadViaDataUri(content)
+      else downloadViaBlob(content, filename)
+      toast.success(
+        isSingle
+          ? `Contact exported: ${getDisplayName(selected[0])}`
+          : `${selected.length} contacts exported`
+      )
+    } catch {
+      toast.error('Failed to export contacts')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const sendContactsViaSms = async () => {
     if (!profile?.phone) {
       toast.error('Add a phone number to your profile first', {
@@ -209,11 +284,17 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
       const res = await fetch('/api/sms/send-contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: profile.phone, groupId, groupName }),
+        body: JSON.stringify({
+          to: profile.phone,
+          groupId,
+          groupName,
+          ...(selectionCount > 0 ? { memberIds: Array.from(selectedMemberIds) } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send')
       toast.success('Contacts sent! Check your messages.')
+      if (selectionCount > 0) clearSelection()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to send contacts via SMS')
     } finally { setIsSending(false) }
@@ -242,7 +323,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 className="rounded-r-none border-r-0"
               >
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
-                Get Contacts
+                {selectionCount > 0 ? `Get Contacts (${selectionCount})` : 'Get Contacts'}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -261,7 +342,25 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {isIOS ? (
+                  {selectionCount > 0 ? (
+                    isIOS ? (
+                      <>
+                        <DropdownMenuItem onClick={() => exportSelectedContacts('direct')}>
+                          <UserPlus className="h-4 w-4" />
+                          Add Selected ({selectionCount})
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => exportSelectedContacts('share')}>
+                          <Share2 className="h-4 w-4" />
+                          Share Selected ({selectionCount})
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <DropdownMenuItem onClick={() => exportSelectedContacts()}>
+                        <Download className="h-4 w-4" />
+                        Export Selected ({selectionCount})
+                      </DropdownMenuItem>
+                    )
+                  ) : isIOS ? (
                     <>
                       <DropdownMenuItem onClick={() => exportAllContacts('direct')}>
                         <UserPlus className="h-4 w-4" />
@@ -356,6 +455,29 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     )
   }
 
+  const selectAllRow = (
+    <div className="flex items-center justify-between px-1 md:hidden">
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox
+          checked={allSelected}
+          onCheckedChange={toggleAll}
+          aria-label="Select all members"
+        />
+        <span>Select all ({memberCount})</span>
+      </label>
+      {selectionCount > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearSelection}
+          className="h-auto px-2 py-1 text-xs"
+        >
+          Clear
+        </Button>
+      )}
+    </div>
+  )
+
   const mobileList = (
     <div className="flex flex-col gap-3 md:hidden">
       {members.map((member) => (
@@ -364,6 +486,12 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
           className={`rounded-lg border bg-card/50 p-3 shadow-sm${newMemberIds.has(member.id) ? ' animate-bubble-enter' : ''}`}
         >
           <div className="flex items-center gap-3">
+            <Checkbox
+              checked={selectedMemberIds.has(member.id)}
+              onCheckedChange={() => toggleMember(member.id)}
+              aria-label={`Select ${getDisplayName(member)}`}
+              className="shrink-0"
+            />
             <Avatar>
               {member.avatar_url && <AvatarImage src={member.avatar_url} alt={getDisplayName(member)} />}
               <AvatarFallback>{getInitials(member)}</AvatarFallback>
@@ -376,22 +504,32 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Mail className="h-4 w-4" aria-label="Has email" />
-              {member.phone && <Phone className="h-4 w-4" aria-label="Has phone" />}
-            </div>
-            {isOwner && !member.is_owner && (
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleRemoveMember(member)}
-                disabled={removeMemberMutation.isPending}
-                className="text-destructive hover:text-destructive"
-                aria-label={`Remove ${getDisplayName(member)} from group`}
+                onClick={() => exportSingleContact(member)}
+                aria-label={`Get ${getDisplayName(member)}'s contact`}
               >
-                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                {isIOS ? (
+                  <UserPlus className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                )}
               </Button>
-            )}
+              {isOwner && !member.is_owner && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveMember(member)}
+                  disabled={removeMemberMutation.isPending}
+                  className="text-destructive hover:text-destructive"
+                  aria-label={`Remove ${getDisplayName(member)} from group`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       ))}
@@ -403,14 +541,27 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[40px]">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={toggleAll}
+                aria-label="Select all members"
+              />
+            </TableHead>
             <TableHead>Member</TableHead>
-            <TableHead>Contact</TableHead>
-            {isOwner && <TableHead className="w-[100px]">Actions</TableHead>}
+            <TableHead className="w-[120px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {members.map((member) => (
             <TableRow key={member.id} className={newMemberIds.has(member.id) ? 'animate-bubble-enter' : ''}>
+              <TableCell className="w-[40px]">
+                <Checkbox
+                  checked={selectedMemberIds.has(member.id)}
+                  onCheckedChange={() => toggleMember(member.id)}
+                  aria-label={`Select ${getDisplayName(member)}`}
+                />
+              </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-3">
                   <Avatar>
@@ -426,14 +577,20 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 </div>
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4" aria-label="Has email" />
-                  {member.phone && <Phone className="h-4 w-4" aria-label="Has phone" />}
-                </div>
-              </TableCell>
-              {isOwner && (
-                <TableCell>
-                  {!member.is_owner && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => exportSingleContact(member)}
+                    aria-label={`Get ${getDisplayName(member)}'s contact`}
+                  >
+                    {isIOS ? (
+                      <UserPlus className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Download className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </Button>
+                  {isOwner && !member.is_owner && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -445,8 +602,8 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   )}
-                </TableCell>
-              )}
+                </div>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -458,6 +615,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     <Card>
       <CardHeader>{headerContent}</CardHeader>
       <CardContent className="space-y-4">
+        {selectAllRow}
         {mobileList}
         {table}
       </CardContent>
@@ -465,6 +623,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   ) : (
     <div className="space-y-4">
       {headerContent}
+      {selectAllRow}
       {mobileList}
       {table}
     </div>

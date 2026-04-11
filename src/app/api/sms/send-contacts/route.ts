@@ -16,15 +16,29 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { to, groupId, groupName } = body as {
+  const { to, groupId, groupName, memberIds } = body as {
     to: string
     groupId: string
     groupName?: string
+    memberIds?: string[]
   }
 
   if (!to || !groupId) {
     return NextResponse.json(
       { error: 'Missing required fields: to (phone number), groupId' },
+      { status: 400 }
+    )
+  }
+
+  // Optional subset filter. If the client sent memberIds at all, require at
+  // least one valid id so a client bug can't silently fall through to "send
+  // everyone" when a filtered send was intended.
+  const filterIds = Array.isArray(memberIds)
+    ? memberIds.filter((id) => typeof id === 'string' && id.length > 0)
+    : undefined
+  if (memberIds !== undefined && (!filterIds || filterIds.length === 0)) {
+    return NextResponse.json(
+      { error: 'memberIds must contain at least one id' },
       { status: 400 }
     )
   }
@@ -41,12 +55,19 @@ export async function POST(request: NextRequest) {
   }
   const fetchedGroupName = (groupData as { name: string }).name
 
-  // Fetch active members
-  const { data: memberData, error: memberError } = await supabaseAdmin
+  // Fetch active members (optionally filtered to a selected subset). The
+  // .eq('group_id', ...) + .is('departed_at', null) stay AND-ed with the id
+  // filter, which is what prevents cross-group id injection — passing ids
+  // from another group will simply hit the "No members found" path below.
+  let memberQuery = supabaseAdmin
     .from('group_memberships')
     .select('id, first_name, last_name, email, phone, avatar_url')
     .eq('group_id', groupId)
     .is('departed_at', null)
+  if (filterIds && filterIds.length > 0) {
+    memberQuery = memberQuery.in('id', filterIds)
+  }
+  const { data: memberData, error: memberError } = await memberQuery
     .order('joined_at', { ascending: true })
 
   if (memberError || !memberData || memberData.length === 0) {
