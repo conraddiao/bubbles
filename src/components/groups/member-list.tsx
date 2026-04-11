@@ -28,6 +28,7 @@ import {
 } from '@/lib/database'
 import { toast } from 'sonner'
 import { getDisplayName, getInitials, extractNames } from '@/lib/name-utils'
+import { generateBulkVCard } from '@/lib/vcard'
 import { useAuth } from '@/hooks/use-auth'
 
 interface GroupMember {
@@ -48,16 +49,6 @@ interface MemberListProps {
   isOwner: boolean
   onExportContacts?: () => void
   layout?: 'card' | 'embedded'
-}
-
-const escapeVCardValue = (value?: string | null) => {
-  if (!value) return ''
-  return value
-    .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .trim()
 }
 
 export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: MemberListProps) {
@@ -155,29 +146,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     }
   }
 
-  // vCard generation
-  const generateVCard = (member: GroupMember): string => {
-    const { firstName, lastName } = extractNames(member)
-    const fullName = getDisplayName(member) || member.email || 'Bubbles Member'
-    const givenName = firstName || fullName
-    const vcard = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `N:${escapeVCardValue(lastName)};${escapeVCardValue(givenName)};;;`,
-      `FN:${escapeVCardValue(fullName)}`,
-    ]
-    if (member.email) vcard.push(`EMAIL;TYPE=INTERNET:${escapeVCardValue(member.email)}`)
-    if (member.phone) vcard.push(`TEL;TYPE=CELL:${escapeVCardValue(member.phone)}`)
-    if (member.avatar_url) vcard.push(`PHOTO;VALUE=URI:${escapeVCardValue(member.avatar_url)}`)
-    vcard.push(`ORG:${escapeVCardValue(groupName)} | bubbles.fyi`)
-    vcard.push(`NOTE:${escapeVCardValue(`Member of ${groupName} group from bubbles.fyi`)}`)
-    vcard.push('END:VCARD')
-    return vcard.join('\r\n')
-  }
-
-  const generateBulkVCard = (memberList: GroupMember[]): string =>
-    `${memberList.map(generateVCard).join('\r\n\r\n')}\r\n`
-
   const getSingleContactFilename = (member: GroupMember) => {
     const { firstName, lastName } = extractNames(member)
     return `${firstName}_${lastName}`.replace(/[^a-zA-Z0-9_]/g, '_') + '.vcf'
@@ -219,7 +187,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     if (!members || members.length === 0) return toast.error('No members to export')
     try {
       setIsExporting(true)
-      const content = generateBulkVCard(members)
+      const content = generateBulkVCard(members, groupName)
       const filename = `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_all_contacts.vcf`
       if (via === 'share') await downloadViaShare(content, filename)
       else if (via === 'direct') downloadViaDataUri(content)
