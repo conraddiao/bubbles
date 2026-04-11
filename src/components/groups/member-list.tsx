@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Phone, Mail, Users, Smartphone, Share2, UserPlus, ChevronDown, Loader2, Download } from 'lucide-react'
+import { Trash2, Users, Smartphone, Share2, UserPlus, ChevronDown, Loader2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -536,10 +536,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Mail className="h-4 w-4" aria-label="Has email" />
-              {member.phone && <Phone className="h-4 w-4" aria-label="Has phone" />}
-            </div>
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
@@ -585,7 +581,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
               />
             </TableHead>
             <TableHead>Member</TableHead>
-            <TableHead>Contact</TableHead>
             <TableHead className="w-[120px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -611,12 +606,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                       <Badge variant="secondary" className="text-xs">Owner</Badge>
                     )}
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4" aria-label="Has email" />
-                  {member.phone && <Phone className="h-4 w-4" aria-label="Has phone" />}
                 </div>
               </TableCell>
               <TableCell>
