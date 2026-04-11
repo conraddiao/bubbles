@@ -29,7 +29,7 @@ import {
 } from '@/lib/database'
 import { toast } from 'sonner'
 import { getDisplayName, getInitials, extractNames } from '@/lib/name-utils'
-import { generateBulkVCard } from '@/lib/vcard'
+import { generateBulkVCard, generateMemberVCard } from '@/lib/vcard'
 import { useAuth } from '@/hooks/use-auth'
 
 interface GroupMember {
@@ -236,7 +236,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   // calling downloadViaDataUri or Safari will block the data: navigation.
   const exportSingleContact = (member: GroupMember) => {
     try {
-      const content = generateVCard(member)
+      const content = generateMemberVCard(member, groupName)
       if (isIOS) {
         downloadViaDataUri(content)
       } else {
@@ -253,7 +253,9 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     try {
       setIsExporting(true)
       const isSingle = selected.length === 1
-      const content = isSingle ? generateVCard(selected[0]) : generateBulkVCard(selected)
+      const content = isSingle
+        ? generateMemberVCard(selected[0], groupName)
+        : generateBulkVCard(selected, groupName)
       const filename = isSingle
         ? getSingleContactFilename(selected[0])
         : `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_selected_${selected.length}.vcf`
