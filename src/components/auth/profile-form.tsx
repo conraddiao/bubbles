@@ -336,7 +336,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium">SMS notifications</p>
               <p className="text-xs text-muted-foreground">
-                Receive important updates and group changes via text message.
+                Receive MMS contact cards from groups you join. Reply STOP to opt out.
               </p>
             </div>
             <Switch
