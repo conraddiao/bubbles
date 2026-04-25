@@ -1,6 +1,7 @@
 import { supabase, handleDatabaseError, rpc, supabaseClient, hashPasscode } from './rpc'
 import type { ContactGroupRow, AccessType } from './rpc'
 import type { Database, Profile } from '@/types'
+import { toE164US } from '@/lib/phone'
 
 async function ensureValidPasscode(group: ContactGroupRow, passcode?: string) {
   if (group.access_type !== 'password') {
@@ -182,7 +183,26 @@ export async function joinContactGroupAnonymous(
 
     const normalizedFirstName = firstName.trim()
     const normalizedLastName = lastName.trim()
-    const sanitizedPhone = phone?.trim() || undefined
+    const sanitizedPhone = toE164US(phone)
+
+    if (sanitizedPhone) {
+      const { data: existingPhoneRaw, error: existingPhoneError } = await supabase
+        .from('group_memberships')
+        .select('id,departed_at')
+        .eq('group_id', group.id)
+        .eq('phone', sanitizedPhone)
+        .maybeSingle()
+
+      if (existingPhoneError) {
+        throw existingPhoneError
+      }
+
+      const existingPhone = existingPhoneRaw as GroupMembershipLookup | null
+
+      if (existingPhone && !existingPhone.departed_at) {
+        throw new Error('This phone number is already registered in this group.')
+      }
+    }
 
     const { data, error } = await rpc(supabase).joinContactGroupAnonymous({
       group_token: shareToken,

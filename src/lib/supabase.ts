@@ -279,6 +279,12 @@ export function handleDatabaseError(error: unknown): string {
     if (message.includes('email address is already registered')) {
       return 'This email address is already registered in this group.'
     }
+    if (message.includes('phone number is already registered')) {
+      return 'This phone number is already registered in this group.'
+    }
+    if (message.includes('phone number is already in use by another member')) {
+      return 'This phone number is already in use by another member in one of your groups.'
+    }
     if (message.includes('do not have permission')) {
       return 'You do not have permission to perform this action.'
     }
