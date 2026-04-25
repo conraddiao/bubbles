@@ -70,6 +70,46 @@ export default async function Home() {
           </div>
         </footer>
       </main>
+
+      <section
+        id="sms-program"
+        aria-labelledby="sms-program-heading"
+        className="border-t border-border bg-[var(--surface)]"
+      >
+        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+          <p className="font-label mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+            SMS program
+          </p>
+          <h2 id="sms-program-heading" className="font-display text-2xl font-bold sm:text-3xl">
+            Texts from Bubbles
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-foreground/80">
+            Bubbles sends two kinds of messages from a verified toll-free number:
+          </p>
+          <ul className="mt-4 space-y-3 text-base leading-relaxed text-foreground/80">
+            <li>
+              <strong className="text-foreground">Account verification (SMS).</strong>{' '}
+              One-time codes when you sign in or confirm your phone number. Required to use the
+              product.
+            </li>
+            <li>
+              <strong className="text-foreground">Contact cards (MMS).</strong> When a group you
+              joined shares its contacts, you receive an MMS with a vCard you can save to your
+              phone. Opt-in, off by default.
+            </li>
+          </ul>
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            Opt in at signup or from your profile. Reply <strong className="text-foreground">STOP</strong>{' '}
+            to any message to opt out, or <strong className="text-foreground">HELP</strong> for
+            support. Msg frequency varies; msg &amp; data rates may apply. See our{' '}
+            <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>{' '}
+            for full details.
+          </p>
+        </div>
+      </section>
+
       <AuthRedirect mmsOnboarding={isMmsOnboarding} />
     </div>
   )

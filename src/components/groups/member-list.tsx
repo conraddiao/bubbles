@@ -29,7 +29,10 @@ import {
 } from '@/lib/database'
 import { toast } from 'sonner'
 import { getDisplayName, getInitials, extractNames } from '@/lib/name-utils'
-import { generateBulkVCard } from '@/lib/vcard'
+import {
+  generateMemberVCard,
+  generateBulkVCard as generateBulkVCardBase,
+} from '@/lib/vcard'
 import { useAuth } from '@/hooks/use-auth'
 
 interface GroupMember {
@@ -78,6 +81,12 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/i.test(navigator.userAgent)
   const totalMembers = members?.length ?? 0
   const disableBulkActions = !members || members.length === 0
+
+  const generateVCard = (member: GroupMember): string =>
+    generateMemberVCard(member, groupName)
+
+  const generateBulkVCard = (memberList: GroupMember[]): string =>
+    generateBulkVCardBase(memberList, groupName)
 
   // Detect newly joined members for animation + prune stale selections
   useEffect(() => {
@@ -199,7 +208,7 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     if (!members || members.length === 0) return toast.error('No members to export')
     try {
       setIsExporting(true)
-      const content = generateBulkVCard(members, groupName)
+      const content = generateBulkVCard(members)
       const filename = `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_all_contacts.vcf`
       if (via === 'share') await downloadViaShare(content, filename)
       else if (via === 'direct') downloadViaDataUri(content)

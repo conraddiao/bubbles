@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
@@ -72,6 +73,17 @@ export default function OnboardingPhonePage() {
             )}
           </div>
 
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            By continuing, you agree to our{' '}
+            <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>
+            , and consent to receive text messages from Bubbles &mdash; including verification
+            codes and, if you opt in from your profile, MMS contact cards from groups you join.
+            Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for
+            help.
+          </p>
+
           <Button
             type="submit"
             className="w-full"
@@ -82,10 +94,6 @@ export default function OnboardingPhonePage() {
             Continue with phone
           </Button>
         </form>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          We&rsquo;ll send you a verification code via SMS
-        </p>
       </main>
     </div>
   )

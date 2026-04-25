@@ -262,18 +262,30 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
                 className="mt-0.5"
               />
               <label htmlFor="sms_notifications_enabled" className="cursor-pointer space-y-1">
-                <p className="text-sm font-medium leading-none">Receive group updates by text</p>
+                <p className="text-sm font-medium leading-none">Send contact cards by MMS when I join a group</p>
                 <p className="text-xs text-muted-foreground">
-                  Bubbles will text you group updates. You can opt-out at any time.
+                  Optional. You can change this anytime in your profile.
                 </p>
               </label>
             </div>
           )}
 
+          {isSignUp && (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              By creating an account, you agree to our{' '}
+              <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>
+              , and consent to receive text messages from Bubbles &mdash; including verification
+              codes and, if enabled above, MMS contact cards from groups you join. Msg frequency
+              varies. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help.
+            </p>
+          )}
+
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading || isGoogleLoading || (isSignUp && !smsOptIn)}
+            disabled={isLoading || isGoogleLoading}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" data-testid="loading-spinner" />}
             {isSignUp ? 'Create Account' : 'Sign In'}
@@ -293,15 +305,6 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
             </button>
           </p>
         </div>
-
-        {isSignUp && (
-          <div className="mt-4 text-xs text-muted-foreground text-center">
-            By creating an account, you agree to our{' '}
-            <Link href="/terms" className="underline hover:text-primary">Terms of Service</Link>{' '}
-            and{' '}
-            <Link href="/privacy" className="underline hover:text-primary">Privacy Policy</Link>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
