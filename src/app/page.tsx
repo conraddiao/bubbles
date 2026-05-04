@@ -67,6 +67,9 @@ export default async function Home() {
             <Link href="/terms" className="hover:text-foreground hover:underline">
               Terms of Service
             </Link>
+            <Link href="/messaging" className="hover:text-foreground hover:underline">
+              Messaging Program
+            </Link>
           </div>
         </footer>
       </main>
