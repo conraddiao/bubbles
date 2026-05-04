@@ -2,6 +2,12 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.11.5] - 2026-05-03
+
+### Added
+- Public `/messaging` page with full SMS program disclosure — message types, opt-in consent language, sample messages, STOP/HELP instructions, and contact info. Created to satisfy Twilio toll-free number verification requirements.
+- "Messaging Program" link in the landing page footer alongside Privacy Policy and Terms of Service.
+
 ## [0.2.11.4] - 2026-04-08
 
 ### Fixed
