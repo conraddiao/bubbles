@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import twilio from 'twilio'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateMemberVCard, formatVCardRev, type VCardMember } from '@/lib/vcard'
 
 export async function POST(request: NextRequest) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID
-  const authToken = process.env.TWILIO_AUTH_TOKEN
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER
+  const accessKey = process.env.BIRD_ACCESS_KEY
+  const workspaceId = process.env.BIRD_WORKSPACE_ID
+  const channelId = process.env.BIRD_CHANNEL_ID
+  const fromNumber = process.env.BIRD_PHONE_NUMBER
 
-  if (!accountSid || !authToken || !fromNumber) {
+  if (!accessKey || !workspaceId || !channelId || !fromNumber) {
     return NextResponse.json(
-      { error: 'Twilio credentials not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env.local' },
+      { error: 'Bird credentials not configured. Set BIRD_ACCESS_KEY, BIRD_WORKSPACE_ID, BIRD_CHANNEL_ID, and BIRD_PHONE_NUMBER in .env.local' },
       { status: 500 }
     )
   }
@@ -121,28 +121,49 @@ export async function POST(request: NextRequest) {
 
   // In development, override the recipient to a test phone number
   let recipient = to
-  if (process.env.NODE_ENV === 'development' && process.env.TWILIO_TEST_RECIPIENT_PHONE) {
-    console.warn(`[DEV] Overriding SMS recipient from ${to} to ${process.env.TWILIO_TEST_RECIPIENT_PHONE}`)
-    recipient = process.env.TWILIO_TEST_RECIPIENT_PHONE
+  if (process.env.NODE_ENV === 'development' && process.env.SMS_TEST_RECIPIENT_PHONE) {
+    console.warn(`[DEV] Overriding SMS recipient from ${to} to ${process.env.SMS_TEST_RECIPIENT_PHONE}`)
+    recipient = process.env.SMS_TEST_RECIPIENT_PHONE
   }
 
-  const client = twilio(accountSid, authToken)
-
   try {
-    const message = await client.messages.create({
-      to: recipient,
-      from: fromNumber,
-      body: `${groupName || 'Your group'} contacts from Bubbles — tap the attachment to add them to your phone.`,
-      mediaUrl: [publicUrl],
-      statusCallback: `${process.env.APP_URL}/api/webhooks/twilio`,
-    })
+    const response = await fetch(
+      `https://api.bird.com/workspaces/${workspaceId}/channels/${channelId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `AccessKey ${accessKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          receiver: {
+            contacts: [{ identifierValue: recipient }],
+          },
+          body: {
+            type: 'file',
+            file: {
+              files: [{ mediaUrl: publicUrl, contentType: 'text/vcard' }],
+              text: `${groupName || 'Your group'} contacts from Bubbles — tap the attachment to add them to your phone.`,
+            },
+          },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const errBody = await response.text()
+      console.error('Bird MMS error:', response.status, errBody)
+      return NextResponse.json({ error: 'Failed to send MMS' }, { status: 500 })
+    }
+
+    const message = await response.json() as { id: string; [key: string]: unknown }
 
     const { error: insertError } = await (supabaseAdmin as any)
       .from('sms_notifications')
       .insert({
         recipient_phone: recipient,
         message_type: 'member_notification',
-        twilio_sid: message.sid,
+        provider_message_id: message.id,
         status: 'sent',
         group_id: groupId,
       })
@@ -153,13 +174,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      messageSid: message.sid,
-      status: message.status,
+      messageId: message.id,
       vcfUrl: publicUrl,
     })
   } catch (error) {
-    console.error('Twilio MMS error:', error)
-    const message = error instanceof Error ? error.message : 'Failed to send MMS'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('Bird MMS error:', error)
+    const msg = error instanceof Error ? error.message : 'Failed to send MMS'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
