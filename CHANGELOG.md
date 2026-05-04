@@ -2,6 +2,20 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.12.0] - 2026-05-04
+
+### Added
+- `/messaging/consent` page with onboarding screenshot showing the SMS consent flow, for use in carrier compliance submissions.
+- `/messaging/privacy-policy` and `/messaging/terms-of-service` pages — public, linkable policy pages required for SMS program registration.
+
+### Changed
+- MMS provider switched from Twilio to Bird (messagebird.com). Contact bundles are now sent via Bird's channels API. Requires new `BIRD_ACCESS_KEY`, `BIRD_WORKSPACE_ID`, `BIRD_CHANNEL_ID`, and `BIRD_PHONE_NUMBER` env vars.
+- `sms_notifications.twilio_sid` column renamed to `provider_message_id` (migration 022).
+- Webhook route moved from `/api/webhooks/twilio` to `/api/webhooks/bird`.
+
+### Fixed
+- Vitest no longer picks up test files inside `.claude/` worktrees, eliminating spurious test failures from abandoned worktree sessions.
+
 ## [0.2.11.5] - 2026-05-03
 
 ### Added
