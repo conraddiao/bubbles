@@ -13,14 +13,16 @@ function escapeHtml(str: string): string {
 }
 
 // Surge sends webhooks with HMAC-SHA256 signature in the Surge-Signature header.
-// Header format: "t=<unix_timestamp>,v1=<hex_hash>"
+// Header format: "t=<unix_timestamp>,v1=<hex_hash>[,v1=<hex_hash>...]"
+// Per Surge docs, multiple v1 values may appear — validate against any matching hash.
 function validateSurgeSignature(secret: string, rawBody: string, signatureHeader: string): boolean {
-  const parts = Object.fromEntries(
-    signatureHeader.split(',').map((part) => part.split('=') as [string, string])
-  )
-  const timestamp = parts['t']
-  const receivedHash = parts['v1']
-  if (!timestamp || !receivedHash) return false
+  const parts = signatureHeader.split(',')
+  const timestampPart = parts.find((p) => p.startsWith('t='))
+  const v1Hashes = parts.filter((p) => p.startsWith('v1=')).map((p) => p.slice(3))
+
+  if (!timestampPart || v1Hashes.length === 0) return false
+
+  const timestamp = timestampPart.slice(2)
 
   // Reject replays older than 5 minutes
   const age = Math.abs(Date.now() / 1000 - Number(timestamp))
@@ -28,12 +30,15 @@ function validateSurgeSignature(secret: string, rawBody: string, signatureHeader
 
   const payload = `${timestamp}.${rawBody}`
   const expectedHash = createHmac('sha256', secret).update(payload).digest('hex')
+  const expectedBuffer = Buffer.from(expectedHash, 'hex')
 
-  try {
-    return timingSafeEqual(Buffer.from(expectedHash, 'hex'), Buffer.from(receivedHash, 'hex'))
-  } catch {
-    return false
-  }
+  return v1Hashes.some((hash) => {
+    try {
+      return timingSafeEqual(expectedBuffer, Buffer.from(hash, 'hex'))
+    } catch {
+      return false
+    }
+  })
 }
 
 const FAILED_STATUSES = new Set(['message.failed'])
