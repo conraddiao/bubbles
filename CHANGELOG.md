@@ -2,6 +2,14 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.12.0] - 2026-05-03
+
+### Changed
+- Switched MMS provider from Twilio to [Surge](https://surge.app) for contact vCard delivery. The `twilio` SDK has been removed; messages now go out via Surge's REST API using native `fetch`.
+- Webhook endpoint for delivery status tracking moved from `/api/webhooks/twilio` to `/api/webhooks/surge`, with HMAC-SHA256 signature validation matching Surge's signing format (including support for multiple `v1` hashes per Surge docs).
+- `sms_notifications.twilio_sid` column renamed to `provider_message_id` (migration 022).
+- Environment variables updated: `SURGE_API_KEY`, `SURGE_ACCOUNT_ID`, `SURGE_PHONE_NUMBER`, `SURGE_WEBHOOK_SECRET` replace the Twilio equivalents.
+
 ## [0.2.11.4] - 2026-04-08
 
 ### Fixed
