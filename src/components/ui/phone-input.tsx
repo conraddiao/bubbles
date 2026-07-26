@@ -60,10 +60,12 @@ const PHONE_MASK = "(###) ###-####";
  * The old handler blindly ran every value through `.slice(0, 10)` and treated
  * the result as a US national number, so an autofilled international number got
  * truncated to its first 10 digits and reinterpreted against the US country
- * code — producing a garbage number. When the raw value carries a country code,
- * forward the full E.164 (with a leading "+") to react-phone-number-input so its
- * libphonenumber parsing sets the correct country + national number. Otherwise
- * treat it as a US national number and keep the existing masked-input behavior.
+ * code — producing a garbage number. When the raw value carries an unambiguous
+ * country code, forward the full E.164 (with a leading "+") to
+ * react-phone-number-input so its libphonenumber parsing sets the correct
+ * country + national number. Otherwise treat it as a US national number and keep
+ * the existing masked-input behavior — including truncating overflow past 10
+ * digits, so an accidental extra keystroke doesn't get read as another country.
  */
 export function interpretPhoneInput(
   raw: string,
@@ -78,17 +80,18 @@ export function interpretPhoneInput(
     return { kind: "international", value: `+${digits}` };
   }
   // US number that still carries its "1" country code, e.g. "1 555 123 4567".
+  // Exactly 11 digits starting with "1" is the one no-"+" shape we treat as
+  // international — it's the common US-with-country-code paste/autofill. Any
+  // other overflow (e.g. an accidental 11th digit not starting with "1") stays
+  // national and gets truncated below, matching the pre-existing US-mask cap.
   if (digits.length === 11 && digits.startsWith("1")) {
-    return { kind: "international", value: `+${digits}` };
-  }
-  // More digits than a US national number can hold — a country code is present
-  // even though the "+" was stripped by the source.
-  if (digits.length > 10) {
     return { kind: "international", value: `+${digits}` };
   }
   return { kind: "national", digits: digits.slice(0, 10) };
 }
 
+/** Render up to 10 digits into the US `(###) ###-####` mask, padding the
+ * remaining slots with `_`. Returns "" for empty input. */
 function formatDisplayValue(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 10);
   if (!digits) return "";
@@ -98,6 +101,8 @@ function formatDisplayValue(value: string): string {
     .join("");
 }
 
+/** Map a digit count to the caret offset in the masked string, so the cursor
+ * lands after the last entered digit rather than inside mask punctuation. */
 function getCursorPosition(digitCount: number): number {
   if (digitCount === 0) return 0;
   let di = 0;

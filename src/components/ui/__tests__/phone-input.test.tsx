@@ -18,9 +18,16 @@ describe("interpretPhoneInput", () => {
     });
   });
 
-  it("caps national input at 10 digits", () => {
-    expect(interpretPhoneInput("55512345678999")).toMatchObject({
-      kind: "international",
+  it("caps national input at 10 digits and truncates overflow", () => {
+    // A US number the user overflows without a "+" or leading "1" stays national
+    // and is truncated — it must NOT be promoted to an international "+" value.
+    expect(interpretPhoneInput("55512345678")).toEqual({
+      kind: "national",
+      digits: "5551234567",
+    });
+    expect(interpretPhoneInput("55512345678999")).toEqual({
+      kind: "national",
+      digits: "5551234567",
     });
     expect(interpretPhoneInput("5551234")).toEqual({
       kind: "national",
