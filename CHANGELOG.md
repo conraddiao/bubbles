@@ -2,6 +2,11 @@
 
 All notable changes to Bubbles will be documented in this file.
 
+## [0.2.12.1] - 2026-07-26
+
+### Fixed
+- Phone number field no longer corrupts autofilled or pasted international numbers. When your browser fills in a full number like `+44 7911 123456` or `+1 555 123 4567`, the field keeps the country code and stores the correct E.164 value instead of truncating it to the first 10 digits and mangling it as a US number.
+
 ## [0.2.11.5] - 2026-05-03
 
 ### Added
