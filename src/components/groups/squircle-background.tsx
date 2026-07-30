@@ -92,6 +92,9 @@ function dominantAxisIndex(v: Vector3): 0 | 1 | 2 {
 
 export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // Interactive layer confined to the cube's footprint so drags/scrolls over
+  // the surrounding orange hero aren't captured. Enabled imperatively below.
+  const overlayRef = useRef<HTMLDivElement>(null)
   // Stable ref so the texture effect can update uniforms after Three.js is set up
   const uniformsRef = useRef<{
     uTopAngle: { value: number }
@@ -104,7 +107,8 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
   // Main Three.js scene — runs once
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    const overlay = overlayRef.current
+    if (!canvas || !overlay) return
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -310,8 +314,8 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         lastMoveTime = performance.now()
         uniforms.uTopAngle.value = 0
         uniforms.uBotAngle.value = 0
-        canvas.setPointerCapture(e.pointerId)
-        canvas.style.cursor = 'grabbing'
+        overlay.setPointerCapture(e.pointerId)
+        overlay.style.cursor = 'grabbing'
       }
 
       const onPointerMove = (e: PointerEvent) => {
@@ -344,7 +348,7 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
       const onPointerUp = () => {
         if (!isDragging) return
         isDragging = false
-        canvas.style.cursor = 'grab'
+        overlay.style.cursor = 'grab'
         // Compute velocity from recent moves
         let totalDt = 0, totalDx = 0, totalDy = 0
         for (const m of recentMoves) { totalDt += m.dt; totalDx += m.dx; totalDy += m.dy }
@@ -356,18 +360,22 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
         mode = speed > 0.0003 ? 'momentum' : 'snap'
       }
 
-      canvas.addEventListener('pointerdown', onPointerDown)
-      canvas.addEventListener('pointermove', onPointerMove)
-      canvas.addEventListener('pointerup', onPointerUp)
-      canvas.addEventListener('pointercancel', onPointerUp)
+      overlay.addEventListener('pointerdown', onPointerDown)
+      overlay.addEventListener('pointermove', onPointerMove)
+      overlay.addEventListener('pointerup', onPointerUp)
+      overlay.addEventListener('pointercancel', onPointerUp)
       pointerCleanup = () => {
-        canvas.removeEventListener('pointerdown', onPointerDown)
-        canvas.removeEventListener('pointermove', onPointerMove)
-        canvas.removeEventListener('pointerup', onPointerUp)
-        canvas.removeEventListener('pointercancel', onPointerUp)
+        overlay.removeEventListener('pointerdown', onPointerDown)
+        overlay.removeEventListener('pointermove', onPointerMove)
+        overlay.removeEventListener('pointerup', onPointerUp)
+        overlay.removeEventListener('pointercancel', onPointerUp)
       }
 
-      canvas.style.cursor = 'grab'
+      // Activate the interactive layer only when the cube animates — reduced
+      // motion leaves it inert so it never blocks scroll over the hero.
+      overlay.style.pointerEvents = 'auto'
+      overlay.style.touchAction = 'none'
+      overlay.style.cursor = 'grab'
 
       renderer.setAnimationLoop((time) => {
         const dt = prevTime < 0 ? 16 : Math.min(time - prevTime, 64)
@@ -467,10 +475,20 @@ export function SquircleBackground({ shareUrl }: { shareUrl?: string }) {
   }, [shareUrl])
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 h-full w-full touch-none"
-      aria-hidden="true"
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        aria-hidden="true"
+      />
+      {/* Drag target confined to the cube so the rest of the hero scrolls
+          freely. Starts inert (pointer-events: none) and is enabled in the
+          effect above only when the cube is interactive. */}
+      <div
+        ref={overlayRef}
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[330px] w-[330px] max-w-full -translate-x-1/2 -translate-y-1/2"
+        aria-hidden="true"
+      />
+    </>
   )
 }
