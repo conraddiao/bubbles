@@ -31,7 +31,7 @@ export function AuthForm({ mode = 'signin', onSuccess, redirectTo }: AuthFormPro
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true)
     try {
-      await signInWithGoogle()
+      await signInWithGoogle(redirectTo)
     } finally {
       setIsGoogleLoading(false)
     }

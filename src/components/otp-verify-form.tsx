@@ -24,6 +24,7 @@ export function OTPVerifyForm({
   const { verifyOtp, sendOtp, isLoading, resendCooldown } = usePhoneAuth()
   const [code, setCode] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
+  const [hasError, setHasError] = useState(false)
 
   const doVerify = useCallback(
     async (token: string) => {
@@ -33,6 +34,12 @@ export function OTPVerifyForm({
         const { error } = await verifyOtp(phone, token)
         if (!error) {
           onVerified()
+        } else {
+          // Clear the entry so the (now consumed/expired) code can't be
+          // re-submitted, and flag the field invalid. Supabase invalidates the
+          // OTP after repeated failed attempts, so a fresh entry/resend is needed.
+          setHasError(true)
+          setCode('')
         }
       } finally {
         setIsVerifying(false)
@@ -54,6 +61,7 @@ export function OTPVerifyForm({
 
   const handleCodeChange = (value: string) => {
     setCode(value)
+    if (hasError) setHasError(false)
     if (value.length === 6) {
       doVerify(value)
     }
@@ -82,19 +90,27 @@ export function OTPVerifyForm({
             value={code}
             onChange={handleCodeChange}
             autoFocus
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            pattern="[0-9]*"
           >
             <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
+              <InputOTPSlot index={0} aria-invalid={hasError || undefined} />
+              <InputOTPSlot index={1} aria-invalid={hasError || undefined} />
+              <InputOTPSlot index={2} aria-invalid={hasError || undefined} />
             </InputOTPGroup>
             <InputOTPSeparator />
             <InputOTPGroup>
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
+              <InputOTPSlot index={3} aria-invalid={hasError || undefined} />
+              <InputOTPSlot index={4} aria-invalid={hasError || undefined} />
+              <InputOTPSlot index={5} aria-invalid={hasError || undefined} />
             </InputOTPGroup>
           </InputOTP>
+          {hasError && (
+            <p className="text-sm text-destructive" role="alert">
+              Incorrect or expired code — request a new one below.
+            </p>
+          )}
         </div>
 
         <Button
@@ -127,6 +143,11 @@ export function OTPVerifyForm({
         >
           Change number
         </button>
+        <p className="max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
+          Codes can take a moment to arrive. Check that{' '}
+          <span className="font-mono">{phone}</span> is correct — if it isn&rsquo;t, use
+          &ldquo;Change number&rdquo; — then resend.
+        </p>
       </div>
     </>
   )

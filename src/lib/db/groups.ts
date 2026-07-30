@@ -130,11 +130,16 @@ export async function joinContactGroup(
       throw new Error('Failed to join group. Please try again.')
     }
 
-    return { data, error: null }
+    return { data, error: null, alreadyMember: false }
   } catch (error: unknown) {
     console.error('joinContactGroup error:', error)
     const errorMessage = error instanceof Error ? error.message : handleDatabaseError(error)
-    return { data: null, error: errorMessage }
+    // Already being a member is the desired end state — treat it as an idempotent
+    // success so the caller can send them into the group rather than failing.
+    if (/already a member/i.test(errorMessage)) {
+      return { data: null, error: null, alreadyMember: true }
+    }
+    return { data: null, error: errorMessage, alreadyMember: false }
   }
 }
 

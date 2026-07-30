@@ -69,8 +69,15 @@ export function usePhoneAuth(): UsePhoneAuthReturn {
           type: 'sms',
         })
         if (error) {
-          toast.error(error.message)
-          return { error: error.message }
+          // Supabase returns raw messages like "Token has expired or is invalid".
+          // Surface something the user can act on.
+          const raw = error.message.toLowerCase()
+          const friendly =
+            raw.includes('expired') || raw.includes('invalid')
+              ? 'That code is incorrect or has expired. Request a new code and try again.'
+              : error.message
+          toast.error(friendly)
+          return { error: friendly }
         }
         return {}
       } catch {
