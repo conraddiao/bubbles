@@ -279,6 +279,15 @@ export function handleDatabaseError(error: unknown): string {
     if (message.includes('email address is already registered')) {
       return 'This email address is already registered in this group.'
     }
+    // Raw Postgres unique-violation from the group_memberships (group_id, email)
+    // constraint — surfaces when an email already belongs to a member of the group
+    // under a different account.
+    if (
+      message.includes('group_memberships_group_id_email_key') ||
+      (message.includes('duplicate key') && message.includes('email'))
+    ) {
+      return 'This email is already used by a member of this group. If it\'s yours, log in with that account instead.'
+    }
     if (message.includes('do not have permission')) {
       return 'You do not have permission to perform this action.'
     }

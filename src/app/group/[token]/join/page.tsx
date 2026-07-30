@@ -83,7 +83,11 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
       const result = await joinContactGroup(token, false, groupPassword)
       if (result.error) throw new Error(result.error)
 
-      toast.success('Successfully joined the group!')
+      toast.success(
+        result.alreadyMember
+          ? "You're already a member — taking you to the group."
+          : 'Successfully joined the group!'
+      )
       router.push(`/group/${token}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to join group'
@@ -103,7 +107,11 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
       const result = await joinContactGroup(token, false, groupPassword)
       if (result.error) throw new Error(result.error)
 
-      toast.success('Successfully joined the group!')
+      toast.success(
+        result.alreadyMember
+          ? "You're already a member — taking you to the group."
+          : 'Successfully joined the group!'
+      )
       router.push(`/group/${token}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to join group'
