@@ -28,7 +28,7 @@ interface AuthActions {
     smsNotificationsEnabled?: boolean
   ) => Promise<{ error?: AuthError; requiresEmailConfirmation?: boolean; email?: string }>
   signIn: (email: string, password: string) => Promise<{ error?: AuthError }>
-  signInWithGoogle: () => Promise<{ error?: AuthError }>
+  signInWithGoogle: (redirectTo?: string) => Promise<{ error?: AuthError }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Omit<Profile, 'id' | 'email' | 'created_at' | 'updated_at'>>) => Promise<{ error?: string }>
   refreshProfile: () => Promise<void>
@@ -274,12 +274,17 @@ function useAuthState(): AuthContextValue {
     }
   }
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectTo?: string) => {
     try {
+      const callbackUrl = new URL('/auth/callback', window.location.origin)
+      // Only forward safe, internal, single-slash-relative paths to avoid open redirects.
+      if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+        callbackUrl.searchParams.set('next', redirectTo)
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
         },
       })
 

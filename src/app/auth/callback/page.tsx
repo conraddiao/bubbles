@@ -16,6 +16,13 @@ export default function AuthCallbackPage() {
       const code = params.get('code')
       const error = params.get('error')
 
+      // Only honor safe internal paths; anything else falls back to the dashboard.
+      const nextParam = params.get('next')
+      const destination =
+        nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+          ? nextParam
+          : '/dashboard'
+
       if (error) {
         router.replace('/auth?error=auth')
         return
@@ -26,7 +33,7 @@ export default function AuthCallbackPage() {
         if (exchangeError) {
           router.replace('/auth?error=auth')
         } else {
-          router.replace('/dashboard')
+          router.replace(destination)
         }
         return
       }
@@ -37,7 +44,7 @@ export default function AuthCallbackPage() {
         if (event === 'SIGNED_IN' && session) {
           if (timeout) clearTimeout(timeout)
           sub.unsubscribe()
-          router.replace('/dashboard')
+          router.replace(destination)
         }
       })
       subscription = sub
@@ -47,7 +54,7 @@ export default function AuthCallbackPage() {
       if (session) {
         if (timeout) clearTimeout(timeout)
         sub.unsubscribe()
-        router.replace('/dashboard')
+        router.replace(destination)
         return
       }
 

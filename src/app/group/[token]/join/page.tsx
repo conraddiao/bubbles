@@ -10,6 +10,7 @@ import type { ContactGroup } from '@/types'
 import { getGroupByToken, joinContactGroup } from '@/lib/database'
 import { updateUserProfile } from '@/lib/auth-service'
 import { usePhoneAuth } from '@/hooks/use-phone-auth'
+import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,7 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
   const token = resolvedParams.token
   const router = useRouter()
   const { sendOtp } = usePhoneAuth()
+  const { user, profile, loading: authLoading, profileFetchFailed, signOut } = useAuth()
 
   const [step, setStep] = useState<Step>('form')
   const [formData, setFormData] = useState<JoinFormData | null>(null)
@@ -90,6 +92,39 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
     }
   }, [formData, token, router])
 
+  // Join path for a visitor who already has an authenticated session and a
+  // completed profile — no phone/OTP step, we just join with their identity.
+  const completeJoinExisting = useCallback(async (groupPassword?: string) => {
+    setIsJoining(true)
+    try {
+      const { data: { user: authedUser } } = await supabase.auth.getUser()
+      if (!authedUser) throw new Error('Authentication failed')
+
+      const result = await joinContactGroup(token, false, groupPassword)
+      if (result.error) throw new Error(result.error)
+
+      toast.success('Successfully joined the group!')
+      router.push(`/group/${token}`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to join group'
+      toast.error(message)
+      setIsJoining(false)
+    }
+  }, [token, router])
+
+  const handleContinueAsSelf = useCallback(() => {
+    if (group?.access_type === 'password') {
+      setStep('password')
+    } else {
+      completeJoinExisting()
+    }
+  }, [group?.access_type, completeJoinExisting])
+
+  const handleUseDifferentAccount = useCallback(async () => {
+    await signOut()
+    // With the session cleared, the standard sign-up form renders on the next pass.
+  }, [signOut])
+
   const handleFormSubmit = form.handleSubmit(async (values) => {
     setFormData(values)
     const { error } = await sendOtp(values.phone)
@@ -112,7 +147,13 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
       toast.error('A group password is required to join this group.')
       return
     }
-    await completeJoin(password)
+    // formData is only set when the visitor went through the sign-up + OTP form.
+    // An existing-session visitor reaches the password step via the fast path.
+    if (formData) {
+      await completeJoin(password)
+    } else {
+      await completeJoinExisting(password)
+    }
   }
 
   // Loading state
@@ -252,6 +293,72 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
     )
   }
 
+  // Existing-session fast path: an already-authenticated visitor with a loaded
+  // profile joins in one tap, skipping the sign-up form and OTP entirely.
+  // (Only reachable at the form step — the otp/password returns above win first.)
+  if (!authLoading && user && !profileFetchFailed && !profile) {
+    // Session exists but the profile is still loading — hold rather than flashing
+    // the full sign-up form and then swapping it out.
+    return (
+      <div className="min-h-dvh bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (!authLoading && user && profile) {
+    return (
+      <div className="min-h-dvh bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Join {group.name}
+            </CardTitle>
+            <CardDescription>
+              {group.description || 'Share your contact information with other group members.'}
+            </CardDescription>
+            {group.owner && (
+              <p className="text-sm text-muted-foreground">
+                Organized by {group.owner.first_name} {group.owner.last_name}
+              </p>
+            )}
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Signed in as{' '}
+              <span className="font-medium text-foreground">
+                {profile.first_name} {profile.last_name}
+              </span>
+              {profile.email ? ` · ${profile.email}` : ''}
+            </p>
+
+            <Button
+              className="w-full"
+              onClick={handleContinueAsSelf}
+              disabled={isJoining}
+            >
+              {isJoining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isJoining ? 'Joining...' : `Join as ${profile.first_name}`}
+            </Button>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleUseDifferentAccount}
+                disabled={isJoining}
+                className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+              >
+                Use a different account
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   // Form step (default)
   return (
     <div className="min-h-dvh bg-background flex items-center justify-center p-4">
@@ -348,6 +455,16 @@ export default function GroupJoinPage({ params }: JoinPageProps) {
               {form.formState.isSubmitting ? 'Sending code...' : 'Join Group'}
             </Button>
           </form>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Already have an account?{' '}
+            <Link
+              href={`/auth?redirect=${encodeURIComponent(`/group/${token}/join`)}`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Log in
+            </Link>
+          </p>
 
           <div className="mt-4 text-center">
             <Link href="/">

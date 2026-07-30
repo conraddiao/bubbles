@@ -56,6 +56,12 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }))
 
+// jsdom doesn't implement elementFromPoint; input-otp's password-manager badge
+// detection calls it. Stub it so OTP inputs can render/interact in tests.
+if (typeof document !== 'undefined' && !document.elementFromPoint) {
+  document.elementFromPoint = () => null
+}
+
 // Mock window.matchMedia (used by SquircleBackground for prefers-reduced-motion)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
