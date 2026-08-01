@@ -125,6 +125,7 @@ export function AppHeader() {
               <Bug className="size-4" />
               Report a Bug
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut className="size-4" />
               Sign Out

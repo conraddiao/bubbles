@@ -85,6 +85,18 @@ describe('AppHeader', () => {
     expect(signOutIndex).toBe(bugIndex + 1)
   })
 
+  it('separates Report a Bug from Sign Out with a divider', async () => {
+    const user = userEvent.setup()
+    render(<AppHeader />)
+
+    await user.click(screen.getByRole('button', { name: 'Open user menu' }))
+
+    const bugItem = screen.getByText('Report a Bug').closest('[role="menuitem"]')
+    const next = bugItem?.nextElementSibling
+    expect(next).toHaveAttribute('role', 'separator')
+    expect(next?.nextElementSibling).toHaveTextContent('Sign Out')
+  })
+
   it('opens the bug report sheet from the menu', async () => {
     const user = userEvent.setup()
     render(<AppHeader />)

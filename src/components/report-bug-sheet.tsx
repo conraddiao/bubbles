@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Dialog } from 'radix-ui'
+import { X } from 'lucide-react'
 
-const BUG_REPORT_EMAIL = 'Conrad@bubbles.fyi'
+import { MAX_BUG_DESCRIPTION_LENGTH } from '@/lib/bug-report'
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset'
+
 const CLOSE_DELAY_MS = 1000
 
 interface ReportBugSheetProps {
@@ -12,20 +15,33 @@ interface ReportBugSheetProps {
 }
 
 export function ReportBugSheet({ open, onOpenChange }: ReportBugSheetProps) {
+  const { keyboardInset, viewportHeight } = useKeyboardInset(open)
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-[#1C1713]/40 data-[state=open]:animate-fade-up-in" />
         <Dialog.Content
-          className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-[#FEFAF4] p-5 shadow-2xl focus:outline-none data-[state=open]:animate-fade-up-in"
+          // Lift the sheet above the on-screen keyboard and cap it to what is
+          // left of the viewport, so the textarea and CTA stay reachable.
+          style={{
+            bottom: keyboardInset,
+            maxHeight: viewportHeight ? viewportHeight - 16 : undefined,
+          }}
+          className="fixed left-0 right-0 z-50 flex flex-col rounded-t-2xl bg-[#FEFAF4] p-5 shadow-2xl focus:outline-none data-[state=open]:animate-fade-up-in"
           aria-describedby={undefined}
         >
-          {/* Drag handle */}
-          <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-[#E0D5C5]" />
-
-          <Dialog.Title className="font-label mb-4 text-lg font-semibold text-[#1C1713]">
-            Report a bug
-          </Dialog.Title>
+          <div className="mb-4 flex items-center gap-3">
+            <Dialog.Close
+              aria-label="Close"
+              className="-ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#7A6E63] transition-colors hover:bg-[#F0E8D9] active-scale"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Dialog.Close>
+            <Dialog.Title className="font-label text-lg font-semibold text-[#1C1713]">
+              Report a bug
+            </Dialog.Title>
+          </div>
 
           {/* Mounted fresh on each open, so the form resets itself */}
           <ReportBugForm onDone={() => onOpenChange(false)} />
@@ -37,7 +53,9 @@ export function ReportBugSheet({ open, onOpenChange }: ReportBugSheetProps) {
 
 function ReportBugForm({ onDone }: { onDone: () => void }) {
   const [description, setDescription] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -46,30 +64,41 @@ function ReportBugForm({ onDone }: { onDone: () => void }) {
     }
   }, [])
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmed = description.trim()
-    if (!trimmed || submitted) return
+    if (!trimmed || submitting || submitted) return
 
-    const context = [
-      '',
-      '---',
-      `Page: ${window.location.href}`,
-      `Browser: ${navigator.userAgent}`,
-    ].join('\n')
+    setSubmitting(true)
+    setError(null)
 
-    const mailto = `mailto:${BUG_REPORT_EMAIL}?subject=${encodeURIComponent(
-      'Bubbles bug report'
-    )}&body=${encodeURIComponent(`${trimmed}\n${context}`)}`
+    try {
+      const response = await fetch('/api/bug-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: trimmed,
+          path: window.location.pathname,
+          userAgent: navigator.userAgent,
+        }),
+      })
 
-    window.location.assign(mailto)
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(body?.error || 'Something went wrong. Please try again.')
+      }
 
-    setSubmitted(true)
-    closeTimer.current = setTimeout(onDone, CLOSE_DELAY_MS)
+      setSubmitted(true)
+      closeTimer.current = setTimeout(onDone, CLOSE_DELAY_MS)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (submitted) {
     return (
-      <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 text-center">
+      <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 text-center">
         <p className="font-display text-2xl font-bold text-[#1C1713]">Thank you!</p>
         <p className="text-sm text-[#7A6E63]">
           Your report is on its way. We appreciate the help.
@@ -79,7 +108,7 @@ function ReportBugForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <label htmlFor="bug-description" className="block text-sm font-medium text-[#1C1713]">
         What went wrong?
       </label>
@@ -88,18 +117,26 @@ function ReportBugForm({ onDone }: { onDone: () => void }) {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Tell us what happened, what you expected, and how to reproduce it."
-        rows={8}
+        rows={6}
+        maxLength={MAX_BUG_DESCRIPTION_LENGTH}
+        disabled={submitting}
         autoFocus
-        className="min-h-[180px] w-full resize-none rounded-xl border border-[#E0D5C5] bg-[#F6EFE5] px-3 py-2.5 text-base text-[#1C1713] outline-none transition-colors placeholder:text-[#7A6E63] focus-visible:border-[#E8622A]"
+        className="min-h-[104px] w-full flex-1 resize-none rounded-xl border border-[#E0D5C5] bg-[#F6EFE5] px-3 py-2.5 text-base text-[#1C1713] outline-none transition-colors placeholder:text-[#7A6E63] focus-visible:border-[#E8622A] disabled:opacity-50"
       />
+
+      {error && (
+        <p role="alert" className="text-sm text-[#C53030]">
+          {error}
+        </p>
+      )}
 
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!description.trim()}
-        className="w-full rounded-xl bg-[#E8622A] py-3 text-sm font-semibold text-[#FEFAF4] font-label transition-colors hover:bg-[#B84A1A] disabled:opacity-50 active-scale"
+        disabled={!description.trim() || submitting}
+        className="w-full shrink-0 rounded-xl bg-[#E8622A] py-3 text-sm font-semibold text-[#FEFAF4] font-label transition-colors hover:bg-[#B84A1A] disabled:opacity-50 active-scale"
       >
-        Submit
+        {submitting ? 'Sending...' : 'Submit'}
       </button>
     </div>
   )
