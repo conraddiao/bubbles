@@ -180,12 +180,31 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Bottom sheets slide back down out of the viewport on close. */
+@keyframes sheet-slide-down-out {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .animate-bubble-enter {
   animation: bubble-enter var(--duration-medium) var(--ease-spring) both;
 }
 
 .animate-fade-up-in {
   animation: fade-up-in var(--duration-short) var(--ease-enter) both;
+}
+
+.animate-sheet-slide-down-out {
+  animation: sheet-slide-down-out var(--duration-medium) var(--ease-exit) both;
+}
+
+.animate-fade-out {
+  animation: fade-out var(--duration-medium) var(--ease-exit) both;
 }
 
 .active-scale {
@@ -197,7 +216,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-bubble-enter,
-  .animate-fade-up-in {
+  .animate-fade-up-in,
+  .animate-sheet-slide-down-out,
+  .animate-fade-out {
     animation: none;
   }
   .active-scale:active {

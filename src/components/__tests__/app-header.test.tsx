@@ -67,7 +67,45 @@ describe('AppHeader', () => {
     await user.click(trigger)
 
     expect(screen.getByText('Settings')).toBeInTheDocument()
+    expect(screen.getByText('Report a Bug')).toBeInTheDocument()
     expect(screen.getByText('Sign Out')).toBeInTheDocument()
+  })
+
+  it('places Report a Bug directly above Sign Out', async () => {
+    const user = userEvent.setup()
+    render(<AppHeader />)
+
+    await user.click(screen.getByRole('button', { name: 'Open user menu' }))
+
+    const items = screen.getAllByRole('menuitem').map((item) => item.textContent)
+    const bugIndex = items.findIndex((text) => text?.includes('Report a Bug'))
+    const signOutIndex = items.findIndex((text) => text?.includes('Sign Out'))
+
+    expect(bugIndex).toBeGreaterThanOrEqual(0)
+    expect(signOutIndex).toBe(bugIndex + 1)
+  })
+
+  it('separates Report a Bug from Sign Out with a divider', async () => {
+    const user = userEvent.setup()
+    render(<AppHeader />)
+
+    await user.click(screen.getByRole('button', { name: 'Open user menu' }))
+
+    const bugItem = screen.getByText('Report a Bug').closest('[role="menuitem"]')
+    const next = bugItem?.nextElementSibling
+    expect(next).toHaveAttribute('role', 'separator')
+    expect(next?.nextElementSibling).toHaveTextContent('Sign Out')
+  })
+
+  it('opens the bug report sheet from the menu', async () => {
+    const user = userEvent.setup()
+    render(<AppHeader />)
+
+    await user.click(screen.getByRole('button', { name: 'Open user menu' }))
+    await user.click(screen.getByText('Report a Bug'))
+
+    expect(await screen.findByRole('heading', { name: 'Report a bug' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument()
   })
 
   it('calls signOut and navigates on sign out click', async () => {
