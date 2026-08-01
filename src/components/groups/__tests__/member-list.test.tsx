@@ -284,10 +284,12 @@ describe('MemberList — contact selection', () => {
     renderList()
     await waitForMembers()
 
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    // Decline the remove confirmation — we only care that the click on the
+    // button doesn't bubble up to the card's selection toggle.
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
 
     fireEvent.click(
-      screen.getAllByRole('button', { name: "Get Jane Smith's contact" })[0]
+      screen.getAllByRole('button', { name: /Remove Jane Smith from group/ })[0]
     )
 
     expect(getRowCheckbox('Jane Smith')).toBeChecked()
@@ -316,63 +318,6 @@ describe('MemberList — contact selection', () => {
     expect(
       screen.getByRole('button', { name: /Get Contacts \(2\)/ })
     ).toBeInTheDocument()
-  })
-
-  it('per-member get button downloads a vcf blob on non-iOS', async () => {
-    renderList()
-    await waitForMembers()
-
-    const clickSpy = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => {})
-
-    // Jane is the non-owner row; use her button. There are two rows (mobile +
-    // desktop), click the first.
-    const getButtons = screen.getAllByRole('button', {
-      name: "Get Jane Smith's contact",
-    })
-    fireEvent.click(getButtons[0])
-
-    expect(URL.createObjectURL).toHaveBeenCalled()
-    expect(clickSpy).toHaveBeenCalled()
-  })
-
-  it('per-member get button uses a data URI on iOS', async () => {
-    setUserAgent(
-      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
-    )
-    renderList()
-    await waitForMembers()
-
-    // Intercept window.location assignments
-    const originalLocation = window.location
-    const hrefSpy = vi.fn()
-    // @ts-expect-error override for test
-    delete window.location
-    // @ts-expect-error override for test
-    window.location = {
-      ...originalLocation,
-      set href(value: string) {
-        hrefSpy(value)
-      },
-      get href() {
-        return originalLocation.href
-      },
-    }
-
-    try {
-      const getButtons = screen.getAllByRole('button', {
-        name: "Get Jane Smith's contact",
-      })
-      fireEvent.click(getButtons[0])
-
-      expect(hrefSpy).toHaveBeenCalled()
-      const arg = hrefSpy.mock.calls[0][0] as string
-      expect(arg.startsWith('data:text/x-vcard')).toBe(true)
-    } finally {
-      // @ts-expect-error restore
-      window.location = originalLocation
-    }
   })
 
   it('Get Contacts with a selection posts memberIds to the SMS API', async () => {
@@ -437,18 +382,14 @@ describe('MemberList — contact selection', () => {
     expect('memberIds' in body).toBe(false)
   })
 
-  it('get button is visible for every member including the owner', async () => {
+  it('shows no per-member contact icon — remove is the only row action', async () => {
     renderList()
     await waitForMembers()
 
-    // Both John (owner) and Jane (non-owner) should have get-contact buttons
     expect(
-      screen.getAllByRole('button', { name: "Get John Doe's contact" }).length
-    ).toBeGreaterThanOrEqual(1)
-    expect(
-      screen.getAllByRole('button', { name: "Get Jane Smith's contact" }).length
-    ).toBeGreaterThanOrEqual(1)
-    // And the owner-only trash button is still present for the non-owner row only
+      screen.queryAllByRole('button', { name: /'s contact$/ })
+    ).toHaveLength(0)
+    // The owner-only trash button is present for the non-owner row only
     expect(
       screen.getAllByRole('button', { name: /Remove Jane Smith from group/ })
         .length

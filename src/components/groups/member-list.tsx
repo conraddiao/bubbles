@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Users, Smartphone, Share2, UserPlus, ChevronDown, Loader2, Download } from 'lucide-react'
+import { Trash2, Users, Smartphone, Share2, ChevronDown, Loader2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -246,21 +246,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   const clearSelection = () => setSelectedMemberIds(new Set())
   const getSelectedMembers = () =>
     (members ?? []).filter(m => selectedMemberIds.has(m.id))
-
-  // Export a single member's vCard. Synchronous on iOS — do NOT await before
-  // calling downloadViaDataUri or Safari will block the data: navigation.
-  const exportSingleContact = (member: GroupMember) => {
-    try {
-      const content = generateVCard(member)
-      if (isIOS) {
-        downloadViaDataUri(content)
-      } else {
-        downloadViaBlob(content, getSingleContactFilename(member))
-      }
-    } catch {
-      toast.error('Failed to export contact')
-    }
-  }
 
   const exportSelectedContacts = async (via: 'share' | 'direct' | 'auto' = 'auto') => {
     const selected = getSelectedMembers()
@@ -516,23 +501,11 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 )}
               </div>
             </div>
-            <div
-              className="flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => exportSingleContact(member)}
-                aria-label={`Get ${getDisplayName(member)}'s contact`}
+            {isOwner && !member.is_owner && (
+              <div
+                className="flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
               >
-                {isIOS ? (
-                  <UserPlus className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                )}
-              </Button>
-              {isOwner && !member.is_owner && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -543,8 +516,8 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
         )
@@ -600,18 +573,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
               </TableCell>
               <TableCell onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => exportSingleContact(member)}
-                    aria-label={`Get ${getDisplayName(member)}'s contact`}
-                  >
-                    {isIOS ? (
-                      <UserPlus className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Download className="h-4 w-4" aria-hidden="true" />
-                    )}
-                  </Button>
                   {isOwner && !member.is_owner && (
                     <Button
                       variant="ghost"
