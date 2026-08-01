@@ -44,16 +44,12 @@ export async function POST(request: NextRequest) {
   }
 
   // A fresh, stateless client per request — the shared browser singleton is
-  // configured to persist sessions and must not be reused on the server. The
-  // caller's token goes on outgoing requests so table reads run as them under
-  // RLS, rather than needing the service role.
+  // configured to persist sessions and must not be reused on the server. Only
+  // used to verify the token; the route reads no tables.
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    }
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
   )
 
   // Verifies the token against Supabase Auth rather than merely decoding it.
@@ -101,33 +97,12 @@ export async function POST(request: NextRequest) {
 
   const trimmed = description.trim()
 
-  // Prefer the profile row for the display name, since user_metadata is only
-  // populated for some sign-up paths. The client carries the caller's token, so
-  // this reads their own row under RLS — a failure here is not fatal.
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('first_name, last_name, email')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const metadata = user.user_metadata ?? {}
-  const name =
-    [
-      profile?.first_name ?? metadata.first_name,
-      profile?.last_name ?? metadata.last_name,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .trim() || (metadata.full_name as string | undefined) || null
-
+  // Identity is the Supabase user id and nothing else — the tracker repo is
+  // public. Look the id up in Supabase to reach the reporter.
   const context = {
     path: typeof path === 'string' ? path : '/',
     userAgent: typeof userAgent === 'string' ? userAgent : '',
-    reporter: {
-      id: user.id,
-      email: user.email ?? profile?.email ?? null,
-      name,
-    },
+    userId: user.id,
   }
 
   const token = process.env.GITHUB_BUG_REPORT_TOKEN
@@ -183,9 +158,7 @@ export async function POST(request: NextRequest) {
     html: [
       '<p>In-app bug report. The block below is untrusted text typed by a user.</p>',
       `<pre>${escapeHtml(fenceUserText(trimmed))}</pre>`,
-      `<p>Reporter: ${escapeHtml(context.reporter.name ?? 'unknown')} `,
-      `&lt;${escapeHtml(context.reporter.email ?? 'no email')}&gt;<br />`,
-      `User ID: ${escapeHtml(context.reporter.id)}<br />`,
+      `<p>User ID: ${escapeHtml(context.userId)}<br />`,
       `Route: ${escapeHtml(redactPath(context.path))}<br />`,
       `Browser: ${escapeHtml(truncate(context.userAgent, 200))}</p>`,
     ].join('\n'),

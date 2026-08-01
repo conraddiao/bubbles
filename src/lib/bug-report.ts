@@ -70,22 +70,20 @@ export function fenceUserText(text: string): string {
   return `${fence}text\n${text}\n${fence}`
 }
 
-export interface BugReporter {
-  id: string
-  email?: string | null
-  name?: string | null
-}
-
 export interface BugReportContext {
   path: string
   userAgent: string
-  reporter: BugReporter
+  /**
+   * Supabase user id only. The tracker repo is public, so the reporter's name
+   * and email stay out of the issue — look the id up in Supabase to follow up.
+   */
+  userId: string
 }
 
 /**
- * Names and emails are user-controlled too, so they get the same inert
- * treatment as the report body: escape backticks and pipes so a crafted value
- * cannot break out of its table cell.
+ * Values here are user-influenced, so they get the same inert treatment as the
+ * report body: strip backticks, pipes, and newlines so a crafted value cannot
+ * break out of its table cell.
  */
 function cell(value: string | null | undefined, fallback = 'unknown'): string {
   const cleaned = (value ?? '').replace(/[`|\r\n]/g, ' ').trim()
@@ -101,9 +99,7 @@ export function buildIssueBody(description: string, context: BugReportContext): 
     '',
     '| | |',
     '|---|---|',
-    `| Reporter | ${cell(context.reporter.name)} |`,
-    `| Email | ${cell(context.reporter.email)} |`,
-    `| User ID | ${cell(context.reporter.id)} |`,
+    `| User ID | ${cell(context.userId)} |`,
     `| Route | \`${redactPath(context.path)}\` |`,
     `| Browser | ${cell(context.userAgent)} |`,
   ].join('\n')

@@ -63,13 +63,11 @@ describe('truncate', () => {
 })
 
 describe('buildIssueBody', () => {
-  const reporter = { id: 'user-123', email: 'jane@example.com', name: 'Jane Doe' }
-
   it('fences the report and includes redacted context', () => {
     const body = buildIssueBody('Something broke', {
       path: '/group/secrettokenvalue',
       userAgent: 'Mozilla/5.0',
-      reporter,
+      userId: 'user-123',
     })
 
     expect(body).toContain('```text\nSomething broke\n```')
@@ -79,38 +77,36 @@ describe('buildIssueBody', () => {
     expect(body).toContain('untrusted text')
   })
 
-  it('includes the reporter name, email and id', () => {
+  it('identifies the reporter by user id only', () => {
     const body = buildIssueBody('Something broke', {
       path: '/dashboard',
       userAgent: 'Mozilla/5.0',
-      reporter,
+      userId: 'user-123',
     })
 
-    expect(body).toContain('| Reporter | `Jane Doe` |')
-    expect(body).toContain('| Email | `jane@example.com` |')
     expect(body).toContain('| User ID | `user-123` |')
+    // The tracker repo is public — no name or email may appear.
+    expect(body).not.toMatch(/Reporter|Email|@/)
   })
 
-  it('marks missing reporter details as unknown', () => {
+  it('marks a missing user agent as unknown', () => {
     const body = buildIssueBody('Something broke', {
       path: '/dashboard',
       userAgent: '',
-      reporter: { id: 'user-123', email: null, name: null },
+      userId: 'user-123',
     })
 
-    expect(body).toContain('| Reporter | unknown |')
-    expect(body).toContain('| Email | unknown |')
     expect(body).toContain('| Browser | unknown |')
   })
 
-  it('neutralises pipes and backticks so a crafted name cannot break the table', () => {
+  it('neutralises pipes and backticks so a crafted value cannot break the table', () => {
     const body = buildIssueBody('Something broke', {
       path: '/dashboard',
-      userAgent: 'Mozilla/5.0',
-      reporter: { id: 'user-123', email: 'a@b.c', name: 'Ev|il `injection`' },
+      userAgent: 'Ev|il `injection`',
+      userId: 'user-123',
     })
 
-    const reporterRow = body.split('\n').find((line) => line.startsWith('| Reporter |'))
-    expect(reporterRow).toBe('| Reporter | `Ev il  injection` |')
+    const browserRow = body.split('\n').find((line) => line.startsWith('| Browser |'))
+    expect(browserRow).toBe('| Browser | `Ev il  injection` |')
   })
 })
