@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 
 import {
   MAX_BUG_DESCRIPTION_LENGTH,
@@ -34,27 +34,31 @@ function isRateLimited(userId: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = createServerClient(
+  // The browser client persists its session to localStorage rather than
+  // cookies, so the access token has to travel in the Authorization header.
+  const authHeader = request.headers.get('authorization')
+  const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
+
+  if (!accessToken) {
+    return NextResponse.json({ error: 'You need to be signed in to report a bug.' }, { status: 401 })
+  }
+
+  // A fresh, stateless client per request — the shared browser singleton is
+  // configured to persist sessions and must not be reused on the server.
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        // Read-only request — nothing to write back.
-        setAll() {},
-      },
-    }
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
   )
 
-  // Reports are only reachable from the signed-in header menu. Requiring a
-  // session here keeps the public issue tracker from being an open write
+  // Verifies the token against Supabase Auth rather than merely decoding it.
+  // Reports are only reachable from the signed-in header menu, and requiring a
+  // real session keeps the public issue tracker from being an open write
   // endpoint.
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser(accessToken)
 
   if (authError || !user) {
     return NextResponse.json({ error: 'You need to be signed in to report a bug.' }, { status: 401 })

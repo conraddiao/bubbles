@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 
 import { MAX_BUG_DESCRIPTION_LENGTH } from '@/lib/bug-report'
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset'
+import { supabase } from '@/lib/supabase'
 
 const CLOSE_DELAY_MS = 1000
 
@@ -72,9 +73,20 @@ function ReportBugForm({ onDone }: { onDone: () => void }) {
     setError(null)
 
     try {
+      // The session lives in localStorage, so the server can't read it from
+      // cookies — pass the access token explicitly.
+      const { data } = await supabase.auth.getSession()
+      const accessToken = data?.session?.access_token
+      if (!accessToken) {
+        throw new Error('You need to be signed in to report a bug.')
+      }
+
       const response = await fetch('/api/bug-report', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           description: trimmed,
           path: window.location.pathname,

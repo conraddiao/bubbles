@@ -3,13 +3,19 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { render } from '@/test/utils'
 import { ReportBugSheet } from '../report-bug-sheet'
+import { supabase } from '@/lib/supabase'
 
 const fetchMock = vi.fn()
+const getSessionMock = vi.mocked(supabase.auth.getSession)
 
 beforeEach(() => {
   vi.clearAllMocks()
   fetchMock.mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
   vi.stubGlobal('fetch', fetchMock)
+  getSessionMock.mockResolvedValue({
+    data: { session: { access_token: 'test-access-token' } },
+    error: null,
+  } as unknown as Awaited<ReturnType<typeof supabase.auth.getSession>>)
 })
 
 afterEach(() => {
@@ -57,6 +63,7 @@ describe('ReportBugSheet', () => {
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('/api/bug-report')
     expect(init.method).toBe('POST')
+    expect(init.headers.Authorization).toBe('Bearer test-access-token')
     const body = JSON.parse(init.body as string)
     expect(body.description).toBe('QR code will not scan')
     expect(body).toHaveProperty('path')
@@ -95,6 +102,23 @@ describe('ReportBugSheet', () => {
     )
     expect(screen.getByLabelText('What went wrong?')).toHaveValue('Broken')
     expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
+  it('does not call the API when there is no session', async () => {
+    getSessionMock.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    } as unknown as Awaited<ReturnType<typeof supabase.auth.getSession>>)
+    const user = userEvent.setup()
+    render(<ReportBugSheet open onOpenChange={vi.fn()} />)
+
+    await user.type(screen.getByLabelText('What went wrong?'), 'Broken')
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'You need to be signed in to report a bug.'
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('resets the form once closed', async () => {
