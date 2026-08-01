@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Users, Smartphone, Share2, UserPlus, ChevronDown, Loader2, Download } from 'lucide-react'
+import { Trash2, Users, Smartphone, Share2, ChevronDown, Loader2, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -88,33 +88,32 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   const generateBulkVCard = (memberList: GroupMember[]): string =>
     generateBulkVCardBase(memberList, groupName)
 
-  // Detect newly joined members for animation + prune stale selections
+  // Detect newly joined members for animation + keep the selection in sync.
+  // Members are selected by default, so every id we haven't seen before starts
+  // out selected and ids that disappear are dropped.
   useEffect(() => {
     if (!members) return
     const currentIds = new Set(members.map(m => m.id))
-    // Drop any selected ids that no longer exist (member left, removed, etc.)
-    setSelectedMemberIds(prev => {
-      let shrunk = false
-      const next = new Set<string>()
-      for (const id of prev) {
-        if (currentIds.has(id)) next.add(id)
-        else shrunk = true
-      }
-      return shrunk ? next : prev
-    })
-    if (isInitialLoadRef.current) {
-      isInitialLoadRef.current = false
-      knownMemberIdsRef.current = currentIds
-      return
-    }
     const freshIds = new Set<string>()
     for (const id of currentIds) {
       if (!knownMemberIdsRef.current.has(id)) {
         freshIds.add(id)
       }
     }
+    setSelectedMemberIds(prev => {
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (currentIds.has(id)) next.add(id)
+      }
+      for (const id of freshIds) next.add(id)
+      const unchanged = next.size === prev.size && [...next].every(id => prev.has(id))
+      return unchanged ? prev : next
+    })
+    const wasInitialLoad = isInitialLoadRef.current
+    isInitialLoadRef.current = false
     knownMemberIdsRef.current = currentIds
-    if (freshIds.size > 0) {
+    // Don't animate the first paint — only members who arrive while watching.
+    if (!wasInitialLoad && freshIds.size > 0) {
       if (animationTimerRef.current) clearTimeout(animationTimerRef.current)
       setNewMemberIds(prev => new Set([...prev, ...freshIds]))
       animationTimerRef.current = setTimeout(() => {
@@ -176,18 +175,22 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
     window.location.href = `data:text/x-vcard;charset=utf-8,${encodeURIComponent(content)}`
   }
 
-  const downloadViaShare = async (content: string, filename: string) => {
+  // Resolves false when the user dismissed the share sheet without sharing, so
+  // callers can skip the success toast instead of claiming an export happened.
+  const downloadViaShare = async (content: string, filename: string): Promise<boolean> => {
     const blob = new Blob([content], { type: 'text/x-vcard;charset=utf-8' })
     const file = new File([blob], filename, { type: blob.type })
     if (!navigator.canShare?.({ files: [file] })) {
       downloadViaDataUri(content)
-      return
+      return true
     }
     try {
       await navigator.share({ files: [file] })
+      return true
     } catch (error) {
-      if ((error as { name?: string }).name === 'AbortError') return
+      if ((error as { name?: string }).name === 'AbortError') return false
       downloadViaDataUri(content)
+      return true
     }
   }
 
@@ -210,7 +213,10 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
       setIsExporting(true)
       const content = generateBulkVCard(members)
       const filename = `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_all_contacts.vcf`
-      if (via === 'share') await downloadViaShare(content, filename)
+      if (via === 'share') {
+        // Dismissing the share sheet is not an export — stay quiet.
+        if (!(await downloadViaShare(content, filename))) return
+      }
       else if (via === 'direct') downloadViaDataUri(content)
       else downloadViaBlob(content, filename)
       toast.success(`All ${members.length} contacts exported`)
@@ -241,21 +247,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
   const getSelectedMembers = () =>
     (members ?? []).filter(m => selectedMemberIds.has(m.id))
 
-  // Export a single member's vCard. Synchronous on iOS — do NOT await before
-  // calling downloadViaDataUri or Safari will block the data: navigation.
-  const exportSingleContact = (member: GroupMember) => {
-    try {
-      const content = generateVCard(member)
-      if (isIOS) {
-        downloadViaDataUri(content)
-      } else {
-        downloadViaBlob(content, getSingleContactFilename(member))
-      }
-    } catch {
-      toast.error('Failed to export contact')
-    }
-  }
-
   const exportSelectedContacts = async (via: 'share' | 'direct' | 'auto' = 'auto') => {
     const selected = getSelectedMembers()
     if (selected.length === 0) return toast.error('No members selected')
@@ -266,7 +257,10 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
       const filename = isSingle
         ? getSingleContactFilename(selected[0])
         : `${groupName.replace(/[^a-zA-Z0-9]/g, '_')}_selected_${selected.length}.vcf`
-      if (via === 'share') await downloadViaShare(content, filename)
+      if (via === 'share') {
+        // Dismissing the share sheet is not an export — stay quiet.
+        if (!(await downloadViaShare(content, filename))) return
+      }
       else if (via === 'direct') downloadViaDataUri(content)
       else downloadViaBlob(content, filename)
       toast.success(
@@ -303,7 +297,6 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send')
       toast.success('Contacts sent! Check your messages.')
-      if (selectionCount > 0) clearSelection()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to send contacts via SMS')
     } finally { setIsSending(false) }
@@ -351,18 +344,13 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {/* "Add" lives on the Get Contacts button, not in here. */}
                   {selectionCount > 0 ? (
                     isIOS ? (
-                      <>
-                        <DropdownMenuItem onClick={() => exportSelectedContacts('direct')}>
-                          <UserPlus className="h-4 w-4" />
-                          Add Selected ({selectionCount})
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => exportSelectedContacts('share')}>
-                          <Share2 className="h-4 w-4" />
-                          Share Selected ({selectionCount})
-                        </DropdownMenuItem>
-                      </>
+                      <DropdownMenuItem onClick={() => exportSelectedContacts('share')}>
+                        <Share2 className="h-4 w-4" />
+                        Share Selected ({selectionCount})
+                      </DropdownMenuItem>
                     ) : (
                       <DropdownMenuItem onClick={() => exportSelectedContacts()}>
                         <Download className="h-4 w-4" />
@@ -370,16 +358,10 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                       </DropdownMenuItem>
                     )
                   ) : isIOS ? (
-                    <>
-                      <DropdownMenuItem onClick={() => exportAllContacts('direct')}>
-                        <UserPlus className="h-4 w-4" />
-                        Add All ({totalMembers})
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => exportAllContacts('share')}>
-                        <Share2 className="h-4 w-4" />
-                        Share All ({totalMembers})
-                      </DropdownMenuItem>
-                    </>
+                    <DropdownMenuItem onClick={() => exportAllContacts('share')}>
+                      <Share2 className="h-4 w-4" />
+                      Share All ({totalMembers})
+                    </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem onClick={() => exportAllContacts()}>
                       <Download className="h-4 w-4" />
@@ -489,14 +471,20 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
 
   const mobileList = (
     <div className="flex flex-col gap-3 md:hidden">
-      {members.map((member) => (
+      {members.map((member) => {
+        const isSelected = selectedMemberIds.has(member.id)
+        return (
         <div
           key={member.id}
-          className={`rounded-lg border bg-card/50 p-3 shadow-sm${newMemberIds.has(member.id) ? ' animate-bubble-enter' : ''}`}
+          onClick={() => toggleMember(member.id)}
+          className={`cursor-pointer rounded-lg border p-3 shadow-sm transition-opacity ${
+            isSelected ? 'bg-card/50' : 'bg-card/20 opacity-55'
+          }${newMemberIds.has(member.id) ? ' animate-bubble-enter' : ''}`}
         >
           <div className="flex items-center gap-3">
             <Checkbox
-              checked={selectedMemberIds.has(member.id)}
+              checked={isSelected}
+              onClick={(e) => e.stopPropagation()}
               onCheckedChange={() => toggleMember(member.id)}
               aria-label={`Select ${getDisplayName(member)}`}
               className="shrink-0"
@@ -513,20 +501,11 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => exportSingleContact(member)}
-                aria-label={`Get ${getDisplayName(member)}'s contact`}
+            {isOwner && !member.is_owner && (
+              <div
+                className="flex items-center gap-1"
+                onClick={(e) => e.stopPropagation()}
               >
-                {isIOS ? (
-                  <UserPlus className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Download className="h-4 w-4" aria-hidden="true" />
-                )}
-              </Button>
-              {isOwner && !member.is_owner && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -537,11 +516,12 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 
@@ -562,11 +542,17 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members.map((member) => (
-            <TableRow key={member.id} className={newMemberIds.has(member.id) ? 'animate-bubble-enter' : ''}>
-              <TableCell className="w-[40px]">
+          {members.map((member) => {
+            const isSelected = selectedMemberIds.has(member.id)
+            return (
+            <TableRow
+              key={member.id}
+              onClick={() => toggleMember(member.id)}
+              className={`cursor-pointer${isSelected ? '' : ' opacity-55'}${newMemberIds.has(member.id) ? ' animate-bubble-enter' : ''}`}
+            >
+              <TableCell className="w-[40px]" onClick={(e) => e.stopPropagation()}>
                 <Checkbox
-                  checked={selectedMemberIds.has(member.id)}
+                  checked={isSelected}
                   onCheckedChange={() => toggleMember(member.id)}
                   aria-label={`Select ${getDisplayName(member)}`}
                 />
@@ -585,20 +571,8 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                   </div>
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => exportSingleContact(member)}
-                    aria-label={`Get ${getDisplayName(member)}'s contact`}
-                  >
-                    {isIOS ? (
-                      <UserPlus className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Download className="h-4 w-4" aria-hidden="true" />
-                    )}
-                  </Button>
                   {isOwner && !member.is_owner && (
                     <Button
                       variant="ghost"
@@ -614,7 +588,8 @@ export function MemberList({ groupId, groupName, isOwner, layout = 'card' }: Mem
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            )
+          })}
         </TableBody>
       </Table>
     </div>
