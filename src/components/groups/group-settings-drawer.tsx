@@ -139,9 +139,11 @@ export function GroupSettingsDrawer({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-[#1C1713]/40 data-[state=open]:animate-fade-up-in" />
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-[#1C1713]/40 data-[state=open]:animate-fade-up-in data-[state=closed]:animate-fade-out" />
+        {/* Radix holds the content mounted until the closed-state animation
+            finishes, so the sheet slides back down instead of vanishing. */}
         <Dialog.Content
-          className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-[#FEFAF4] p-5 shadow-2xl focus:outline-none data-[state=open]:animate-fade-up-in"
+          className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-[#FEFAF4] p-5 shadow-2xl focus:outline-none data-[state=open]:animate-fade-up-in data-[state=closed]:animate-sheet-down-out"
           aria-describedby={undefined}
         >
           {/* Drag handle */}

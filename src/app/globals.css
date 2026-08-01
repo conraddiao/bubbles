@@ -180,12 +180,31 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* Bottom sheets leave the way they arrived — down and off the bottom edge. */
+@keyframes sheet-down-out {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(100%); }
+}
+
+@keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .animate-bubble-enter {
   animation: bubble-enter var(--duration-medium) var(--ease-spring) both;
 }
 
 .animate-fade-up-in {
   animation: fade-up-in var(--duration-short) var(--ease-enter) both;
+}
+
+.animate-sheet-down-out {
+  animation: sheet-down-out var(--duration-short) var(--ease-exit) both;
+}
+
+.animate-fade-out {
+  animation: fade-out var(--duration-short) var(--ease-exit) both;
 }
 
 .active-scale {
@@ -197,7 +216,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-bubble-enter,
-  .animate-fade-up-in {
+  .animate-fade-up-in,
+  .animate-sheet-down-out,
+  .animate-fade-out {
     animation: none;
   }
   .active-scale:active {
