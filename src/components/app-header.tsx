@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { ArrowLeft, LogOut, Settings } from 'lucide-react'
+import { ArrowLeft, Bug, LogOut, Settings } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ReportBugSheet } from '@/components/report-bug-sheet'
 import { useAuth } from '@/hooks/use-auth'
 
 export function AppHeader() {
@@ -37,6 +38,8 @@ export function AppHeader() {
     ? `${firstInitial}${lastInitial}`
     : firstInitial || '?'
   const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture
+
+  const [bugSheetOpen, setBugSheetOpen] = useState(false)
 
   const [classicCards, setClassicCards] = useState(() => {
     if (typeof document === 'undefined') return false
@@ -118,6 +121,10 @@ export function AppHeader() {
               Classic Cards
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setBugSheetOpen(true)}>
+              <Bug className="size-4" />
+              Report a Bug
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={handleSignOut}>
               <LogOut className="size-4" />
               Sign Out
@@ -125,6 +132,8 @@ export function AppHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ReportBugSheet open={bugSheetOpen} onOpenChange={setBugSheetOpen} />
     </header>
   )
 }
