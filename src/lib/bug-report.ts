@@ -70,9 +70,26 @@ export function fenceUserText(text: string): string {
   return `${fence}text\n${text}\n${fence}`
 }
 
+export interface BugReporter {
+  id: string
+  email?: string | null
+  name?: string | null
+}
+
 export interface BugReportContext {
   path: string
   userAgent: string
+  reporter: BugReporter
+}
+
+/**
+ * Names and emails are user-controlled too, so they get the same inert
+ * treatment as the report body: escape backticks and pipes so a crafted value
+ * cannot break out of its table cell.
+ */
+function cell(value: string | null | undefined, fallback = 'unknown'): string {
+  const cleaned = (value ?? '').replace(/[`|\r\n]/g, ' ').trim()
+  return cleaned ? `\`${truncate(cleaned, 200)}\`` : fallback
 }
 
 export function buildIssueBody(description: string, context: BugReportContext): string {
@@ -84,7 +101,10 @@ export function buildIssueBody(description: string, context: BugReportContext): 
     '',
     '| | |',
     '|---|---|',
+    `| Reporter | ${cell(context.reporter.name)} |`,
+    `| Email | ${cell(context.reporter.email)} |`,
+    `| User ID | ${cell(context.reporter.id)} |`,
     `| Route | \`${redactPath(context.path)}\` |`,
-    `| Browser | \`${truncate(context.userAgent, 200) || 'unknown'}\` |`,
+    `| Browser | ${cell(context.userAgent)} |`,
   ].join('\n')
 }

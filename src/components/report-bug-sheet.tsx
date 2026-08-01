@@ -21,7 +21,7 @@ export function ReportBugSheet({ open, onOpenChange }: ReportBugSheetProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-[#1C1713]/40 data-[state=open]:animate-fade-up-in" />
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-[#1C1713]/40 data-[state=open]:animate-fade-up-in data-[state=closed]:animate-fade-out" />
         <Dialog.Content
           // Lift the sheet above the on-screen keyboard and cap it to what is
           // left of the viewport, so the textarea and CTA stay reachable.
@@ -29,7 +29,9 @@ export function ReportBugSheet({ open, onOpenChange }: ReportBugSheetProps) {
             bottom: keyboardInset,
             maxHeight: viewportHeight ? viewportHeight - 16 : undefined,
           }}
-          className="fixed left-0 right-0 z-50 flex flex-col rounded-t-2xl bg-[#FEFAF4] p-5 shadow-2xl focus:outline-none data-[state=open]:animate-fade-up-in"
+          // Radix defers the unmount until the exit animation finishes, so the
+          // thank-you stays visible as the sheet slides away.
+          className="fixed left-0 right-0 z-50 flex flex-col rounded-t-2xl bg-[#FEFAF4] p-5 shadow-2xl focus:outline-none data-[state=open]:animate-fade-up-in data-[state=closed]:animate-sheet-slide-down-out"
           aria-describedby={undefined}
         >
           <div className="mb-4 flex items-center gap-3">

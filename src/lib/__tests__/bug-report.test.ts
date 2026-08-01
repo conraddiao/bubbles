@@ -63,10 +63,13 @@ describe('truncate', () => {
 })
 
 describe('buildIssueBody', () => {
+  const reporter = { id: 'user-123', email: 'jane@example.com', name: 'Jane Doe' }
+
   it('fences the report and includes redacted context', () => {
     const body = buildIssueBody('Something broke', {
       path: '/group/secrettokenvalue',
       userAgent: 'Mozilla/5.0',
+      reporter,
     })
 
     expect(body).toContain('```text\nSomething broke\n```')
@@ -74,5 +77,40 @@ describe('buildIssueBody', () => {
     expect(body).not.toContain('secrettokenvalue')
     expect(body).toContain('Mozilla/5.0')
     expect(body).toContain('untrusted text')
+  })
+
+  it('includes the reporter name, email and id', () => {
+    const body = buildIssueBody('Something broke', {
+      path: '/dashboard',
+      userAgent: 'Mozilla/5.0',
+      reporter,
+    })
+
+    expect(body).toContain('| Reporter | `Jane Doe` |')
+    expect(body).toContain('| Email | `jane@example.com` |')
+    expect(body).toContain('| User ID | `user-123` |')
+  })
+
+  it('marks missing reporter details as unknown', () => {
+    const body = buildIssueBody('Something broke', {
+      path: '/dashboard',
+      userAgent: '',
+      reporter: { id: 'user-123', email: null, name: null },
+    })
+
+    expect(body).toContain('| Reporter | unknown |')
+    expect(body).toContain('| Email | unknown |')
+    expect(body).toContain('| Browser | unknown |')
+  })
+
+  it('neutralises pipes and backticks so a crafted name cannot break the table', () => {
+    const body = buildIssueBody('Something broke', {
+      path: '/dashboard',
+      userAgent: 'Mozilla/5.0',
+      reporter: { id: 'user-123', email: 'a@b.c', name: 'Ev|il `injection`' },
+    })
+
+    const reporterRow = body.split('\n').find((line) => line.startsWith('| Reporter |'))
+    expect(reporterRow).toBe('| Reporter | `Ev il  injection` |')
   })
 })
