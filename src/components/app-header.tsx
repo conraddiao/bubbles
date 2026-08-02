@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { ArrowLeft, Bug, LogOut, Settings } from 'lucide-react'
+import { ArrowLeft, Bug, LogOut, QrCode, Settings } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -118,7 +118,8 @@ export function AppHeader() {
               checked={classicCards}
               onCheckedChange={handleClassicCardsToggle}
             >
-              Classic Cards
+              <QrCode className="size-4 text-muted-foreground" />
+              Switch QR Style
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setBugSheetOpen(true)}>
