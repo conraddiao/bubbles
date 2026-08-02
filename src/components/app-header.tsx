@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { ArrowLeft, Bug, LogOut, Settings } from 'lucide-react'
+import { ArrowLeft, Bug, LogOut, QrCode, Settings } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -114,12 +113,10 @@ export function AppHeader() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={classicCards}
-              onCheckedChange={handleClassicCardsToggle}
-            >
-              Classic Cards
-            </DropdownMenuCheckboxItem>
+            <DropdownMenuItem onSelect={() => handleClassicCardsToggle(!classicCards)}>
+              <QrCode className="size-4" />
+              Switch QR Style
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setBugSheetOpen(true)}>
               <Bug className="size-4" />
