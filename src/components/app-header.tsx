@@ -8,7 +8,6 @@ import { ArrowLeft, Bug, LogOut, QrCode, Settings } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -114,13 +113,10 @@ export function AppHeader() {
               Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={classicCards}
-              onCheckedChange={handleClassicCardsToggle}
-            >
-              <QrCode className="size-4 text-muted-foreground" />
+            <DropdownMenuItem onSelect={() => handleClassicCardsToggle(!classicCards)}>
+              <QrCode className="size-4" />
               Switch QR Style
-            </DropdownMenuCheckboxItem>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => setBugSheetOpen(true)}>
               <Bug className="size-4" />
