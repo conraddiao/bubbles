@@ -39,6 +39,7 @@ interface GroupDetailProps {
   showSuccessToast?: boolean
   showQrCode?: boolean
   showCube?: boolean
+  showPrintSheet?: boolean
 }
 
 type ContactGroupRow = Database['public']['Tables']['contact_groups']['Row']
@@ -53,7 +54,7 @@ type GroupMember = {
   is_owner: boolean
 }
 
-export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCube = true }: GroupDetailProps) {
+export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCube = true, showPrintSheet = true }: GroupDetailProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -191,6 +192,8 @@ export function GroupDetail({ token, showSuccessToast, showQrCode = true, showCu
         onSettingsClick={() => setDrawerOpen(true)}
         showQrCode={showQrCode}
         showCube={showCube}
+        printHref={`/group/${group.share_token}/print`}
+        canPrint={isOwner && showPrintSheet}
       />
 
       {/* Share link analytics — owner only */}

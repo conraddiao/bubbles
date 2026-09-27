@@ -8,9 +8,10 @@ interface GroupPageClientProps {
   params: Promise<{ token: string }>
   showQrCode: boolean
   showCube: boolean
+  showPrintSheet: boolean
 }
 
-export function GroupPageClient({ params, showQrCode, showCube }: GroupPageClientProps) {
+export function GroupPageClient({ params, showQrCode, showCube, showPrintSheet }: GroupPageClientProps) {
   const searchParams = useSearchParams()
   const resolvedParams = use(params)
   const showSuccessToast = searchParams.get('created') === 'true'
@@ -21,6 +22,7 @@ export function GroupPageClient({ params, showQrCode, showCube }: GroupPageClien
       showSuccessToast={showSuccessToast}
       showQrCode={showQrCode}
       showCube={showCube}
+      showPrintSheet={showPrintSheet}
     />
   )
 }

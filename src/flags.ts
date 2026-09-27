@@ -34,3 +34,11 @@ export const showLandingPageCopy = flag<boolean>({
     ? { adapter: vercelAdapter() as never }
     : { decide: () => false }),
 })
+
+export const showPrintSheet = flag<boolean>({
+  key: 'showPrintSheet',
+  defaultValue: true,
+  ...(hasFlags
+    ? { adapter: vercelAdapter() as never }
+    : { decide: () => true }),
+})
