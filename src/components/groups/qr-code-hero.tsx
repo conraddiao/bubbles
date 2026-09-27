@@ -1,8 +1,9 @@
 'use client'
 
 import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Pencil, Share } from 'lucide-react'
+import { Copy, Pencil, Printer, Share } from 'lucide-react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 import { SquircleBackground } from './squircle-background'
 
 interface QrCodeHeroProps {
@@ -12,9 +13,13 @@ interface QrCodeHeroProps {
   onSettingsClick?: () => void
   showQrCode?: boolean
   showCube?: boolean
+  /** Link to the printable join sheet. */
+  printHref?: string
+  /** Owner-only, flag-gated: show the Print sign action. */
+  canPrint?: boolean
 }
 
-export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, showQrCode = true, showCube = true }: QrCodeHeroProps) {
+export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, showQrCode = true, showCube = true, printHref, canPrint = false }: QrCodeHeroProps) {
   const handleCopyLink = async () => {
     if (!shareUrl) return
     try {
@@ -39,7 +44,7 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, 
   }
 
   return (
-    <div className="relative flex h-[520px] flex-col items-center justify-between overflow-hidden bg-[#E8622A] px-6 py-10">
+    <div className="relative flex min-h-[520px] flex-col items-center justify-between overflow-hidden bg-[#E8622A] px-6 py-10">
       {showCube && <SquircleBackground shareUrl={shareUrl} />}
       {onSettingsClick && (
         <button
@@ -79,21 +84,33 @@ export function QrCodeHero({ groupName, shareUrl, memberCount, onSettingsClick, 
         <div className="h-[232px] w-[232px] animate-pulse rounded-2xl bg-[#FEFAF4]/20" />
       ))}
 
-      <div className="relative z-10 flex w-full max-w-xs gap-3">
-        <button
-          onClick={handleCopyLink}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 bg-[#E8622A] py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
-        >
-          <Copy className="h-4 w-4" aria-hidden="true" />
-          Copy link
-        </button>
-        <button
-          onClick={handleShare}
-          className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 bg-[#E8622A] py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
-        >
-          <Share className="h-4 w-4" aria-hidden="true" />
-          Share
-        </button>
+      <div className="relative z-10 flex w-full max-w-xs flex-col gap-3">
+        <div className="flex gap-3">
+          <button
+            onClick={handleCopyLink}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 bg-[#E8622A] py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
+          >
+            <Copy className="h-4 w-4" aria-hidden="true" />
+            Copy link
+          </button>
+          <button
+            onClick={handleShare}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-[#FEFAF4]/60 bg-[#E8622A] py-2.5 text-sm font-semibold text-[#FEFAF4] transition-colors hover:bg-[#FEFAF4]/10 font-label active-scale"
+          >
+            <Share className="h-4 w-4" aria-hidden="true" />
+            Share
+          </button>
+        </div>
+
+        {canPrint && printHref && (
+          <Link
+            href={printHref}
+            className="flex items-center justify-center gap-2 rounded-full bg-[#FEFAF4] py-2.5 text-sm font-semibold text-[#B84A1A] transition-colors hover:bg-[#F5C4AB] font-label active-scale"
+          >
+            <Printer className="h-4 w-4" aria-hidden="true" />
+            Print sign
+          </Link>
+        )}
       </div>
     </div>
   )
